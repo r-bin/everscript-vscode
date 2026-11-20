@@ -9,7 +9,7 @@ import type { Home } from './base.mts';
 import type { Item, Rule, Span, Window } from './codec.mts';
 
 const BANK = 0x10000, HALF = 0x8000;
-const ruleKey = (r: Rule) => `${!!r.upperHalf}/${!!r.lowerHalf}/${!!r.noCrossBank}/${r.maxSize ?? ''}/${r.below ?? ''}/${r.window ? r.window.from + '-' + r.window.to : ''}`;
+const ruleKey = (r: Rule) => `${!!r.upperHalf}/${!!r.lowerHalf}/${!!r.noCrossBank}/${r.maxSize ?? ''}/${r.below ?? ''}/${r.above ?? ''}/${r.bankOffset ?? ''}/${r.window ? r.window.from + '-' + r.window.to : ''}`;
 
 /** Position of file offset `at` (an upper half inside the window) in the window's space. */
 export const windowPos = (w: Window, at: number): number => ((at >> 16) - w.from) * HALF + (at & (HALF - 1));
@@ -89,9 +89,13 @@ export function normalise(spans: Span[]): Span[] {
 /** The first start at or after `from` inside `span` where `len` bytes obey `rule`; -1 if none. */
 export function fitIn(span: Span, len: number, rule: Rule, from = span.start): number {
     if (rule.maxSize !== undefined && len > rule.maxSize) return -1;
-    let s = from;
+    let s = Math.max(from, rule.above ?? 0);
     while (s + len <= span.end) {
         if (rule.below !== undefined && s + len > rule.below) return -1;
+        if (rule.bankOffset !== undefined && (s & (BANK - 1)) !== rule.bankOffset) {
+            const t = (s & ~(BANK - 1)) | rule.bankOffset;
+            s = t >= s ? t : t + BANK; continue;
+        }
         if (rule.upperHalf && (s & (BANK - 1)) < HALF) { s = (s & ~(BANK - 1)) + HALF; continue; }
         if (rule.lowerHalf && (s & (BANK - 1)) >= HALF) { s = (s & ~(BANK - 1)) + BANK; continue; }
         if ((rule.noCrossBank || rule.upperHalf) && (s >> 16) !== ((s + len - 1) >> 16)) { s = (s & ~(BANK - 1)) + BANK; continue; }

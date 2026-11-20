@@ -42,3 +42,9 @@ Boy (`$0A26`) and the Dog (`$0A70`) have theirs in WRAM, reached through the sam
 The Boy's and the Dog's WRAM records are rewritten by the weapon (`$8F:81C9`: `+$13` reach,
 `+$32`-`+$48`, `+$09`, `+$2C` = weapon level × `$400`) and Dog form (`$8F:9471`) loaders, and by
 the Dog's attack level (`$8F:97C0`: `+$2C`).
+
+Besides the ENEMY table, code names five records by their 16-bit address in an immediate (found by a scan of
+recorded code, 2026-11-20, Open Evermore): `$B678` (record 0, the `mvn` source of `$8F:803C`), `$C8F8`, `$C208`
+(three times) and `$CE2C`. So a record cannot move inside its bank without rewriting those; Open Evermore keeps the
+block at `$B678` and moves only its bank (the `mvn` source byte and the 131 `op $8E00xx,X` operands, all in the
+`$8E` form).

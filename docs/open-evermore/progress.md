@@ -2,11 +2,11 @@
 
 Back to [README.md](README.md). Update this page in the same commit as every step.
 
-Legend: ⬜ not started · 🟨 in progress · ✅ done · — not applicable
+Legend: 🟩 tested and working · 🟨 in progress, or works with a known gap · 🟥 open or not working · — not applicable
 
 ## 1. Kinds
 
-A kind is **done** when all columns are ✅:
+A kind is **done** when all columns are 🟩:
 
 - **Explode**: it writes its folder by name, with its `_enum.json`, losslessly.
 - **Implode**: it encodes the folder and generates every table that reaches it (the hard rule, README.md §1).
@@ -17,30 +17,35 @@ A kind is **done** when all columns are ✅:
 
 | Step | Kind | Explode | Implode | G0 | Random | Proven | VFS by name | Notes |
 |---|---|---|---|---|---|---|---|---|
-| S1 | maps (127 rooms) | ✅ | ✅ | ✅ | ✅ | ✅ (~10 rooms visited) | ⬜ (by hex id) | v6: map.json + grid.txt + metatiles.json (words as text) + objects.json (states as cells) + preview.png; cuttable grass as metatiles; uncompressed with the compression noted (237/241 LZSS + all Markov reproduced; 4 blocks keep `packed`); only script ids still numbers (S6). The Rooms tab reads it |
-| S2 | tile families (365) | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ (no VFS folder yet) | one array item + the loader's two operands; maps name families; JSON (with the maps using it) or `--families png`; names `family_<id>` |
-| S3 | tiles (6,688) | ✅ | ✅ | ✅ | ✅ | ✅ 3 of 4 seeds | ⬜ (by hex id) | indexed PNG (default) or JSON rows; the table at `$EE0000`; 6,682 re-encoded byte for byte, 6 keep `encoded`; maps name graphics and animation frames; names `tile_<id>` |
-| S4 | strings (3,002) | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ (by index) | `.txt` per string in our lossless text form; key table generated; 2,157 keep vanilla bytes (vanilla's compressor not reproduced yet) |
-| S5 | music, sounds | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ (by hex id) | then: a copied track under a new name plays (G2) |
-| S6 | scripts (3,288) | ✅ | ✅ | ✅ | ✅ | ✅ seed 1 | ⬜ (by address) | one `.txt` per script, a command per line, `@name` for a script; groups tied by relative calls; the pointer table generated; placed in the `$92–$BF` window; jumps inside a script still offsets |
-| S7 | characters, sprites, animations | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | explored: [animations.md](animations.md) (record ids fixed by code, shared bodies, absolute jumps) |
-| S8 | header | ⬜ | ⬜ | ⬜ | — | — | ⬜ (`header.json` exists) | fixed by hardware at `$FFC0`; vectors by routine name once code is a kind |
-| S9 | code | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ✅ by name already | only routines whose every caller is symbolic; the rest stays in `_base/` |
+| S1 | maps (127 rooms) | 🟩 | 🟩 | 🟩 | 🟩 | 🟩 (~10 rooms visited) | 🟥 (by hex id) | v6: map.json + grid.txt + metatiles.json + objects.json + preview.png; the enter script and every trigger's script by name in map.json; the room's scripts in its `scripts/` folder. The Rooms tab reads it |
+| S2 | tile families (365) | 🟩 | 🟩 | 🟩 | 🟩 | 🟩 | 🟥 (no VFS folder yet) | one array item + the loader's two operands; JSON or `--families png` |
+| S3 | tiles (6,688) | 🟩 | 🟩 | 🟩 | 🟩 | 🟨 3 of 4 seeds | 🟥 (by hex id) | indexed PNG (default) or JSON rows; 6 keep `encoded` |
+| S4 | strings (3,002) | 🟩 | 🟩 | 🟩 | 🟩 | 🟩 | 🟥 (by index) | `.txt` per string; 2,157 keep vanilla bytes (vanilla's compressor not reproduced) |
+| S5 | music, sounds | 🟥 | 🟥 | 🟥 | 🟥 | 🟥 | 🟥 (by hex id) | then: a copied track under a new name plays (G2) |
+| S6 | scripts (3,288) | 🟩 | 🟩 | 🟩 | 🟩 | 🟩 seed 1 | 🟥 (by address) | one `.txt` per script, the opcode by name; 2,746 in their room's folder, the rest in `scripts/`; jumps inside a script still offsets |
+| S6b | opcodes (195) | 🟩 | 🟩 | 🟩 | — (the table stays in `$8C`) | 🟩 | 🟥 | `opcodes/<name>.json` (handler); the dispatch table generated in place; scripts use the names |
+| S7a | animate ids (212) | 🟩 | 🟩 | 🟩 | 🟩 | 🟩 alone, seeds 1, 2, 3, 7 | 🟥 | the id table a generated item; records stay in `_base/` ([animations.md](animations.md)) |
+| S7b | characters (142) + enemies (143) | 🟩 | 🟩 | 🟩 | 🟩 (the bank moves) | 🟩 alone, seeds 1, 2, 3, 7 | 🟥 | records as named fields, one block at `$xx:B678`; the enemy index generated; 132 bank operands rewritten |
+| S7c | sprite blocks 16×16 (4,854) and 8×8 (6,265) | 🟩 | 🟩 | 🟩 | 🟩 | 🟩 alone, seeds 1, 2, 3, 7 | 🟥 | indexed grey PNG per block; compressed exactly when shorter (vanilla's rule); one alias (8×8 6085) |
+| S7d | animation records, animation scripts, sprite infos, palettes | 🟥 | 🟥 | 🟥 | 🟥 | 🟥 | 🟥 | explored: [animations.md](animations.md) (record ids fixed by code, shared bodies, absolute jumps, 19 unknown widths) |
+| S8 | header | 🟥 | 🟥 | 🟥 | — | — | 🟨 (`header.json` exists) | fixed by hardware at `$FFC0`; vectors by routine name once code is a kind |
+| S9 | code | 🟥 | 🟥 | 🟥 | 🟥 | 🟥 | 🟩 by name already | only routines whose every caller is symbolic; the rest stays in `_base/` |
 
 ## 2. Beyond
 
 | Capability | State | Proven by |
 |---|---|---|
-| a proof over every room (a playback that enters all 127) | ⬜ | `prove` |
-| a changed or new resource (G2) | 🟨 maps: a map's files replaced (boots into it), a new map (id `0x7F`, both tables grown and moved) with its own enter script, entered by an edited script; a new string shown by a script | `tests/open-evermore/in-game.test.mts` (screen and VRAM against vanilla's engine showing the same room) |
-| every exploded table grows to the engine's limit and moves (maps 256, enter scripts with them, strings 21,845, tiles 21,845, scripts 21,625, tile families 1,024) | ✅ | `g0.test.mts`; in game: a new map, a new string (`in-game.test.mts`) |
-| `"size": "4MiB"`: the 4th MB as a `free` region (rooms leave their banks) | ✅ for `--random` and when a stable build runs out | `prove` seeds 1, 2, 99 |
-| tile moves shift room-load timing: drifts that come back in step; seed 7 lost a lag frame for good | 🟨 cause open (not page offset, not bank half; the 64-pointer list at `$7E0140`?) | `prove` |
-| `exhirom` / `sa1` layouts, automatic growth hirom → 4 MiB → exhirom | ✅ built, round trip; 🟨 not proven by playback (they leave step: slow ROM, lag frames) | [manifest.md](manifest.md) §1.1 |
-| `rename`, BPS output | ⬜ | unit tests |
-| the everscript compiler builds into the tree | ⬜ | [../split-and-link/tool.md](../split-and-link/tool.md) §7 |
-| the Rooms tab reads a tree's maps (*Open Evermore* rail group) | ✅ | `tree-editor-dom.test.mts` |
-| editors save into the tree (promotion) | ⬜ | [tool.md](tool.md) §5 |
+| a proof over every room (a playback that enters all 127) | 🟥 | `prove` |
+| **every kind moved at once** (the 12 kinds together on a random layout) | 🟨 round trip holds (seeds 1, 2026, 5); playbacks leave step for good on seeds 1 (frame 508) and 2 (frame 7,933), while the old kinds alone (1, 2, 3) and the new kinds alone (1, 2, 3, 7) play identically, and mixed subsets pass or fail by layout, not by kind: the same open timing desync as tiles' seed 7 (below) | `prove` |
+| a changed or new resource (G2) | 🟨 maps: a map's files replaced (boots into it), a new map (id `0x7F`, both tables grown and moved) with its own enter script in its folder, entered by an edited script; a new string shown by a script. 🟥 a new enemy, sprite block or animate id played in game | `tests/open-evermore/in-game.test.mts` |
+| every exploded table grows to the engine's limit and moves (maps 256, strings 21,845, tiles 21,845, scripts 21,625, tile families 1,024, animate ids 2,048, enemies 256, characters 254, sprite blocks 21,845 each) | 🟩 (in the round trip); 🟨 in game only maps and strings | `g0.test.mts`; `in-game.test.mts` |
+| `"size": "4MiB"`: the 4th MB as a `free` region (rooms leave their banks) | 🟩 for `--random` and when a stable build runs out | `prove` |
+| tile moves shift room-load timing: drifts that come back in step; some layouts lose step for good | 🟨 cause open (not page offset, not bank half; the 64-pointer list at `$7E0140`?) | `prove` |
+| `exhirom` / `sa1` layouts, automatic growth hirom → 4 MiB → exhirom | 🟩 built, round trip; 🟨 not proven by playback (slow ROM, lag frames) | [manifest.md](manifest.md) §1.1 |
+| `rename`, BPS output | 🟥 | unit tests |
+| the everscript compiler builds into the tree | 🟥 | [../split-and-link/tool.md](../split-and-link/tool.md) §7 |
+| the Rooms tab reads a tree's maps (*Open Evermore* rail group), trigger scripts by name | 🟩 | `tree-editor-dom.test.mts` |
+| editors save into the tree (promotion) | 🟥 | [tool.md](tool.md) §5 |
 
 ## 3. Log
 
@@ -58,3 +63,4 @@ A kind is **done** when all columns are ✅:
 | 2026-11-19 | S1 | v0.443.0: maps v6, completely decoded: `objects.json` (each state as the cells it shows, the XOR deltas rebuilt) and cuttable grass as `cut → into` metatiles; the codec moved to `src/games/evermore/maps/tree-map.ts` so the Rooms tab reads trees (*Open Evermore* group, `imports/tree/`): all 127 maps draw as vanilla. Blobs unchanged, so earlier proofs stand. Found: vanilla object areas are records then stamps, none shared (room-reference.md §8 said shared); room `0x6E` stamps 3 objects past the grid's right edge; grass records are always source → cut (cuttable_grass_mechanics.md corrected) |
 | 2026-11-20 | S1 | v0.444.0: maps in the running game (G2): Brian's files in the opening's folder boot into Brian's map; a new map gets id `0x7F` and `load_map(0x7F)` enters it, only once it exists. The map table and the enter-script table are generated items now (in place while they fit, moved with their four reader operands once a map is added; limit 256); enter scripts keyed by map name in `maps/_enter_scripts.json` — copied map files keep the target's enter script (with Brian's own, none, the intro stays black). Every kind walks rooms through the moved table (`roomBlobs`) |
 | 2026-11-20 | S6 | v0.445.0: scripts by name, one file per Scripts-tab entry or called script (3,288): commands as hex lines, `@name` references, `skip` holes, groups for relative calls; the pointer table, the boot pointer and enter scripts generated by name; stable = vanilla, seeds 1 and 2026 round-trip, prove seed 1 identical (packed pointers translated). Tables: strings and tiles generated items too (moved with their readers: two immediates each in `$8C:CCF5`/`$8C:CD35`, six operands), so every exploded table grows to the engine's limit. Tool: `Rule.window`, item holes, patched items, symbols, round-trip names by address. Animations explored ([animations.md](animations.md)). Found: tiles sit in a group of scripts at the end of bank `$95`; 61 code immediates hold animation record ids |
+| 2026-11-20 | S6, S7 | v0.446.0 (owner's asks): this page in green / yellow / red; `maps/_enter_scripts.json` gone: a map's enter script and each trigger's script are named in `map.json`, and the scripts only rooms reach live in the first such room's `scripts/` (2,746; a round trip keeps each script's folder); scripts write opcodes by name, from the new `opcodes` kind (the dispatch table, generated in place). The table hack's tables exploded: `animate_ids`, `characters` (named fields, one block that keeps `$B678`; bank operands rewritten), `enemies`, `sprite_blocks_16`, `sprite_blocks_8` (PNG; vanilla compresses exactly when shorter; one alias). Rules `above`, `bankOffset`. Each new kind proven alone on four seeds; all kinds at once leave step on two seeds (open, §2). Found: five code immediates name character records by address; 8×8 block 6085 is the raw read of blocks 0 and 407 |

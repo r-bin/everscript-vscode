@@ -87,7 +87,7 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         if (name === undefined) throw new Error(`maps/_enum.json has no map ${id}`);
         const dir = path.join(tree.dir, 'maps', name), build = path.join(tree.dir, '_build', 'evermore.sfc');
         const watched = [...Object.values(TREE_MAP).map(f => path.join(dir, f)), build,
-            path.join(tree.dir, 'tile_families', '_enum.json'), path.join(tree.dir, 'tiles', '_enum.json')];
+            path.join(tree.dir, 'tile_families', '_enum.json'), path.join(tree.dir, 'tiles', '_enum.json'), path.join(tree.dir, 'scripts', '_enum.json')];
         const soe = deps.soeRom();
         const key = watched.map(mtime).join(',') + '|' + (soe ? soe.length : 0);
         const hit = cache.get(tree.dir + '#' + id);
@@ -99,8 +99,9 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
             files = { map: JSON.parse(read(TREE_MAP.map)), grid: read(TREE_MAP.grid), metatiles: JSON.parse(read(TREE_MAP.metatiles)), objects: JSON.parse(read(TREE_MAP.objects)) };
         } catch (e) { throw new Error(`maps/${name}: ${(e as Error).message}`); }
         const byName = (kind: string) => new Map(names(tree.dir, kind).map((n, i) => [n, i] as [string, number]));
-        const families = byName('tile_families'), tiles = byName('tiles');
-        const refs: TreeRefs = { family: n => families.get(n), tile: n => tiles.get(n) };
+        const families = byName('tile_families'), tiles = byName('tiles'), scripts = byName('scripts');
+        // A trigger names its script; the trigger record holds its table offset, 3·id (scripts/_enum.json).
+        const refs: TreeRefs = { family: n => families.get(n), tile: n => tiles.get(n), script: n => { const id = scripts.get(n); return id === undefined ? undefined : id * 3; } };
         const problems: TreeProblem[] = [];
         const blob = blobFromTree(files, refs, p => problems.push(p));
         if (!blob) throw new Error(problems.filter(p => p.level === 'error').map(p => `maps/${name}/${p.file}${p.pointer ? '#' + p.pointer : ''}: ${p.message}`).join('; '));

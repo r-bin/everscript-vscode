@@ -29,10 +29,12 @@ const MAX_CHANNELS = 50;
 
 /** A room's files as values: JSON already parsed, grid.txt as text. */
 export interface TreeMapFiles { map: any; grid: string; metatiles: any; objects: any }
-/** Names for other kinds' ids (explode). */
-export interface TreeNames { family(id: number): string; tile(id: number): string }
-/** Ids for other kinds' names (implode, the Rooms tab); `dma`: the tile is an animation frame (streamed raw). */
-export interface TreeRefs { family(name: string): number | undefined; tile(name: string, dma: boolean): number | undefined }
+/** Names for other kinds' ids (explode); `script`: a trigger's script id (a byte offset, 3·id) by name, when the
+ *  tree has scripts (undefined keeps the number). */
+export interface TreeNames { family(id: number): string; tile(id: number): string; script?(scriptId: number): string | undefined }
+/** Ids for other kinds' names (implode, the Rooms tab); `dma`: the tile is an animation frame (streamed raw);
+ *  `script`: a trigger's script by name → its script id (3·id). */
+export interface TreeRefs { family(name: string): number | undefined; tile(name: string, dma: boolean): number | undefined; script?(name: string): number | undefined }
 export interface TreeProblem { level: 'error' | 'info'; code: string; file: TreeMapFile; pointer: string; message: string }
 
 interface Channel { countdown: number; frames: { ticks: number; tile: number }[] }
@@ -82,7 +84,7 @@ function cellsOf(m: RoomModel, count: number): Cells {
 export function roomToTree(m: RoomModel, names: TreeNames): TreeMapFiles {
     const h = m.header, ids = graphicIds(m.block1), anim = channels(m.section2Count, m.section2Data);
     const slots = slotNames(ids.map(names.tile));
-    const trigger = (t: TriggerRecord) => ({ from: [t.x1, t.y1], to: [t.x2, t.y2], script: t.scriptId });
+    const trigger = (t: TriggerRecord) => ({ from: [t.x1, t.y1], to: [t.x2, t.y2], script: names.script?.(t.scriptId) ?? t.scriptId });
     const cycles = [];
     for (let i = 0; i + 2 < m.extras.length; i += 3) cycles.push({ start: m.extras[i], colours: m.extras[i + 1], rate: (m.extras[i + 2] << 24) >> 24 });
     const words = wordsOf(unpackBlock(m.block3)), n = words.length / 3;
@@ -147,8 +149,10 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
         for (let i = 0; i < list.length; i++) {
             const t = list[i];
             if (!t || !pair(t.from) || !pair(t.to)) return bad(`${p}/${i}`, 'from and to: [x, y], bytes');
-            if (!isWord(t.script)) return bad(`${p}/${i}/script`, 'a script id (word)');
-            out.push({ x1: t.from[0], y1: t.from[1], x2: t.to[0], y2: t.to[1], scriptId: t.script });
+            const id = typeof t.script === 'string' ? refs.script?.(t.script) : t.script;
+            if (typeof t.script === 'string' && id === undefined) return bad(`${p}/${i}/script`, `no script "${t.script}"`, 'unknown-reference');
+            if (!isWord(id)) return bad(`${p}/${i}/script`, 'a script by name, or a script id (word)');
+            out.push({ x1: t.from[0], y1: t.from[1], x2: t.to[0], y2: t.to[1], scriptId: id as number });
         }
         return out;
     };

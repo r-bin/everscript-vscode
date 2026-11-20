@@ -39,7 +39,7 @@ const MAP_TABLE = 0x1FFDE7, INTRO = 0x12E0CA, ROOM_ID = 0x7E0ADB;
  *  0x36, rom-export.md row 4); the reference gets the same bytes at $BF:F000, in the 4th MB, as a packed pointer:
  *  bank $92 + (p >> 15), $8000 | p. */
 const FADE_IN = [0xA3, 0x36, 0x00], FADE_AT = 0x3FF000, FADE_PACKED = ((0xBF - 0x92) << 15) | (FADE_AT & 0x7FFF);
-const FADE_FILE = 'a3 36\n00\n', INTRO_SCRIPT = `scripts/${OPENING}_enter.txt`;
+const FADE_FILE = 'call_global 36\nend\n', INTRO_SCRIPT = `maps/${OPENING}/scripts/${OPENING}_enter.txt`;
 const ENTER_TABLE = 0x12801B;
 /** Brian's entrance in 8 px units (tools/table-hack/evs/string-3003.evs: entrance(0x17, 0d40)). */
 const ENTRANCE = [0x17, 40];
@@ -95,8 +95,14 @@ const enterByScript = (tree: Tree, id: number): Tree => {
     return t;
 };
 
+/** A map's drawing and triggers copied over another's (the four map files, not its scripts/); the target keeps its
+ *  own enter script (map.json `enter`), none when it had none. */
 const copyMap = (tree: Tree, from: string, to: string) => {
-    for (const [path, bytes] of [...tree]) if (path.startsWith(`maps/${from}/`)) tree.set(path.replace(`maps/${from}/`, `maps/${to}/`), bytes);
+    const kept = tree.has(`maps/${to}/map.json`) ? JSON.parse(Buffer.from(tree.get(`maps/${to}/map.json`)!).toString()).enter : undefined;
+    for (const f of ['map.json', 'grid.txt', 'metatiles.json', 'objects.json']) tree.set(`maps/${to}/${f}`, tree.get(`maps/${from}/${f}`)!);
+    const m = JSON.parse(Buffer.from(tree.get(`maps/${to}/map.json`)!).toString());
+    if (kept === undefined) delete m.enter; else m.enter = kept;
+    tree.set(`maps/${to}/map.json`, new TextEncoder().encode(JSON.stringify(m)));
 };
 
 const path = games.baseRomPath('evermore');
@@ -129,13 +135,13 @@ if (!path || !existsSync(path)) {
     const e = JSON.parse(Buffer.from(added.get('maps/_enum.json')!).toString());
     e.names.push(COPY);
     added.set('maps/_enum.json', new TextEncoder().encode(JSON.stringify(e)));
-    added.set(`scripts/${COPY}_enter.txt`, new TextEncoder().encode(FADE_FILE));
-    const scripts = JSON.parse(Buffer.from(added.get('maps/_enter_scripts.json')!).toString());
-    scripts.scripts[COPY] = { script: `${COPY}_enter`, word: '$0000' };
-    added.set('maps/_enter_scripts.json', new TextEncoder().encode(JSON.stringify(scripts)));
+    added.set(`maps/${COPY}/scripts/${COPY}_enter.txt`, new TextEncoder().encode(FADE_FILE));
+    const copied = JSON.parse(Buffer.from(added.get(`maps/${COPY}/map.json`)!).toString());
+    copied.enter = { script: `${COPY}_enter`, word: '$0000' };
+    added.set(`maps/${COPY}/map.json`, new TextEncoder().encode(JSON.stringify(copied)));
     const grown = implode(enterByScript(added, NEW_ID), GAME, KINDS);
     // The opening's enter script no longer calls its helper: implode leaves that one out, and says so.
-    const leftOut = [`left-out scripts/${OPENING}_enter_sub_1.txt`];
+    const leftOut = [`left-out maps/${OPENING}/scripts/${OPENING}_enter_sub_1.txt`];
     assert.deepStrictEqual(grown.findings.list.filter(f => f.severity !== 'info').map(f => `${f.rule} ${f.file}`), leftOut);
     assert.strictEqual(grown.image!.length, 0x400000, 'the grown tables go to the 4th MB');
     const moved = grown.placed.filter(p => p.key.startsWith('maps/_') && p.at !== p.home).map(p => p.key);
@@ -156,8 +162,8 @@ if (!path || !existsSync(path)) {
 
     // 3. A new string, shown by a script: the key table grows past vanilla's 3,002 and moves.
     const said = new Map(tree);
-    const copied = `string_${COPIED_STRING.toString(16).padStart(4, '0')}`;
-    said.set('strings/test_new_string.txt', said.get(`strings/${copied}.txt`)!);
+    const copiedString = `string_${COPIED_STRING.toString(16).padStart(4, '0')}`;
+    said.set('strings/test_new_string.txt', said.get(`strings/${copiedString}.txt`)!);
     const se = JSON.parse(Buffer.from(said.get('strings/_enum.json')!).toString());
     const key = se.names.length * 3;
     se.names.push('test_new_string');
@@ -172,6 +178,6 @@ if (!path || !existsSync(path)) {
     assert.notStrictEqual(ref3.text, '00'.repeat(TEXT_BYTES), 'the reference shows no text');
     assert.strictEqual(got3.text, ref3.text, 'the new string does not decode as the one it copies');
     assert.notStrictEqual(noString.text, ref3.text, `key $${key.toString(16)} shows the text without the new string`);
-    console.log(`  ✓ a new string (id ${key / 3}, key $${key.toString(16)}) grows and moves the key table; a script shows it (WRAM text as vanilla's ${copied}); without it the key shows something else`);
+    console.log(`  ✓ a new string (id ${key / 3}, key $${key.toString(16)}) grows and moves the key table; a script shows it (WRAM text as vanilla's ${copiedString}); without it the key shows something else`);
     console.log(`  screenshots: ${OUT}`);
 }

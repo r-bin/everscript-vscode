@@ -25,6 +25,11 @@ export interface Rule {
     lowerHalf?: boolean;
     /** Ends below this file offset (a pointer that only reaches the first 4 MB). */
     below?: number;
+    /** Starts at or after this file offset (a pointer counted from a base: a sprite block's bank $D9 + 7 bits). */
+    above?: number;
+    /** Starts at this 16-bit offset in its bank (records the game keeps by their 16-bit address: only the bank
+     *  moves). */
+    bankOffset?: number;
     /** Never across a 64 KiB bank boundary. */
     noCrossBank?: boolean;
     maxSize?: number;

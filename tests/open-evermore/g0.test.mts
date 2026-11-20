@@ -101,24 +101,31 @@ if (!path || !existsSync(path)) {
     assert.ok(sr.findings.list.some(f => f.rule === 'reencoded' && f.file === 'strings/string_0375.txt'));
     console.log('  ✓ strings: an unknown tag is an error; an edited string is encoded anew and round-trips');
 
-    // Scripts: one file per script, a command per line, `@name` for another script. An edited script round-trips; a
-    // name that is no script, a relative call to a script after it, and a line that is no bytes are errors.
-    const enter = 'scripts/podunk_opening_over_the_machine_enter.txt';
-    assert.ok(tree.has(enter) && tree.has('scripts/boot.txt') && tree.has('scripts/_scripts.json'));
-    const scriptCount = [...tree.keys()].filter(p => /^scripts\/[^_].*\.txt$/.test(p)).length;
-    assert.ok(scriptCount > 3000, `${scriptCount} script files`);
+    // Scripts: one file per script, a command per line (the opcode by name, its operands in hex), `@name` for another
+    // script; a room's scripts in its folder. An edited script round-trips (an opcode as hex too); a name that is no
+    // script, an opcode that is none, a relative call to a script after it, and operands that are no bytes are errors.
+    const enter = 'maps/podunk_opening_over_the_machine/scripts/podunk_opening_over_the_machine_enter.txt';
+    assert.ok(tree.has(enter) && tree.has('scripts/boot.txt') && tree.has('scripts/_scripts.json') && !tree.has('maps/_enter_scripts.json'));
+    const opening = JSON.parse(Buffer.from(tree.get('maps/podunk_opening_over_the_machine/map.json')!).toString());
+    assert.deepStrictEqual(opening.enter, { script: 'podunk_opening_over_the_machine_enter', word: '$0001' });
+    const isScript = (p: string) => /^(scripts|maps\/[^/]+\/scripts)\/[^_/][^/]*\.txt$/.test(p);
+    const scriptCount = [...tree.keys()].filter(isScript).length, inRooms = [...tree.keys()].filter(p => isScript(p) && p.startsWith('maps/')).length;
+    assert.ok(scriptCount > 3000 && inRooms > 2000, `${scriptCount} script files, ${inRooms} in rooms`);
+    const named = [...tree.keys()].filter(p => p.endsWith('/map.json')).some(p => JSON.parse(Buffer.from(tree.get(p)!).toString()).stepOn.some((t: { script: unknown }) => typeof t.script === 'string'));
+    assert.ok(named, 'triggers name their scripts');
     const lines = (p: string) => Buffer.from(tree.get(p)!).toString().split('\n');
-    const caller = [...tree.keys()].find(p => p.startsWith('scripts/') && lines(p).some(l => /^29 @/.test(l)))!;
-    const relative = [...tree.keys()].find(p => p.startsWith('scripts/') && lines(p).some(l => /^a5 @/.test(l)))!;
+    const caller = [...tree.keys()].find(p => isScript(p) && lines(p).some(l => /^call @/.test(l)))!;
+    const relative = [...tree.keys()].find(p => isScript(p) && lines(p).some(l => /^call_back @/.test(l)))!;
     const setLines = (t: typeof tree, p: string, edit: (l: string[]) => string[]) => t.set(p, new TextEncoder().encode(edit(lines(p)).join('\n')));
     // (the script it no longer names is left out: a warning)
-    assert.deepStrictEqual(rules(t => setLines(t, caller, l => l.map(x => x.replace(/^29 @\S+/, '29 @no_such_script')))).filter(r => !r.startsWith('left-out')), [`unknown-reference ${caller}#/${lines(caller).findIndex(l => /^29 @/.test(l)) + 1}`]);
-    assert.deepStrictEqual(rules(t => setLines(t, enter, l => ['zz', ...l])), [`invalid-value ${enter}#/1`]);
-    const r1 = rules(t => setLines(t, relative, l => l.map(x => x.replace(/^a5 @\S+/, 'a5 @boot')))).filter(r => !r.startsWith('left-out'));
+    assert.deepStrictEqual(rules(t => setLines(t, caller, l => l.map(x => x.replace(/^call @\S+/, 'call @no_such_script')))).filter(r => !r.startsWith('left-out')), [`unknown-reference ${caller}#/${lines(caller).findIndex(l => /^call @/.test(l)) + 1}`]);
+    assert.deepStrictEqual(rules(t => setLines(t, enter, l => ['no_such_opcode', ...l])), [`unknown-reference ${enter}#/1`]);
+    assert.deepStrictEqual(rules(t => setLines(t, enter, l => ['end zz', ...l])), [`invalid-value ${enter}#/1`]);
+    const r1 = rules(t => setLines(t, relative, l => l.map(x => x.replace(/^call_back @\S+/, 'call_back @boot')))).filter(r => !r.startsWith('left-out'));
     assert.ok(r1.length === 1 && r1[0].startsWith(`out-of-range ${relative}#`), r1.join());
-    const sc = implode((() => { const t = new Map(tree); setLines(t, enter, l => ['a3 36', ...l]); return t; })(), GAME, KINDS);
+    const sc = implode((() => { const t = new Map(tree); setLines(t, enter, l => ['a3 36', 'call_global 36', ...l]); return t; })(), GAME, KINDS);
     assert.deepStrictEqual(sc.findings.list.filter(f => f.severity === 'error'), []);
-    console.log(`  ✓ scripts: ${scriptCount} files; an edited script builds and round-trips; an unknown @name, a relative call out of reach and a line that is no bytes are errors`);
+    console.log(`  ✓ scripts: ${scriptCount} files (${inRooms} in room folders, enter and triggers named in map.json); an edited script builds and round-trips; an unknown @name or opcode, a relative call out of reach and operands that are no bytes are errors`);
 
     // Every table grows past vanilla and moves (the engine limits: 256 maps, 21,845 tiles and strings, 21,625 scripts).
     const grow = (dir: string, from: string, to: string, ext: string) => (t: typeof tree) => {
@@ -132,8 +139,26 @@ if (!path || !existsSync(path)) {
     const g = implode(grown, GAME, KINDS);
     assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
-    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${kind}/_enum.json`)!).toString()).limit, limit, kind);
+    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animate_ids', 2048], ['enemies', 256], ['characters', 254], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${kind}/_enum.json`)!).toString()).limit, limit, kind);
     console.log('  ✓ a new tile, string and table script: each table grows and moves, the round trip holds; limits at the engine\'s');
+
+    // The table kinds of the table hack: a new animate id, enemy (with its own character) and sprite blocks grow
+    // their tables, which move; the records stay one block at $xx:B678; an alias keeps its run together.
+    const more = new Map(tree);
+    grow('animate_ids', 'animate_000', 'animate_new', 'json')(more);
+    grow('characters', 'fire_eyes', 'fire_eyes_copy', 'json')(more);
+    grow('enemies', 'fire_eyes', 'fire_eyes_copy', 'json')(more);
+    more.set('enemies/fire_eyes_copy.json', new TextEncoder().encode('{ "character": "fire_eyes_copy" }'));
+    grow('sprite_blocks_16', 'block_0000', 'block_new', 'png')(more);
+    grow('sprite_blocks_8', 'block_0000', 'block_new', 'png')(more);
+    assert.ok(more.has('sprite_blocks_8/block_17c5.json'), 'the 8×8 alias (block 6085 reads blocks 0 and 407)');
+    const m = implode(more, GAME, KINDS, { seed: 5 });
+    assert.deepStrictEqual(m.findings.list.filter(f => f.severity !== 'info').map(f => `${f.rule} ${f.file}`), []);
+    for (const key of ['animate_ids/_table', 'enemies/_table', 'sprite_blocks_16/_table', 'sprite_blocks_8/_table']) assert.ok(m.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
+    assert.ok(m.placed.every(p => p.key !== 'characters/_records' || (p.at & 0xFFFF) === 0xB678), 'the records keep $B678');
+    assert.deepStrictEqual(rules(t => editJson(t, 'enemies/fire_eyes.json', e => { e.character = 'nobody'; })), ['unknown-reference enemies/fire_eyes.json#/character']);
+    assert.deepStrictEqual(rules(t => editJson(t, 'characters/fire_eyes.json', c => { c.hp = 70000; })), ['invalid-value characters/fire_eyes.json#/hp']);
+    console.log('  ✓ animate ids, enemies, characters, sprite blocks: new ones grow and move their tables (random), records stay at $B678; a bad character or field is an error');
 
     for (const layout of ['exhirom', 'sa1']) {
         const t = new Map(tree);

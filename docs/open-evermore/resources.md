@@ -172,11 +172,11 @@ round trip compares the indices, not the file.
 
 ```
 maps/_enum.json                      names[id]: the map table's order (README.md §4); up to 256 ids
-maps/_enter_scripts.json             each map's enter script by map name: { "packed": "$0060CA", "word": "$0001" }
 maps/<map>/map.json                  header, families, palette cycles, graphics, animations, triggers, cuttable grass
 maps/<map>/grid.txt                  the cells: one row per line, each cell its metatile id in hex
 maps/<map>/metatiles.json            what each metatile draws (canopy, terrain) and how it collides
 maps/<map>/objects.json              each object's states: where, which cells, how long each is held
+maps/<map>/scripts/<script>.txt      the scripts this room reaches first (enter, step-on, B and what they call; §scripts)
 maps/<map>/preview.png               the room drawn by the repo's renderer; for the reader, implode ignores it
 ```
 
@@ -192,10 +192,11 @@ maps/<map>/preview.png               the room drawn by the repo's renderer; for 
   "graphics": { "compression": "lzss", "tiles": ["tile_0d7b", …] },   // Block 1, names in tiles/
   "animations": [{ "countdown": 0, "frames": [{ "ticks": 8, "tile": "tile_0a40" }, …] }],   // Section 2
   "stepOn": [
-    { "from": [64, 16], "to": [68, 18], "script": 2016 }   // cells [x, y]
+    { "from": [64, 16], "to": [68, 18], "script": "pyramid_outside_step_1" }   // cells [x, y]; a script by name
   ],
   "bTrigger": [ … ],
-  "cuttableGrass": [{ "cut": "000", "into": ["507"] }, …]   // Section 4: metatile ids as in grid.txt
+  "cuttableGrass": [{ "cut": "000", "into": ["507"] }, …],  // Section 4: metatile ids as in grid.txt
+  "enter": { "script": "pyramid_outside_enter", "word": "$0001" }  // the enter-script record; none: no `enter`
 }
 ```
 
@@ -244,12 +245,8 @@ graphics, animations (4/5). Triggers in `[y1, x1, y2, x2]` with script numbers (
 (2/5). Header, palette cycles and metatiles as hex words (1/5). Objects and cuttable grass as base64 (0/5).
 Version 5: about **3.5/5**. Named header and palette cycles, `from`/`to` triggers, an aligned `grid.txt`, metatiles
 in words, and a preview (4–5/5). Version 6 (2026-11-19): objects and cuttable grass decoded, in metatile ids like
-the grid (0/5 → 4/5). Still to do: script names in triggers (S6), and maybe a grid of names rather than ids.
-
-| Still to come | Target |
-|---|---|
-| step-on / B-triggers | `"script": "pyramid_outside_door_north"`: names in `scripts/` (S6) |
-| enter script | `_enter_scripts.json`: `"pyramid_outside": "pyramid_outside_enter"` |
+the grid (0/5 → 4/5). 2026-11-20 (v0.446.0): triggers and the enter script name their scripts, which live in the
+room's `scripts/` folder (owner: no central `_enter_scripts.json`). Still open: a grid of names rather than ids.
 
 - **Names.** From `localizations/data/rooms.json` *(repo, our own wording)*: region + place + part in snake case
   (`prehistoria_jungle_south_where_the_game_starts`); `map_<hexid>` for a room it does not name.
@@ -260,10 +257,10 @@ the grid (0/5 → 4/5). Still to do: script names in triggers (S6), and maybe a 
   is added (the enter table's vanilla footprint ends 2 bytes early: its last word lies on the script pointer
   table), and the four reader operands are rewritten to wherever it landed. Explode finds both through those
   operands. The blob pointer is the `$80–$BF:8000+` form.
-- **Enter scripts follow the name, not the files.** `_enter_scripts.json` keys them by map name, so copying one
-  map's files over another's keeps the target's enter script: Brian's files in `podunk_opening_over_the_machine`
-  boot into Brian's map under the intro's fade-in (tested); with Brian's own record (none) the screen stays black.
-  A map not listed has none (packed 0, as Brian's room); the packed pointer is a number until scripts are a kind.
+- **Enter script.** `map.json` `enter`: the script and the word after its pointer (the room loader does not read
+  the word; vanilla holds 0–4). No `enter`: none (packed 0, as Brian's room). Copying a map's look over another's
+  means its four map files with the target's `enter` kept: Brian's map in `podunk_opening_over_the_machine` boots
+  under the intro's fade-in (tested); with Brian's own (none) the screen stays black.
 - **Placement.** Upper half of a bank, never across a bank, ≤ 32 KiB *(repo: `writeRoomAt`)*. The vanilla rooms
   fill `$9C–$AD` upper halves to within a few hundred bytes per bank (other data follows each bank's last room).
   `--random` grows the image to 4 MiB: rooms shuffle inside their bank or move to the 4th MB; a stable build grows
@@ -284,30 +281,35 @@ the grid (0/5 → 4/5). Still to do: script names in triggers (S6), and maybe a 
 ## scripts *(built, S6, 2026-11-20)*
 
 **Folder.** One file per script; one script is one entry of the Scripts tab (a room's enter script, a step-on or
-B trigger, a global) or a script those call:
+B trigger, a global) or a script those call. A script that only rooms reach lives in the folder of the first room
+(lowest id) that reaches it (owner, 2026-11-20); the rest in `scripts/`. Names are unique across both:
 
 ```
 scripts/_enum.json          names[id]: the pointer table (trigger ids are byte offsets 3·id; globals from id 1,917)
 scripts/_scripts.json       the boot script (header +$0C) and the groups (below)
-scripts/<script>.txt        one command per line, its bytes in hex; another script as @name; skip <n>
+scripts/<script>.txt        globals, the boot script and what they reach
+maps/<map>/scripts/<script>.txt   the room's enter, step-on and B scripts and what they call (2,800 of 3,288)
 ```
 
+A line is one command: the opcode by its name in `opcodes/` (a hex byte works too), then its operand bytes in hex;
+another script as `@name`; `skip <n>`:
+
 ```
-a3 36                       call_id(FADE_IN)
-29 @podunk_podunk_town_1965_enter_sub_1     call (absolute: the packed pointer is generated)
-a5 @global_loot_part1_sub_1                 call back (relative: the offset is generated)
-22 17 28 15 00              load_map(0x15, 0x17, 40): ends the script
+call_global 36              call_id(FADE_IN)
+call @podunk_podunk_town_1965_enter_sub_1    call (absolute: the packed pointer is generated)
+call_back @global_loot_part1_sub_1           call back (relative: the offset is generated)
+load_map 17 28 15 00        load_map(0x15, 0x17, 40): ends the script
 skip 7                      7 bytes no command reaches: not this script's
 ```
 
 - **Names.** A table entry: the room trigger that uses it (`<map>_step_<n>`, `<map>_b_<n>`), a global's name
   (`global_<name>`, `script-model/names.ts`), else `script_<id>`. An enter script `<map>_enter`, the boot script
-  `boot`, a called one `<root>_sub_<n>` after the first table script, map or boot script that reaches it. The
-  maps name their enter scripts in `maps/_enter_scripts.json` (`"script": "<name>"`). Every name is the tree's:
-  on a round trip, implode tells explode where each named script landed.
+  `boot`, a called one `<root>_sub_<n>` after the first table script, map or boot script that reaches it. A map
+  names its enter script and its triggers' scripts in `map.json`. Every name and folder is the tree's: on a round
+  trip, implode tells explode where each named script landed and which folder held it.
 - **References.** `@name` replaces the operand of `07`, `29`, `af`, `b4` (a packed pointer, any script) and of
   `a5`, `b2` (one byte back), `a6`, `b3` (a word back). Ids stay numbers: global ids (`a3`, `b0`), trigger
-  offsets (`a4`, `b1`), string keys, map ids.
+  offsets (`a4`, `b1`), string keys, map ids, enemy ids, animate ids.
 - **Groups.** Scripts that call each other backwards by a relative offset are placed as one item, in the order
   `_scripts.json` lists them; implode works out each offset and says when one is out of reach (`out-of-range`).
   141 groups in vanilla, the largest 20 KB. The bytes between them are holes (`skip`): vanilla keeps tiles in
@@ -327,7 +329,49 @@ skip 7                      7 bytes no command reaches: not this script's
 - **Next.** Labels for jumps inside a script (they are relative: editing a line's length moves the targets after
   it); everscript text once the compiler writes relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7).
 
-## characters, sprites, animations
+## opcodes *(built, 2026-11-20)*
+
+**Folder.** `opcodes/<name>.json`: `{ "handler": "$8C:D2A1", "operands": "u16 E", "flow": "next" }`, one per
+opcode `$00–$C2`; `opcodes/_enum.json` gives each its byte. Names are the Scripts tab's (`script-vm/spec.ts`); a
+name two opcodes share takes the byte (`write_byte_14`); the 27 without a handler are `unused_<xx>` (STP).
+`operands` and `flow` are for the reader: implode encodes the handler only.
+
+- **Implode generates** the dispatch table at `$8C:E8BD` (`JSR ($E8BD,x)` in `$8C:D0A6`), in place: handlers
+  live in bank `$8C` and the table cannot grow (opcodes `$C3` and up index past it into code): 195.
+- **Scripts** write each command's opcode by these names; renaming an opcode here renames it in every script.
+
+## characters, enemies, animate ids, sprite blocks *(built, 2026-11-20)*
+
+The table hack's tables (`tools/table-hack/`, moved and proven there), now resources:
+
+```
+characters/<name>.json      one 74-byte record as named fields (hp, attack, …, palette, animations: { stand, … })
+characters/_enum.json       the records in order: id = place in the block, so 16-bit address $B678 + 74·id
+enemies/<name>.json         an ENEMY id: { "character": "<name>" } or { "address": "$0A26" } (the Boy, the Dog)
+enemies/_enum.json          names[ENEMY id]
+animate_ids/<name>.json     { "record": "$C4:477A" }: the animation record an animate() id plays
+sprite_blocks_16/<name>.png 16×16 sprite block pixels, indexed, grey (the palette comes from the entity)
+sprite_blocks_8/<name>.png  8×8; sprite_blocks_8/block_17c5.json: an alias (below)
+```
+
+- **Names.** Enemies: our compiler's ENEMY names (`language/data/index.json`); a record takes its first
+  enemy's name (records 0 and 1: `boy`, `dog`, the templates copied to WRAM); `animate_<id>`, `block_<id>`.
+- **Characters.** One item: the records stay a block at offset `$B678` of a bank in the `$80–$BF` form
+  (`Rule.bankOffset`), because the game keeps them by 16-bit address (enemy index, entity `+$60`, and five code
+  immediates that name records). Only the bank moves: implode writes it into the `mvn` at `$8F:8046` and the 131
+  `op $8E00xx,X` operands. Order is identity: add records at the end. 254 at most (to the end of the bank).
+- **Enemies.** The index (`$8E:B55A`, four `lda.l` in the spawn handlers) is a generated item; a character's entry
+  is its record's 16-bit address. 256 ids (opcodes `0xBA`/`0xC2` take a byte).
+- **Animate ids.** The table (`$C4:3C92`, one `lda.l` at `$8C:E13C`) is a generated item; records stay in
+  `_base/` (bank `$C4`, [animations.md](animations.md)). 2,048 ids.
+- **Sprite blocks.** Each block is a resource placed anywhere from its base bank (`$D9` / `$D1`) to the end of the
+  4 MiB (`Rule.above`, `below`), never across a bank; the tables (`$EC:0000`, `$D8:0000`, three `lda.l` each) are
+  generated. Stored compressed exactly when shorter (vanilla's rule for all 11,119), so the PNG is the whole block.
+  8×8 block 6085 reads raw the bytes of blocks 0 and 407 compressed: `{ "bytes_of": [...], "compressed": false }`,
+  placed as one run. 21,845 ids each.
+- **Proven (G1).** See [progress.md](progress.md).
+
+## characters, sprites, animations — the rest
 
 Explored 2026-11-20: [animations.md](animations.md) (what binds each layer, what can be exploded first).
 

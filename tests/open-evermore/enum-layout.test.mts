@@ -76,6 +76,13 @@ test('fitIn keeps to the upper half and never crosses a bank', () => {
     assert.strictEqual(fitIn({ start: 0x28000, end: 0x30000 }, 0x9000, rule), -1);
 });
 
+test('fitIn starts at or after `above`, and at `bankOffset` in some bank', () => {
+    assert.strictEqual(fitIn({ start: 0x10000, end: 0x40000 }, 0x10, { above: 0x19000 }), 0x19000);
+    const records = { bankOffset: 0xB678, upperHalf: true };
+    assert.strictEqual(fitIn({ start: 0x2C000, end: 0x50000 }, 0x290C, records), 0x3B678);
+    assert.strictEqual(fitIn({ start: 0x20000, end: 0x2C000 }, 0x290C, records), -1);
+});
+
 test('stable: every unchanged item stays at its home', () => {
     const l = allocate(items, pool, [], homes);
     assert.deepStrictEqual([...l.at].sort(), at0.sort());

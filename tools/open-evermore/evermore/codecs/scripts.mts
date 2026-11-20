@@ -1,7 +1,9 @@
-// The `scripts` kind (docs/open-evermore/resources.md §scripts): every event script as scripts/<name>.txt, one line
-// per command (its bytes in hex), a reference to another script written `@<name>` in place of its operand. One
-// file is one entry of the Scripts tab (a room's enter script, a step-on or B trigger, a global) or a script those
-// call. Reached only through what implode generates: the pointer table, the enter-script table (maps), the boot
+// The `scripts` kind (docs/open-evermore/resources.md §scripts): every event script as a <name>.txt, one line per
+// command (the opcode by its name in opcodes/, then its operand bytes in hex), a reference to another script written
+// `@<name>` in place of its operand. One file is one entry of the Scripts tab (a room's enter script, a step-on or B
+// trigger, a global) or a script those call. A script only rooms reach lives in the folder of the first of them
+// (maps/<map>/scripts/<name>.txt, owner 2026-11-20); the others (globals, the boot script, what globals reach) in
+// scripts/. On a round trip a script stays in the folder the tree had it in. Names are unique across both. Reached only through what implode generates: the pointer table, the enter-script table (maps), the boot
 // pointer in the header and the absolute calls between scripts.
 //
 // Facts used (docs/scripts/vm.md, src/games/evermore/script-vm, tools/table-hack/tables.js):
@@ -29,6 +31,7 @@ import { piecesOf, windowFile, windowPos } from '../../layout.mts';
 import { json, NAME_RE, readText, sha1, text } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { locate as locateMaps, roomBlobs } from './maps.mts';
+import { DEFAULT_OPCODE, KIND as OPCODES } from './opcodes.mts';
 
 const require = createRequire(import.meta.url);
 const V = require('../../../../dist/games/evermore/script-vm');
@@ -37,6 +40,17 @@ const { globalScriptName } = require('../../../../dist/games/evermore/script-mod
 
 export const KIND = 'scripts';
 const DIR = KIND, META = '_scripts.json', TABLE = `${DIR}/_table`;
+/** The pseudo kind whose symbols tell a round trip which map folder held a script (`<map>/<script>`). */
+const HOME = 'scripts.home';
+const MAP_DIR = 'maps', IN_MAP = 'scripts';
+/** Where a script's file is: its map's folder, or scripts/. */
+export const scriptPath = (name: string, home?: string): string => home ? `${MAP_DIR}/${home}/${IN_MAP}/${name}.txt` : `${DIR}/${name}.txt`;
+const PATH_RE = new RegExp(`^(?:${DIR}/([^/]+)|${MAP_DIR}/([^/]+)/${IN_MAP}/([^/]+))\\.txt$`);
+/** A tree path → [script name, home map] when it is a script file. */
+export function scriptOf(path: string): [string, string | undefined] | null {
+    const m = PATH_RE.exec(path);
+    return m ? (m[1] !== undefined ? [m[1], undefined] : [m[3], m[2]]) : null;
+}
 const FORMAT = 'open-evermore/scripts', VERSION = 1;
 /** File banks $92-$BF: their upper halves are the script window (4 MiB HiROM at most). */
 export const WINDOW = { from: 0x12, to: 0x40 };
@@ -66,7 +80,7 @@ function tableOf(rom: Uint8Array): number {
     return maps.romFileOffset(rom, (u24(rom, READERS[0].at) + u16(rom, HEADER)) & 0xFFFFFF);
 }
 
-interface Script { name: string; at: number; end: number; ins: Map<number, any> }
+interface Script { name: string; at: number; end: number; ins: Map<number, any>; home?: string }
 interface Layout { scripts: Script[]; byAt: Map<number, Script>; table: number; ids: number[]; boot: number; groups: Script[][] }
 
 /** Every script and its name: the table's in id order, the maps' enter scripts, the boot script, then what they
@@ -100,13 +114,22 @@ export function scriptLayout(rom: Uint8Array, name: (kind: string, id: number) =
     const scripts: Script[] = [], byAt = new Map<number, Script>(), used = new Set<string>();
     const unique = (s: string) => { let out = s, k = 2; while (used.has(out)) out = fit(s, `_${k++}`); used.add(out); return out; };
     const roots: [number, string][] = ids.map((at, i) => [at, roundTrip ? name(KIND, i) : fresh.get(i) ?? `script_${i.toString(16).padStart(4, '0')}`]);
+    // Which rooms start each root: a trigger's table entry, an enter script; -1 for every other start.
+    const rooms = count('maps') ?? MAP_COUNT, startedBy: [number, number][] = [];
+    const usedBy = new Map<number, number[]>();
+    roomBlobs(rom, rooms).forEach((at, room) => {
+        const m = maps.modelFromRom(rom, room, at);
+        for (const t of [...m.stepOn, ...m.bTrigger] as { scriptId: number }[]) { const id = t.scriptId / 3; if (!usedBy.has(id)) usedBy.set(id, []); usedBy.get(id)!.push(room); }
+    });
+    ids.forEach((at, i) => { for (const room of usedBy.get(i) ?? [-1]) startedBy.push([at, room]); });
     const { enter } = locateMaps(rom);
-    for (let room = 0; room < (count('maps') ?? MAP_COUNT); room++) {
+    for (let room = 0; room < rooms; room++) {
         const p = u24(rom, enter + 5 * room);
-        if (p) roots.push([fileOfPacked(p), nameAt(KIND, fileOfPacked(p)) ?? fit(name('maps', room), '_enter')]);
+        if (p) { roots.push([fileOfPacked(p), nameAt(KIND, fileOfPacked(p)) ?? fit(name('maps', room), '_enter')]); startedBy.push([fileOfPacked(p), room]); }
     }
     const boot = fileOfPacked(u24(rom, BOOT));
     roots.push([boot, nameAt(KIND, boot) ?? 'boot']);
+    startedBy.push([boot, -1]);
     const queue: [number, string, string][] = roots.map(([at, n]) => [at, n, n]);
     const subs = new Map<string, number>();
     while (queue.length) {
@@ -126,6 +149,26 @@ export function scriptLayout(rom: Uint8Array, name: (kind: string, id: number) =
             subs.set(root, k);
             queue.push([target, nameAt(KIND, target) ?? fit(root, `_sub_${k}`), root]);
         }
+    }
+    // Homes: the first room that reaches a script, unless anything but a room does; a round trip keeps the tree's.
+    const reach = new Map<Script, Set<number>>();
+    for (const [at, room] of startedBy) {
+        const todo = [byAt.get(at)!];
+        while (todo.length) {
+            const s = todo.pop()!;
+            let set = reach.get(s);
+            if (!set) reach.set(s, set = new Set());
+            if (set.has(room)) continue;
+            set.add(room);
+            for (const i of s.ins.values()) if (REF[i.opcode]) { const t = byAt.get(i.operands[i.operands.length - 1].target & 0x3FFFFF); if (t) todo.push(t); }
+        }
+    }
+    const mapNames = new Set(Array.from({ length: rooms }, (_, r) => name('maps', r)));
+    for (const s of scripts) {
+        const kept = nameAt(HOME, s.at);
+        if (kept !== undefined) { const home = kept.slice(0, kept.indexOf('/')); if (kept.endsWith('/' + s.name) && (home === '' || mapNames.has(home))) { s.home = home || undefined; continue; } }
+        const set = [...(reach.get(s) ?? [])];
+        if (set.length && !set.includes(-1)) s.home = name('maps', Math.min(...set));
     }
     // Groups: scripts tied by relative calls, in byte order (what lies between them is a hole: not theirs).
     const pos = (at: number) => windowPos(WINDOW, at);
@@ -153,7 +196,7 @@ function groupBytes(rom: Uint8Array, group: Script[], next: (s: Script, i: numbe
 }
 
 /** One script's file: its commands, a line each, and `skip <n>` for bytes no command reaches; its holes (positions). */
-function scriptText(rom: Uint8Array, s: Script, until: number, nameOf: (at: number) => string): { text: string; holes: Span[] } {
+function scriptText(rom: Uint8Array, s: Script, until: number, nameOf: (at: number) => string, opName: (op: number) => string): { text: string; holes: Span[] } {
     const lines: string[] = [], holes: Span[] = [];
     let skip = 0;
     const flush = (p: number) => { if (skip) { lines.push(`${SKIP} ${skip}`); holes.push({ start: p - skip, end: p }); skip = 0; } };
@@ -162,8 +205,8 @@ function scriptText(rom: Uint8Array, s: Script, until: number, nameOf: (at: numb
         if (!i) { skip++; p++; continue; }
         flush(p);
         const bytes = Array.from({ length: i.size }, (_, k) => rom[windowFile(WINDOW, p + k)]);
-        const r = REF[i.opcode];
-        lines.push(r ? [...bytes.slice(0, i.size - r.size).map(hex2), '@' + nameOf(i.operands[i.operands.length - 1].target & 0x3FFFFF)].join(' ') : bytes.map(hex2).join(' '));
+        const r = REF[i.opcode], body = bytes.slice(1, r ? i.size - r.size : i.size).map(hex2);
+        lines.push([opName(bytes[0]), ...body, ...(r ? ['@' + nameOf(i.operands[i.operands.length - 1].target & 0x3FFFFF)] : [])].join(' '));
         p += i.size;
     }
     flush(until);
@@ -189,11 +232,14 @@ function parse(path: string, raw: string, ctx: ImplodeContext): Parsed | null {
         }
         const body = tokens;
         const ref = body[body.length - 1]?.startsWith('@') ? body.pop()!.slice(1) : null;
-        if (!body.every(t => /^[0-9a-fA-F]{2}$/.test(t))) { ctx.findings.error('invalid-value', path, `/${n + 1}`, 'a line is one command\'s bytes in hex (`29 @name` names a script), or `skip <n>`'); ok = false; return; }
-        const bytes = body.map(t => parseInt(t, 16));
+        // The opcode by its name in opcodes/ (or as a hex byte), then its operands in hex.
+        const op = /^[0-9a-fA-F]{2}$/.test(body[0] ?? '') ? parseInt(body[0], 16) : ctx.ids.get(OPCODES)?.get(body[0]);
+        if (op === undefined) { ctx.findings.error('unknown-reference', path, `/${n + 1}`, `"${body[0]}" is no opcode in ${OPCODES}/`); ok = false; return; }
+        if (!body.slice(1).every(t => /^[0-9a-fA-F]{2}$/.test(t))) { ctx.findings.error('invalid-value', path, `/${n + 1}`, 'a line is one command: its opcode, then its operand bytes in hex (`call @name` names a script), or `skip <n>`'); ok = false; return; }
+        const bytes = [op, ...body.slice(1).map(t => parseInt(t, 16))];
         if (ref !== null) {
             const r = REF[bytes[0]];
-            if (!r) { ctx.findings.error('invalid-value', path, `/${n + 1}`, `opcode $${hex2(bytes[0] ?? 0)} names no script; @${ref} needs 07, 29, af, b4 (absolute) or a5, a6, b2, b3 (relative)`); ok = false; return; }
+            if (!r) { ctx.findings.error('invalid-value', path, `/${n + 1}`, `opcode $${hex2(bytes[0] ?? 0)} names no script; @${ref} needs opcode 07, 29, af, b4 (absolute) or a5, a6, b2, b3 (relative)`); ok = false; return; }
             out.refs.push({ start: out.bytes.length, offset: out.bytes.length + bytes.length, size: r.size, form: r.form, target: ref, line: n + 1 });
             bytes.push(...new Array(r.size).fill(0));
         }
@@ -204,6 +250,8 @@ function parse(path: string, raw: string, ctx: ImplodeContext): Parsed | null {
 
 interface Group { key: string; members: { name: string; offset: number }[]; patches: { offset: number; target: string; file: string; line: number }[] }
 const encoded = new WeakMap<ImplodeContext, { groups: Group[]; boot: string | null }>();
+/** Each script's file, from `names` (a script may live in a map's folder). */
+const paths = new WeakMap<ImplodeContext, Map<string, string>>();
 
 export const scriptsCodec: Codec = {
     kind: KIND, version: VERSION, path: DIR, listedIdsOnly: true,
@@ -213,22 +261,24 @@ export const scriptsCodec: Codec = {
     canonical(path, bytes) {
         // The order of the groups is where explode found them, not part of what they say.
         if (path === `${DIR}/${META}`) { const v = JSON.parse(readText(bytes)); v.groups = (v.groups ?? []).slice().sort((a: string[], b: string[]) => a[0] < b[0] ? -1 : 1); return [path, json(v)]; }
-        if (!path.endsWith('.txt')) return [path, bytes];
+        if (!scriptOf(path)) return [path, bytes];
+        // An opcode may be written by its name or as a hex byte: both compare as the byte (default names).
+        const op = (t: string) => DEFAULT_OPCODE.has(t) ? DEFAULT_OPCODE.get(t)!.toString(16).padStart(2, '0') : t.toLowerCase();
         const lines = readText(bytes).split('\n').map(l => l.trim().split(/\s+/).filter(Boolean)).filter(t => t.length && !t[0].startsWith('#'));
-        return [path, text(lines.map(t => t.map(x => x.startsWith('@') ? x : x.toLowerCase()).join(' ')).join('\n') + '\n')];
+        return [path, text(lines.map(t => t.map((x, k) => x.startsWith('@') ? x : k === 0 && t[0] !== SKIP ? op(x) : x.toLowerCase()).join(' ')).join('\n') + '\n')];
     },
 
     explode(rom, name, _options, count, nameAt) {
         const L = scriptLayout(rom, name, count, nameAt);
         const files: Tree = new Map(), pool: Span[] = [], homes = [];
-        const nameOf = (at: number) => L.byAt.get(at)!.name;
+        const nameOf = (at: number) => L.byAt.get(at)!.name, opName = (op: number) => name(OPCODES, op);
         for (const group of L.groups) {
             const next = (s: Script, i: number) => i + 1 < group.length ? group[i + 1].at : s.end;
             const { start, bytes } = groupBytes(rom, group, next);
             const holes: Span[] = [];
             group.forEach((s, i) => {
-                const t = scriptText(rom, s, windowPos(WINDOW, next(s, i)), nameOf);
-                files.set(`${DIR}/${s.name}.txt`, text(t.text));
+                const t = scriptText(rom, s, windowPos(WINDOW, next(s, i)), nameOf, opName);
+                files.set(scriptPath(s.name, s.home), text(t.text));
                 holes.push(...t.holes.map(h => ({ start: h.start - start, end: h.end - start })));
             });
             // The home's sha1 is over the bytes as encode gives them: holes and absolute references as 0.
@@ -252,14 +302,20 @@ export const scriptsCodec: Codec = {
         return { files, pool, tables: [...READERS.map(r => ({ start: r.at, end: r.at + 3 })), { start: BOOT, end: BOOT + 3 }], homes };
     },
 
-    names({ tree, findings }) {
-        const names = new Set<string>();
+    names(ctx) {
+        const { tree, findings } = ctx;
+        const names = new Set<string>(), where = new Map<string, string>();
         for (const path of tree.keys()) {
+            const s = scriptOf(path);
+            if (s) {
+                if (where.has(s[0])) findings.error('duplicate-name', path, '', `"${s[0]}" is also ${where.get(s[0])}: a script name is unique across scripts/ and the map folders`);
+                else { where.set(s[0], path); names.add(s[0]); }
+                continue;
+            }
             if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}` || path === `${DIR}/${META}`) continue;
-            const m = /^scripts\/([^/]+)\.txt$/.exec(path);
-            if (m) names.add(m[1]);
-            else findings.warning('unknown-file', path, '', 'a script is one <name>.txt; ignored');
+            findings.warning('unknown-file', path, '', 'a script is one <name>.txt; ignored');
         }
+        paths.set(ctx, where);
         return names;
     },
 
@@ -282,11 +338,12 @@ export const scriptsCodec: Codec = {
 
         // What the game can reach: the table's scripts, the maps' enter scripts (marked by the maps kind), the boot
         // script, and every script those name. The rest is left out of the build (nothing would ever run it).
+        const where = paths.get(ctx)!, fileOf = (n: string) => where.get(n)!;
         const refsOf = new Map<string, string[]>();
-        for (const n of names) refsOf.set(n, [...readText(tree.get(`${DIR}/${n}.txt`)!).matchAll(/@([a-z0-9_]+)/g)].map(m => m[1]));
+        for (const n of names) refsOf.set(n, [...readText(tree.get(fileOf(n))!).matchAll(/@([a-z0-9_]+)/g)].map(m => m[1]));
         const reached = new Set<string>(), todo = [...(ctx.ids.get(KIND)?.keys() ?? []), ...(meta.boot ? [meta.boot] : []), ...[...names].filter(n => ctx.marks.get(`${DIR}/${n}`)?.has('used'))];
         while (todo.length) { const n = todo.pop()!; if (reached.has(n) || !names.has(n)) continue; reached.add(n); todo.push(...refsOf.get(n)!); }
-        for (const n of names) if (!reached.has(n)) findings.warning('left-out', `${DIR}/${n}.txt`, '', 'no table, map or reached script names this script: it is left out of the ROM');
+        for (const n of names) if (!reached.has(n)) findings.warning('left-out', fileOf(n), '', 'no table, map or reached script names this script: it is left out of the ROM');
 
         const items: Item[] = [], groups: Group[] = [];
         for (const full of lists) {
@@ -295,7 +352,7 @@ export const scriptsCodec: Codec = {
             const bytes: number[] = [], members: Group['members'] = [], patches: Group['patches'] = [], holes: Span[] = [];
             const relative: { at: number; ref: Parsed['refs'][number]; file: string }[] = [];
             for (const n of list) {
-                const file = `${DIR}/${n}.txt`;
+                const file = fileOf(n);
                 if (!NAME_RE.test(n)) { findings.error('bad-name', file, '', `"${n}": snake_case, at most 80 characters`); continue; }
                 const p = parse(file, readText(tree.get(file)!), ctx);
                 if (!p) continue;
@@ -324,7 +381,7 @@ export const scriptsCodec: Codec = {
             }
             const group: Group = { key: `${DIR}/${members[0].name}`, members, patches };
             groups.push(group);
-            items.push({ key: group.key, file: `${DIR}/${members[0].name}.txt`, bytes: Uint8Array.from(bytes), rule: { window: WINDOW }, patched: patches.length > 0, holes });
+            items.push({ key: group.key, file: fileOf(members[0].name), bytes: Uint8Array.from(bytes), rule: { window: WINDOW }, patched: patches.length > 0, holes });
         }
         encoded.set(ctx, { groups, boot: meta.boot ?? null });
         const ids = ctx.ids.get(KIND);
@@ -338,7 +395,11 @@ export const scriptsCodec: Codec = {
         for (const g of encoded.get(ctx)?.groups ?? []) {
             const at = placed.get(g.key);
             if (at === undefined) continue;
-            for (const m of g.members) out.set(`${DIR}/${m.name}`, windowFile(WINDOW, windowPos(WINDOW, at) + m.offset));
+            for (const m of g.members) {
+                const file = windowFile(WINDOW, windowPos(WINDOW, at) + m.offset);
+                out.set(`${DIR}/${m.name}`, file);
+                out.set(`${HOME}/${scriptOf(paths.get(ctx)!.get(m.name)!)?.[1] ?? ''}/${m.name}`, file);
+            }
         }
         return out;
     },

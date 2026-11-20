@@ -1,5 +1,6 @@
 // The `maps` kind (docs/open-evermore/resources.md §maps): every room as a folder maps/<name>/ (map.json, grid.txt,
-// metatiles.json, objects.json; preview.png: the room drawn, for the reader only), reached only through the map
+// metatiles.json, objects.json; scripts/: the scripts only this room reaches first, scripts.mts; preview.png: the
+// room drawn, for the reader only), reached only through the map
 // table implode writes. The files are the repo's own (`maps/tree-map.ts`, which the Rooms tab reads too); this file
 // names, reads and writes them and checks. Explode proves every room comes back from its files byte for byte.
 //
@@ -13,13 +14,12 @@
 //   pointer     bus form $80-$BF:8000+ (= 0x800000 | file offset of an upper half)
 //   blob        upper half of a bank, never across a bank, at most 32 KiB
 // Both tables are generated items: in place while the ids fit them (G0), elsewhere once a map is added, with the
-// four reader operands rewritten. Enter scripts are named (scripts/<name>.txt), keyed by map name in
-// maps/_enter_scripts.json, not in a map's
-// folder: copying a map's files over another keeps the target's enter script (the intro's fade-in for room 0x61).
-// References to exploded kinds are names (tileFamilies → tile_families/, graphics and animation frames →
-// tiles/); the ids of kinds not exploded yet (script ids) stay numbers until their kinds are.
+// four reader operands rewritten. map.json names the room's enter script (`enter`: the script and the word after
+// its pointer) and each trigger's script; the scripts themselves live in the room's scripts/ folder when no other
+// room reached them first (owner, 2026-11-20: no central enter-script file). References to exploded kinds are names
+// (tileFamilies → tile_families/, graphics and animation frames → tiles/, triggers and enter → scripts).
 import { createRequire } from 'node:module';
-import { fileOfPacked, packedOf, scriptLayout } from './scripts.mts';
+import { fileOfPacked, packedOf, scriptLayout, scriptOf, scriptsCodec } from './scripts.mts';
 import { mark } from '../../codec.mts';
 import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -37,7 +37,7 @@ const DIR = 'maps', FILE = TREE_MAP.map, PREVIEW = 'preview.png';
 /** The files of a room folder implode reads, as treeMap's keys. */
 const PARTS: [string, string][] = Object.entries(TREE_MAP);
 const STRIDE = 4, VANILLA = 127, LIMIT = 256, MAX_BLOB = 0x8000;
-const ENTER = '_enter_scripts.json', ENTER_STRIDE = 5, SCRIPTS = 'scripts';
+const ENTER_STRIDE = 5, SCRIPTS = 'scripts';
 /** The reader operands (file offsets of the 24-bit operand of each `lda.l`) and what they add to the table. */
 const READERS = {
     table: [{ at: 0x108F6A, add: 0 }, { at: 0x108F70, add: 1 }],
@@ -46,10 +46,9 @@ const READERS = {
 /** The generated items: the map table and the enter-script table (the last entry's word dropped: never read). */
 const TABLE = `${DIR}/_map_table`, ENTER_TABLE = `${DIR}/_enter_table`;
 const tableLength = (n: number) => n * STRIDE, enterLength = (n: number) => n * ENTER_STRIDE - 2;
-/** An enter-script record as maps/_enter_scripts.json writes it: a script in scripts/, or null for none (packed
- *  pointer 0, Brian's room), and the word after the pointer. */
+/** A room's enter-script record as map.json's `enter` writes it: a script, or null for none (packed pointer 0, Brian's
+ *  room), and the word after the pointer (the room loader does not read it). No `enter`: none, word 0. */
 interface Enter { script: string | null; word: string }
-const NONE: Enter = { script: null, word: '$0000' };
 const hexOf = (v: number, digits: number) => '$' + v.toString(16).toUpperCase().padStart(digits, '0');
 const FAMILIES = 'tile_families', TILES = 'tiles';
 
@@ -76,9 +75,10 @@ export function mapName(id: number): string {
     return room ? room.path.replace(/[/-]/g, '_').replace(/[^a-z0-9_]/g, '') : 'map_' + id.toString(16).padStart(2, '0');
 }
 
-/** A room's files (all but preview.png, which explode draws). */
-function toFiles(model: unknown, family: (id: number) => string, tile: (id: number) => string): Map<string, Uint8Array> {
-    const f = treeMap.roomToTree(model, { family, tile });
+/** A room's files (all but preview.png, which explode draws); `enter` goes into map.json. */
+function toFiles(model: unknown, names: { family: (id: number) => string; tile: (id: number) => string; script: (id: number) => string | undefined }, enter?: Enter): Map<string, Uint8Array> {
+    const f = treeMap.roomToTree(model, names);
+    if (enter) f.map.enter = enter;
     return new Map(PARTS.map(([key, file]) => [file, key === 'grid' ? text(f.grid) : json(f[key])]));
 }
 
@@ -92,8 +92,10 @@ function fromFiles(files: Map<string, Uint8Array | undefined>, dir: string, ctx:
         try { values[key] = JSON.parse(readText(b)); } catch (e) { ctx.findings.error('parse-error', path, '', (e as Error).message); return null; }
     }
     const families = ctx.ids.get(FAMILIES) ?? new Map<string, number>(), tiles = ctx.ids.get(TILES) ?? new Map<string, number>();
+    const scripts = ctx.ids.get(SCRIPTS) ?? new Map<string, number>();
     const refs = {
         family: (name: string) => families.get(name),
+        script: (name: string) => { const id = scripts.get(name); return id === undefined ? undefined : id * 3; },
         tile(name: string, dma: boolean) {
             const id = tiles.get(name);
             if (id !== undefined) { mark(ctx, `${TILES}/${name}`, 'used'); if (dma) mark(ctx, `${TILES}/${name}`, 'dma'); }
@@ -112,20 +114,20 @@ function lossless(files: Map<string, Uint8Array>, ids: Map<string, Map<string, n
     return blob;
 }
 
-/** maps/_enter_scripts.json by map name; errors for a bad record, a name that is no map or a script that is none. */
-function enterScripts(ctx: ImplodeContext, names: Set<string>): Map<string, { script: string | null; word: number }> {
-    const path = `${DIR}/${ENTER}`, out = new Map<string, { script: string | null; word: number }>();
+/** Each map's `enter` (map.json); errors for a bad record or a script that is none. `report`: once, in encode. */
+function enterScripts(ctx: ImplodeContext, names: Set<string>, report: boolean): Map<string, { script: string | null; word: number }> {
+    const out = new Map<string, { script: string | null; word: number }>();
     const scripts = ctx.names.get(SCRIPTS) ?? new Set<string>();
-    const raw = ctx.tree.get(path);
-    if (!raw) return out;      // no enter scripts at all: every map has none
-    let file: { scripts?: Record<string, Enter> };
-    try { file = JSON.parse(readText(raw)); } catch (e) { ctx.findings.error('parse-error', path, '', (e as Error).message); return out; }
-    for (const [name, e] of Object.entries(file.scripts ?? {})) {
+    const error = (code: string, path: string, pointer: string, message: string) => { if (report) ctx.findings.error(code, path, pointer, message); };
+    for (const name of names) {
+        const path = `${DIR}/${name}/${FILE}`, raw = ctx.tree.get(path);
+        let e: Enter | undefined;
+        try { e = raw ? JSON.parse(readText(raw)).enter : undefined; } catch { continue; }      // fromFiles reports it
+        if (e === undefined) continue;
         const num = (v: unknown, max: number) => typeof v === 'string' && /^\$[0-9a-fA-F]+$/.test(v) && parseInt(v.slice(1), 16) <= max ? parseInt(v.slice(1), 16) : null;
         const word = num(e?.word, 0xFFFF), script = e?.script ?? null;
-        if (!names.has(name)) ctx.findings.error('unknown-reference', path, `/scripts/${name}`, `"${name}" is no map in ${DIR}/`);
-        else if (word === null || (script !== null && typeof script !== 'string')) ctx.findings.error('invalid-value', path, `/scripts/${name}`, '{ "script": "<a script in scripts/>" | null, "word": "$xxxx" }');
-        else if (script !== null && !scripts.has(script)) ctx.findings.error('unknown-reference', path, `/scripts/${name}/script`, `"${script}" is no script in ${SCRIPTS}/`);
+        if (word === null || (script !== null && typeof script !== 'string')) error('invalid-value', path, '/enter', '{ "script": "<a script>" | null, "word": "$xxxx" }');
+        else if (script !== null && !scripts.has(script)) error('unknown-reference', path, '/enter/script', `"${script}" is no script (scripts/ or a map's scripts/)`);
         else { out.set(name, { script, word }); if (script !== null) mark(ctx, `${SCRIPTS}/${script}`, 'used'); }
     }
     return out;
@@ -136,11 +138,7 @@ export const mapsCodec: Codec = {
     // preview.png shows the room; nothing reads it back.
     canonical(path, bytes) {
         if (path.endsWith('/' + PREVIEW)) return null;
-        if (path === `${DIR}/${ENTER}`) {
-            const v = JSON.parse(readText(bytes));
-            const scripts = Object.entries(v.scripts ?? {}).filter(([, e]) => JSON.stringify(e) !== JSON.stringify(NONE)).sort(([a], [b]) => a < b ? -1 : 1);
-            return [path, json(Object.fromEntries(scripts))];
-        }
+        if (scriptOf(path)) return scriptsCodec.canonical!(path, bytes);
         // Hand-written text may order flags or pad numbers differently: compare what it means.
         const cells = (rows: string[]) => rows.map(r => r.trim().split(/\s+/).map(t => /^[0-9a-f]+$/.test(t) ? parseInt(t, 16) : t));
         if (path.endsWith('/' + TREE_MAP.grid)) return [path, json(cells(readText(bytes).trim().split('\n')))];
@@ -165,26 +163,27 @@ export const mapsCodec: Codec = {
         const count = countOf('maps') ?? VANILLA;
         const { table, enter } = locate(rom), blobs = roomBlobs(rom, count);
         const names: string[] = [];
-        const scripts: Record<string, Enter> = {};
-        const scriptNames = scriptLayout(rom, name, countOf, nameAt).byAt;
+        const L = scriptLayout(rom, name, countOf, nameAt), scriptNames = L.byAt;
+        const scriptName = (scriptId: number) => scriptId % 3 || L.ids[scriptId / 3] === undefined ? undefined : scriptNames.get(L.ids[scriptId / 3])!.name;
         const pool = [], homes = [];
         const ids = new Map<string, Map<string, number>>();
         const by = (kind: string, count: number) => new Map(Array.from({ length: count }, (_, id) => [name(kind, id), id] as [string, number]));
         ids.set(FAMILIES, by(FAMILIES, 1024));
         ids.set(TILES, by(TILES, 0x10000 / 3 | 0));
+        ids.set(SCRIPTS, new Map(L.ids.map((at, id) => [scriptNames.get(at)!.name, id] as [string, number])));
         for (let id = 0; id < count; id++) {
             const at = blobs[id];
             const end = maps.objectAreaEnd(rom, maps.parseBlobLayout(rom, at));
             const model = maps.modelFromRom(rom, id, at);
             const n = name('maps', id);
             names.push(n);
-            const room = toFiles(model, f => name(FAMILIES, f), t => name(TILES, t));
+            const e = enter + id * ENTER_STRIDE, packed = maps.read24(rom, e), word = id < count - 1 ? maps.read16(rom, e + 3) : 0;
+            // The last entry's word is never read (vanilla's lies on the script pointer table): only a pointer is kept.
+            const record = packed || word ? { script: packed ? scriptNames.get(fileOfPacked(packed))!.name : null, word: hexOf(word, 4) } : undefined;
+            const room = toFiles(model, { family: f => name(FAMILIES, f), tile: t => name(TILES, t), script: scriptName }, record);
             if (sha1(lossless(room, ids)) !== sha1(rom.subarray(at, end))) throw new Error(`room ${id}: its files do not give its bytes back; explode would lose data`);
             for (const [f, bytes] of room) files.set(`${DIR}/${n}/${f}`, bytes);
             files.set(`${DIR}/${n}/${PREVIEW}`, new Uint8Array(maps.encodePng(maps.renderRoomComposite(rom, maps.decodeRoom(rom, id, at)))));
-            const e = enter + id * ENTER_STRIDE, packed = maps.read24(rom, e), word = id < count - 1 ? maps.read16(rom, e + 3) : 0;
-            // The last entry's word is never read (vanilla's lies on the script pointer table): only a pointer is kept.
-            if (packed || word) scripts[n] = { script: packed ? scriptNames.get(fileOfPacked(packed))!.name : null, word: hexOf(word, 4) };
             const blob = rom.subarray(at, end);
             pool.push({ start: at, end });
             homes.push({ key: `${DIR}/${n}`, at, length: blob.length, sha1: sha1(blob) });
@@ -192,10 +191,6 @@ export const mapsCodec: Codec = {
         files.set(`${DIR}/${ENUM}`, enumFile({
             kind: 'maps', limit: LIMIT, names,
             why: `the enter-script lookup multiplies the id byte by 5 in the 8×8 hardware multiplier; past ${VANILLA} maps the map and enter-script tables move`,
-        }));
-        files.set(`${DIR}/${ENTER}`, json({
-            why: 'each map\'s room enter script, by map name: a script in scripts/ (null: none) and the word after its pointer (not read by the room loader); a map not listed has none',
-            scripts,
         }));
         pool.push({ start: table, end: table + tableLength(count) }, { start: enter, end: enter + enterLength(count) });
         homes.push({ key: TABLE, at: table, length: tableLength(count), sha1: sha1(rom.subarray(table, table + tableLength(count))) });
@@ -206,7 +201,7 @@ export const mapsCodec: Codec = {
     names({ tree, findings }) {
         const names = new Set<string>();
         for (const path of tree.keys()) {
-            if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}` || path === `${DIR}/${ENTER}`) continue;
+            if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}` || scriptOf(path)) continue;
             const [, name, file, more] = path.split('/');
             if (file !== undefined && more === undefined && [...PARTS.map(p => p[1]), PREVIEW].includes(file)) names.add(name);
             else findings.warning('unknown-file', path, '', `a map folder holds ${PARTS.map(p => p[1]).join(', ')} and ${PREVIEW}; ignored`);
@@ -226,10 +221,10 @@ export const mapsCodec: Codec = {
             items.push({ key: `${DIR}/${name}`, file, bytes, rule: { upperHalf: true, noCrossBank: true, maxSize: MAX_BLOB } });
         }
         const count = Math.max(0, ...(ctx.ids.get('maps')?.values() ?? [])) + 1;
-        enterScripts(ctx, names);
+        enterScripts(ctx, names, true);
         // Long-indexed reads; kept inside one bank like vanilla's.
         items.push({ key: TABLE, file: `${DIR}/${ENUM}`, bytes: new Uint8Array(tableLength(count)), rule: { noCrossBank: true }, generated: true });
-        items.push({ key: ENTER_TABLE, file: `${DIR}/${ENTER}`, bytes: new Uint8Array(enterLength(count)), rule: { noCrossBank: true }, generated: true });
+        items.push({ key: ENTER_TABLE, file: `${DIR}/${ENUM}`, bytes: new Uint8Array(enterLength(count)), rule: { noCrossBank: true }, generated: true });
         return items;
     },
 
@@ -240,7 +235,7 @@ export const mapsCodec: Codec = {
         const byId = new Map([...ids].map(([name, id]) => [id, name]));
         const count = Math.max(0, ...ids.values()) + 1;
         const bytes = new Uint8Array(tableLength(count)), enter = new Uint8Array(count * ENTER_STRIDE);
-        const scripts = enterScripts(ctx, new Set(ids.keys()));
+        const scripts = enterScripts(ctx, new Set(ids.keys()), false);
         for (let id = 0; id < count; id++) {
             const name = byId.get(id);
             if (name === undefined) { ctx.findings.error('id-gap', `${DIR}/${ENUM}`, `/names/${id}`, `no map has id ${id}; the map table cannot skip one yet`); continue; }
@@ -258,8 +253,8 @@ export const mapsCodec: Codec = {
         });
         return [
             { at, bytes, file: `${DIR}/${ENUM}` },
-            { at: enterAt, bytes: enter.subarray(0, enterLength(count)), file: `${DIR}/${ENTER}` },
-            ...operands(READERS.table, at, `${DIR}/${ENUM}`), ...operands(READERS.enter, enterAt, `${DIR}/${ENTER}`),
+            { at: enterAt, bytes: enter.subarray(0, enterLength(count)), file: `${DIR}/${ENUM}` },
+            ...operands(READERS.table, at, `${DIR}/${ENUM}`), ...operands(READERS.enter, enterAt, `${DIR}/${ENUM}`),
         ] satisfies Write[];
     },
 };
