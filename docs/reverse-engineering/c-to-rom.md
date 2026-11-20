@@ -630,3 +630,18 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 1/1 real states match ROM (100% parity, 1/1 snes9x oracle agreement).
   - Mutation caught: yes.
 - Rated and audited: 302 clean, 0 stale/unrated. Total bound routines: **302**.
+
+### Routine #303: `script_op_86_music_volume` ($8C:E27B)
+- Bound in `reconstructed-c/8C/8CE27B_opcode_86_music_volume.c`:
+  - Implements the script virtual machine opcode 0x86 handler (set master music volume):
+    - Evaluates an inline script expression through `script_eval_expression` (`$8C:EA43`) via `soe_call_rtl`.
+    - Clamps the expression result to an 8-bit volume level using `AND #$00FF` and updates N/Z flags (`soe_nz16`).
+    - Writes the 16-bit word to Direct Page `$9A` (`DP16(r, 0x9A) = r->a`), setting the master volume at `$9A` and clearing the active fade step at `$9B` to zero.
+    - Sets data bank register DB to `$80` (`PEA $8080; PLB; PLB`).
+    - Sets argument `Y = volume` and command `A = 0x0028`, dispatching the master volume command to the APU via `apu_command_send_sync` (`$8C:81FD`).
+    - Restores caller data bank register DB, sets Carry (`SEC`), and returns via `RTS`.
+- Verified under Gate G1:
+  - 37/37 real states match ROM (100% parity, 37/37 snes9x oracle agreement).
+  - 369/369 fuzzed states match ROM (100% parity).
+  - Mutation caught: yes.
+- Rated and audited: 303 clean, 0 stale/unrated. Total bound routines: **303**.
