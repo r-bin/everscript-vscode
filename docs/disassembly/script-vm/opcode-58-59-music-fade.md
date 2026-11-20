@@ -6,7 +6,7 @@
 
 Opcode `0x58` sets the shared music-volume fade step at `$7E:009B` to `$10` and calls `$8C:8619`. Opcode `0x59` sets it to `$F0` (signed `-16`) and calls the same routine. The fade stepper updates the current music volume and sends the resulting volume command; each handler restores the data bank and returns carry set.
 
-The host-side models are in [8CDC74_58_59_music_fade.c](../../../reconstructed-c/8C/8CDC74_58_59_music_fade.c). The shared `$8C:8619` stepper remains an external helper boundary.
+The host-side models are in [8CDC74_script_op_59_music_fade_out.c](../../../reconstructed-c/8C/8CDC74_script_op_59_music_fade_out.c). The shared `$8C:8619` stepper remains an external helper boundary.
 
 ## Evidence
 

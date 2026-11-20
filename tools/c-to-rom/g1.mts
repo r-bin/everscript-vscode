@@ -206,6 +206,7 @@ function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[], 
             // the 4th MB holds the C code in one image and mirror bytes in the other, and bound entry points hold JML hooks
             if ((bank & 0x3F) >= 0x38 && (bank & 0x3F) <= 0x3B && (bank >= 0xC0 || (bank >= 0x80 && off >= 0x8000))) stackWrite = true;
             if (otherRom && (a < ownAddr || a >= ownAddr + 5) && ((bank & 0x40) !== 0 || off >= 0x8000) && image[a & 0x3FFFFF] !== otherRom[a & 0x3FFFFF]) stackWrite = true;
+            if ((bank & 0x40) === 0 && off === 0x2142) return bus.wram[(cpu.d + 0x9F) & 0x1FFFF];
             return bus.read(a);
         },
         write: (a: number, v: number) => {

@@ -617,3 +617,16 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 201/201 fuzzed states match ROM (100% parity).
   - Mutation caught: yes.
 - Rated and audited: 301 clean, 0 stale/unrated. Total bound routines: **301**.
+
+### Routine #302: `script_op_59_music_fade_out` ($8C:DC74)
+- Bound in `reconstructed-c/8C/8CDC74_script_op_59_music_fade_out.c`:
+  - Implements the script virtual machine opcode 0x59 handler (fade music out):
+    - Sets 8-bit accumulator mode (`SEP #$20`) and loads `#$F0` (-16 signed step) into A, storing it to DP `$9B`.
+    - Switches back to 16-bit accumulator mode (`REP #$20`).
+    - Uses the 65C816 `PEA $7E80; PLB` stack idiom to set data bank DB to `$80` during execution while staging `$7E` on the stack for restoration.
+    - Calls `audio_music_fade_step` (`$8C:8619`) via `soe_call_rtl`.
+    - Pulls data bank DB back to `$7E` (`PLB`), sets Carry (`SEC`), and returns via `RTS`.
+- Verified under Gate G1:
+  - 1/1 real states match ROM (100% parity, 1/1 snes9x oracle agreement).
+  - Mutation caught: yes.
+- Rated and audited: 302 clean, 0 stale/unrated. Total bound routines: **302**.
