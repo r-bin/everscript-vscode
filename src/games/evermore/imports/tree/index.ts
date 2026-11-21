@@ -61,9 +61,14 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         if (!trees || Date.now() - trees.at > 5000) trees = { at: Date.now(), list: findTrees(deps.roots()) };
         return trees.list;
     };
+    /** A kind's folder in a tree: tiles and families live in maps/ (v0.449.0), older trees have them at the top. */
+    const folderOf = (dir: string, kind: string): string => {
+        const inMaps = path.join('maps', kind);
+        return (kind === 'tiles' || kind === 'tile_families') && fs.existsSync(path.join(dir, inMaps, '_enum.json')) ? inMaps : kind;
+    };
     /** A kind's names[id] in a tree, read again when its _enum.json changes. */
     const names = (dir: string, kind: string): string[] => {
-        const file = path.join(dir, kind, '_enum.json'), at = mtime(file), hit = enums.get(file);
+        const file = path.join(dir, folderOf(dir, kind), '_enum.json'), at = mtime(file), hit = enums.get(file);
         if (hit && hit.at === at) return hit.names;
         let list: string[] = [];
         try { list = readJson(file).names ?? []; } catch { /* a kind not exploded: no names */ }
@@ -87,7 +92,7 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         if (name === undefined) throw new Error(`maps/_enum.json has no map ${id}`);
         const dir = path.join(tree.dir, 'maps', name), build = path.join(tree.dir, '_build', 'evermore.sfc');
         const watched = [...Object.values(TREE_MAP).map(f => path.join(dir, f)), build,
-            path.join(tree.dir, 'tile_families', '_enum.json'), path.join(tree.dir, 'tiles', '_enum.json'), path.join(tree.dir, 'scripts', '_enum.json')];
+            ...['tile_families', 'tiles', 'scripts'].map(k => path.join(tree.dir, folderOf(tree.dir, k), '_enum.json'))];
         const soe = deps.soeRom();
         const key = watched.map(mtime).join(',') + '|' + (soe ? soe.length : 0);
         const hit = cache.get(tree.dir + '#' + id);

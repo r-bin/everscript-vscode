@@ -329,11 +329,12 @@ skip 7                      7 bytes no command reaches: not this script's
   offsets follow. `goto_back` (`05`, one byte back) takes `goto`'s form when its label is out of its reach.
 - **Groups.** Vanilla ties 141 groups of scripts (the largest 20 KB) by relative calls, which only reach backwards
   inside one item. `call_back` (`a5`, `a6`) does what `call` (`29`) does and `call_back_with_args` (`b2`, `b3`)
-  what `call_with_args` (`af`) does (opcodes/a5.md), so **implode writes a relative call as the absolute one
-  whenever its target is not in reach** (owner, 2026-11-21): a stable build keeps vanilla's groups (`_scripts.json`,
-  byte for byte, G0), a random build places every script alone with every relative call absolute.
-  **`--strict`** keeps every form as written: groups are placed together and a call out of reach is an error
-  (`out-of-range`). The bytes between a group's scripts are holes (`skip`): vanilla keeps tiles in bank `$95`
+  what `call_with_args` (`af`) does (opcodes/a5.md), and the id calls (`a3`, `a4`, `b0`, `b1`) look their script
+  up and then do the same. Every one ends in `29`'s code, so the absolute form is the fastest (owner, 2026-11-21:
+  fastest wins, ROM size is no limit). **Without `--strict` every call is written absolute** and every script is
+  placed alone (~10 KB more, which no longer fits the full 3 MiB image: it grows to 4 MiB). **`--strict`** keeps
+  every form as written: vanilla's groups placed together, a call out of reach an error (`out-of-range`), the
+  vanilla sha1 (G0). `goto_back` stays: it reads one byte where `goto` reads two, and takes `goto` only out of reach. The bytes between a group's scripts are holes (`skip`): vanilla keeps tiles in bank `$95`
   between two scripts of one group; a script placed alone drops the hole after it.
 - **Absolute calls cost fewer cycles** (`29` about half of `a5`), and the engine is busy most of every frame, so a
   random build without `--strict` plays the same scenes but not frame for frame: `prove` builds its layout

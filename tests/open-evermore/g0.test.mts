@@ -18,6 +18,8 @@ const { stripCopierHeader } = require('../../dist/platform/roms/header');
 const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
+/** Where a kind lives in the tree when not at the top (folders.mts). */
+const FOLDER: Record<string, string> = { tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -25,10 +27,15 @@ if (!path || !existsSync(path)) {
     const tree = explode(rom, { release: 'us', sha1: sha1(rom), explodedWith: 'test' }, GAME, KINDS);
     console.log('\nOpen Evermore on the base ROM:');
 
-    const stable = implode(tree, GAME, KINDS);
+    const stable = implode(tree, GAME, KINDS, { strict: true });
     assert.deepStrictEqual(stable.findings.list.filter(f => f.severity !== 'info'), []);
     assert.strictEqual(stable.sha1, sha1(rom));
-    console.log(`  ✓ stable: ${tree.size} files → the same ROM (${stable.sha1}), no warnings`);
+    console.log(`  ✓ stable --strict: ${tree.size} files → the same ROM (${stable.sha1}), no warnings`);
+    // Without --strict every script call takes its fastest form (absolute): the same scripts, a few KB longer.
+    const fast = implode(tree, GAME, KINDS);
+    assert.deepStrictEqual(fast.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'grown'), []);
+    assert.ok(fast.sha1 !== sha1(rom) && !fast.findings.list.some(f => f.rule === 'changed'), 'fast forms, nothing changed');
+    console.log(`  ✓ stable: every call in its fastest form, round trip holds (${fast.layout})`);
 
     for (const seed of [1, 2026]) {
         const r = implode(tree, GAME, KINDS, { seed });
@@ -51,10 +58,10 @@ if (!path || !existsSync(path)) {
     };
     const room = [...tree.keys()].find(p => p.startsWith('maps/') && p.endsWith('/map.json'))!;
     assert.deepStrictEqual(rules(t => editJson(t, room, m => { m.tileFamilies[0] = 'no_such_family'; })), [`unknown-reference ${room}#/tileFamilies/0`]);
-    assert.deepStrictEqual(rules(t => editJson(t, 'tile_families/family_000.json', f => { f.colours[3] = '#123456'; })), ['invalid-value tile_families/family_000.json#/colours/3']);
+    assert.deepStrictEqual(rules(t => editJson(t, 'maps/tile_families/family_000.json', f => { f.colours[3] = '#123456'; })), ['invalid-value maps/tile_families/family_000.json#/colours/3']);
     assert.deepStrictEqual(rules(t => editJson(t, room, m => { m.graphics.tiles[0] = 'no_such_tile'; })), [`unknown-reference ${room}#/graphics/tiles/0`]);
     const rgb = new Uint8Array(encodePng(16, 16, new Uint8Array(16 * 16 * 4).fill(255)));
-    assert.deepStrictEqual(rules(t => { t.set('tiles/tile_0000.png', rgb); }), ['invalid-value tiles/tile_0000.png#']);
+    assert.deepStrictEqual(rules(t => { t.set('maps/tiles/tile_0000.png', rgb); }), ['invalid-value maps/tiles/tile_0000.png#']);
     console.log('  ✓ a map naming a missing family or tile, a colour the SNES cannot show and a tile PNG that is not indexed are errors');
 
     const meta = room.replace('map.json', 'metatiles.json'), grid = room.replace('map.json', 'grid.txt');
@@ -85,11 +92,11 @@ if (!path || !existsSync(path)) {
     console.log('  ✓ an edited object state and grass record build and round-trip; a cell that is no metatile is an error');
 
     const other = explode(rom, { release: 'us', sha1: sha1(rom), explodedWith: 'test' }, GAME, KINDS, undefined, { tile_families: { format: 'png' }, tiles: { format: 'json' } });
-    assert.ok(other.has('tile_families/family_000.png') && other.has('tiles/tile_0000.json'));
-    const p = implode(other, GAME, KINDS);
+    assert.ok(other.has('maps/tile_families/family_000.png') && other.has('maps/tiles/tile_0000.json'));
+    const p = implode(other, GAME, KINDS, { strict: true });
     assert.deepStrictEqual(p.findings.list.filter(f => f.severity !== 'info'), []);
     assert.strictEqual(p.sha1, sha1(rom));
-    assert.deepStrictEqual(rules(t => { t.delete('tiles/tile_0000.png'); t.set('tiles/tile_0000.json', other.get('tiles/tile_0000.json')!); }), []);
+    assert.deepStrictEqual(rules(t => { t.delete('maps/tiles/tile_0000.png'); t.set('maps/tiles/tile_0000.json', other.get('maps/tiles/tile_0000.json')!); }), []);
     console.log('  ✓ families as PNG stripes and tiles as JSON rows: the same ROM; one tile as JSON among PNGs too');
 
     // Strings: an unknown tag is an error; an edited string is encoded anew (our encoder) and explodes back.
@@ -130,7 +137,9 @@ if (!path || !existsSync(path)) {
     assert.ok(globalCall, 'global calls name their script');
     const sc = implode((() => { const t = new Map(tree); setLines(t, enter, l => ['a3 36', 'call_global 36', globalCall.replace('@', '@/'), ...l]); return t; })(), GAME, KINDS);
     assert.deepStrictEqual(sc.findings.list.filter(f => f.severity === 'error'), []);
-    assert.deepStrictEqual(rules(t => setLines(t, enter, l => [`call_global @${enter.split('/')[1]}/enter`, ...l])).map(r => r.split(' ')[0]), ['unknown-reference']);
+    // A global call to a script with no global id: written as `call` by default, an error with --strict.
+    assert.deepStrictEqual(rules(t => setLines(t, enter, l => [`call_global @${enter.split('/')[1]}/enter`, ...l])), []);
+    assert.deepStrictEqual(rules(t => setLines(t, enter, l => [`call_global @${enter.split('/')[1]}/enter`, ...l]), true).map(r => r.split(' ')[0]), ['unknown-reference']);
     // Jumps are labels: a line added before a jump moves its target, and the script still builds.
     const jumper = [...tree.keys()].find(p => isScript(p) && lines(p).some(l => /^goto label_\d+$/.test(l)) && lines(p).some(l => /^label_\d+:$/.test(l)))!;
     const longer = implode((() => { const t = new Map(tree); setLines(t, jumper, l => ['yield', ...l]); return t; })(), GAME, KINDS);
@@ -150,26 +159,26 @@ if (!path || !existsSync(path)) {
         editJson(t, `${dir}/_enum.json`, e => { e.names.push(to); });
     };
     const grown = new Map(tree);
-    grow('tiles', 'tile_0000', 'tile_new', 'png')(grown);
+    grow('maps/tiles', 'tile_0000', 'tile_new', 'png')(grown);
     grow('strings', 'string_0000', 'string_new', 'txt')(grown);
     grow('scripts', 'boot', 'script_new', 'txt')(grown);
     const g = implode(grown, GAME, KINDS);
     assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
-    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${kind}/_enum.json`)!).toString()).limit, limit, kind);
+    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
     console.log('  ✓ a new tile, string and table script: each table grows and moves, the round trip holds; limits at the engine\'s');
 
     // The table kinds of the table hack: a new animation, character (a record and an ENEMY id) and sprite blocks grow
     // their tables, which move; the records stay one block at $xx:B678; an alias keeps its run together.
     const more = new Map(tree);
-    const firstAnimation = JSON.parse(Buffer.from(tree.get('animations/_enum.json')!).toString()).names[0];
-    grow('animations', firstAnimation, 'animation_new', 'json')(more);
+    const firstAnimation = JSON.parse(Buffer.from(tree.get('characters/animations/_enum.json')!).toString()).names[0];
+    grow('characters/animations', firstAnimation, 'animation_new', 'json')(more);
     for (const f of ['character.json', 'animations.json']) more.set(`characters/fire_eyes_copy/${f}`, more.get(`characters/fire_eyes/${f}`)!);
     editJson(more, 'characters/_enum.json', e => { e.names.push('fire_eyes_copy'); });
     editJson(more, 'characters/_records.json', e => { e.names.push('fire_eyes_copy'); });
-    grow('sprite_blocks_16', 'block_0000', 'block_new', 'png')(more);
-    grow('sprite_blocks_8', 'block_0000', 'block_new', 'png')(more);
-    assert.ok(more.has('sprite_blocks_8/block_17c5.json'), 'the 8×8 alias (block 6085 reads blocks 0 and 407)');
+    grow('characters/sprite_blocks_16', 'block_0000', 'block_new', 'png')(more);
+    grow('characters/sprite_blocks_8', 'block_0000', 'block_new', 'png')(more);
+    assert.ok(more.has('characters/sprite_blocks_8/block_17c5.json'), 'the 8×8 alias (block 6085 reads blocks 0 and 407)');
     const m = implode(more, GAME, KINDS, { seed: 5 });
     assert.deepStrictEqual(m.findings.list.filter(f => f.severity !== 'info').map(f => `${f.rule} ${f.file}`), []);
     // Each table grew past its vanilla footprint (it moves, or grows in place where the bytes after it are free).
@@ -183,17 +192,17 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(rules(t => editJson(t, 'characters/fire_eyes/animations.json', a => { a.stand.record = 'x'; })), ['invalid-value characters/fire_eyes/animations.json#/stand/record']);
     // Fields by name: the behaviour and the attack proc name entries of their kinds, flags are their bits' names.
     const fire = JSON.parse(Buffer.from(tree.get('characters/fire_eyes/character.json')!).toString());
-    assert.ok(tree.has(`behaviours/${fire.behaviour}.json`) && tree.has(`attack_procs/${fire.attack_proc}.json`), `${fire.behaviour}, ${fire.attack_proc}`);
+    assert.ok(tree.has(`characters/behaviours/${fire.behaviour}.json`) && tree.has(`characters/attack_procs/${fire.attack_proc}.json`), `${fire.behaviour}, ${fire.attack_proc}`);
     assert.ok([...tree.keys()].some(p => p.endsWith('/character.json') && / \| /.test(JSON.parse(Buffer.from(tree.get(p)!).toString()).flags ?? '')), 'flags as names');
     assert.deepStrictEqual(rules(t => editJson(t, 'characters/fire_eyes/character.json', c => { c.attack_proc = 'tickle'; })), ['unknown-reference characters/fire_eyes/character.json#/attack_proc']);
     assert.deepStrictEqual(rules(t => editJson(t, 'characters/fire_eyes/character.json', c => { c.flags = 'invincible | shiny'; })), ['invalid-value characters/fire_eyes/character.json#/flags']);
     const poisoned = implode((() => { const t = new Map(tree); editJson(t, 'characters/fire_eyes/character.json', c => { c.attack_proc = 'melee_poison'; c.flags = 'never_sleeps | through_bodies'; }); return t; })(), GAME, KINDS);
     assert.deepStrictEqual(poisoned.findings.list.filter(f => f.severity === 'error'), []);
     // Handlers by routine name: opcodes, attack procs, behaviours.
-    const animate = JSON.parse(Buffer.from(tree.get('opcodes/animate.json')!).toString());
+    const animate = JSON.parse(Buffer.from(tree.get('scripts/opcodes/animate.json')!).toString());
     assert.ok(animate.handler === 'script_op_78_animate' && !('c' in animate), JSON.stringify(animate).slice(0, 80));
-    assert.ok([...tree.keys()].filter(p => /^(opcodes|attack_procs|behaviours)\/[^_]/.test(p)).every(p => !JSON.parse(Buffer.from(tree.get(p)!).toString()).handler.startsWith('$')), 'every handler has a name');
-    assert.deepStrictEqual(rules(t => editJson(t, 'attack_procs/melee.json', v => { v.handler = 'no_such_routine'; })), ['unknown-reference attack_procs/melee.json#/handler']);
+    assert.ok([...tree.keys()].filter(p => /^(scripts\/opcodes|characters\/attack_procs|characters\/behaviours)\/[^_]/.test(p)).every(p => !JSON.parse(Buffer.from(tree.get(p)!).toString()).handler.startsWith('$')), 'every handler has a name');
+    assert.deepStrictEqual(rules(t => editJson(t, 'characters/attack_procs/melee.json', v => { v.handler = 'no_such_routine'; })), ['unknown-reference characters/attack_procs/melee.json#/handler']);
     console.log('  ✓ animations, characters (records + ENEMY ids), sprite blocks: new ones grow and move their tables (random), records stay at $B678; a bad record, field or animation is an error');
     console.log('  ✓ characters name their behaviour and attack proc, flags by bit names; handlers of opcodes, attack procs and behaviours by routine name');
 
@@ -202,8 +211,8 @@ if (!path || !existsSync(path)) {
     const musicFiles = [...tree.keys()].filter(p => p.startsWith('music/'));
     assert.ok(musicFiles.filter(p => p.endsWith('/package.json')).length === 71 && musicFiles.filter(p => p.endsWith('.bin')).length > 2000, `${musicFiles.length} music files`);
     assert.deepStrictEqual(rules(t => editJson(t, 'music/main_title/package.json', m => { m.transfers[0].data = 'nothing'; })).filter(r => !r.startsWith('left-out')), ['unknown-reference music/main_title/package.json#/transfers/0/data']);
-    const someSound = JSON.parse(Buffer.from(tree.get('sounds/_enum.json')!).toString()).names[1];
-    assert.deepStrictEqual(rules(t => editJson(t, `sounds/${someSound}.json`, v => { v.sfx = 'loud'; })), [`invalid-value sounds/${someSound}.json#/sfx`]);
+    const someSound = JSON.parse(Buffer.from(tree.get('music/sounds/_enum.json')!).toString()).names[1];
+    assert.deepStrictEqual(rules(t => editJson(t, `music/sounds/${someSound}.json`, v => { v.sfx = 'loud'; })), [`invalid-value music/sounds/${someSound}.json#/sfx`]);
     const swapped = implode((() => { const t = new Map(tree); editJson(t, 'music/main_title/package.json', m => { m.transfers.reverse(); }); return t; })(), GAME, KINDS);
     assert.deepStrictEqual(swapped.findings.list.filter(f => f.severity === 'error'), []);
     console.log('  ✓ music: 71 packages, their data as .bin; an edited package rebuilds; unknown data or a bad sound is an error');

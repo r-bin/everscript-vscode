@@ -5,6 +5,7 @@ import { readBase, DIR as BASE_DIR } from './base.mts';
 import { ENUM, resolveEnum } from './enum.mts';
 import type { Codec, Item, Segment, Span, Write } from './codec.mts';
 import { explode } from './explode.mts';
+import { folders, mapTree } from './folders.mts';
 import { Findings } from './findings.mts';
 import { FILE as MANIFEST, busOf, checkHeader, checkManifest, checkRegions, fileOf, formatAddr, parseAddr } from './manifest.mts';
 import type { Layout, Manifest } from './manifest.mts';
@@ -58,13 +59,17 @@ function plans(manifest: Manifest, size: number, baseLength: number, opts: Optio
     return [...sizes.map(n => plan('hirom', n, baseLength, past)), ...(grow ? [plan('exhirom', EIGHT_MIB, baseLength, past)] : [])];
 }
 
-export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options = {}): Result {
+export function implode(onDisk: Tree, game: string, kinds: Codec[], opts: Options = {}): Result {
     const findings = new Findings();
+    // The codecs read their kinds' paths; findings name the files as they are on disk (folders.mts).
+    const where = folders(kinds), tree = mapTree(onDisk, where.fromTree);
     const seed = opts.seed ?? null;
     const placed: Result['placed'] = [];
     let built: Uint8Array | null = null, label: string | null = null;
-    const done = (image: Uint8Array | null = null, stats: KindStats[] = [], hash: string | null = null): Result =>
-        ({ findings, image: findings.failed ? null : image, content: findings.failed ? null : built, layout: label, stats, sha1: hash, seed, placed });
+    const done = (image: Uint8Array | null = null, stats: KindStats[] = [], hash: string | null = null): Result => {
+        for (const f of findings.list) { try { f.file = where.toTree(f.file); } catch { /* a name no folder can hold: as the codec gave it */ } }
+        return { findings, image: findings.failed ? null : image, content: findings.failed ? null : built, layout: label, stats, sha1: hash, seed, placed };
+    };
 
     // Stage 1: the manifest and the base.
     const raw = tree.get(MANIFEST);
@@ -158,7 +163,8 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     // Stage 7: after.
     // The header the manifest describes is the HiROM one (the converters rewrite exhirom's and sa1's).
     checkHeader(manifest, p.layout === 'hirom' ? image : content.slice(0, FOUR_MIB), findings);
-    if (seed === null && !changed && p.layout === 'hirom' && p.content === base.image.length && hash !== manifest.base.sha1) {
+    // G0 is the promise of --strict: without it a kind may write a command in a faster form (scripts' calls).
+    if (opts.strict && seed === null && !changed && p.layout === 'hirom' && p.content === base.image.length && hash !== manifest.base.sha1) {
         findings.error('g0-failed', MANIFEST, '/base/sha1', `nothing changed since explode, yet the ROM's sha1 is ${hash}`);
     }
     // Files no kind reads, and resources a kind left out of the build (nothing reaches them): not in the round trip.
@@ -170,14 +176,14 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     }));
     // The round trip reads what the game reads: the cartridge, or for sa1 its HiROM content.
     const located = new Map([...layout.at, ...ctx.symbols]);
-    const again = explode(p.layout === 'sa1' ? content : image, manifest.base, game, kinds, byId, manifest.options ?? {}, located);
+    const again = mapTree(explode(p.layout === 'sa1' ? content : image, manifest.base, game, kinds, byId, manifest.options ?? {}, located), where.fromTree);
     const own = (p: string) => p !== MANIFEST && !p.startsWith(BASE_DIR + '/') && !ignored.has(p);
     // Each kind says what of a file counts (Codec.canonical): derived or cached parts are left out of the comparison.
     const strip = (t: Tree): Tree => new Map([...t].filter(([p]) => own(p)).flatMap(([p, b]): [string, Uint8Array][] => {
         const codec = kinds.find(k => p.startsWith(k.path + '/'));
         // A JSON file compares by its content, whatever its layout (a hand-written one need not be indented like ours).
         const tidy = ([q, x]: [string, Uint8Array]): [string, Uint8Array] => { if (!q.endsWith('.json')) return [q, x]; try { return [q, json(JSON.parse(readText(x)))]; } catch { return [q, x]; } };
-        try { const c = codec?.canonical ? codec.canonical(p, b) : [p, b] as [string, Uint8Array]; return c ? [tidy(c)] : []; } catch { return [[p, b]]; }
+        try { const c = codec?.canonical ? codec.canonical(p, b, ctx) : [p, b] as [string, Uint8Array]; return c ? [tidy(c)] : []; } catch { return [[p, b]]; }
     }));
     const differ = diffTrees(strip(again), strip(tree));
     for (const p of differ.slice(0, 20)) findings.error('round-trip', p, '', again.has(p) ? (tree.has(p) ? 'explodes to different content' : 'explode writes this file; the tree lacks it') : 'explode does not give this file back');

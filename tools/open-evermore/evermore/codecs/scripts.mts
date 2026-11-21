@@ -39,7 +39,7 @@ import { json, NAME_RE, readText, sha1, text } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { locate as locateMaps, roomBlobs } from './maps.mts';
 import { DEFAULT_OPCODE, KIND as OPCODES } from './opcodes.mts';
-import { assemble, BY_ID, LABEL_RE, LONGER, META, parse, REF, SCRIPTS, scriptText, SKIP, WINDOW } from './script-lines.mts';
+import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, parse, REF, SCRIPTS, scriptText, SKIP, WINDOW } from './script-lines.mts';
 import type { Member, Patch, Script } from './script-lines.mts';
 
 export { WINDOW };
@@ -194,23 +194,31 @@ export const scriptsCodec: Codec = {
 
     defaultName: id => `script_${id.toString(16).padStart(4, '0')}`,
 
-    canonical(path, bytes) {
+    canonical(path, bytes, ctx) {
         // Vanilla's groups are packing: a random build places each script alone (G0 checks the stable packing).
         if (path === `${DIR}/${META}`) { const v = JSON.parse(readText(bytes)); delete v.groups; delete v.why; return [path, json(v)]; }
         if (!scriptOf(path)) return [path, bytes];
-        // An opcode may be written by its name or as a hex byte, and a command in its longer form (a relative call
-        // written as the absolute one): all compare as the shorter form's byte (default names). The room a script
-        // keeps after it (`skip` at its end) belongs to its group, not to it.
-        const op = (t: string) => { const b = DEFAULT_OPCODE.get(t) ?? parseInt(t, 16); return Number.isNaN(b) ? t.toLowerCase() : hex2(LONGER[b] ?? b); };
+        // An opcode may be written by its name or as a hex byte, and a command in a longer or faster form (a relative or
+        // id call written as the absolute one): all compare as that form's byte (default names). A script is named by
+        // its full name, a call by id with the script the enum gives it. The room a script keeps after it (`skip` at its
+        // end) belongs to its group, not to it.
+        const self = scriptOf(path)!, names = ctx?.names.get(KIND), ids = ctx?.ids.get(KIND);
+        const byId = new Map([...(ids ?? [])].map(([n, id]) => [id, n])), globalsFrom = ctx ? u16(ctx.base.image, HEADER + 8) / 3 : 0;
         const lines = readText(bytes).split('\n').map(l => l.trim().split(/\s+/).filter(Boolean)).filter(t => t.length && !t[0].startsWith('#'));
         while (lines.length && lines[lines.length - 1][0] === SKIP) lines.pop();
-        // A call by global or trigger id may be written with the id or the name (explode writes the name): implode
-        // takes the id from the enum, not from placement, so the comparison leaves it out.
-        for (const t of lines) {
-            const b = DEFAULT_OPCODE.get(t[0]) ?? (/^[0-9a-fA-F]{2}$/.test(t[0]) ? parseInt(t[0], 16) : -1);
-            if (BY_ID[b]) t.splice(t[t.length - 1].startsWith('@') ? -1 : -BY_ID[b].size);
-        }
-        return [path, text(lines.map(t => t.map((x, k) => x.startsWith('@') ? x : k === 0 && t[0] !== SKIP && !LABEL_RE.test(x) ? op(x) : x.toLowerCase()).join(' ')).join('\n') + '\n')];
+        return [path, text(lines.map(t => {
+            if (t[0] === SKIP || LABEL_RE.test(t[0])) return t.join(' ');
+            const b = DEFAULT_OPCODE.get(t[0]) ?? (/^[0-9a-fA-F]{2}$/.test(t[0]) ? parseInt(t[0], 16) : NaN);
+            const id = BY_ID[b], rest = t.slice(1);
+            if (id && ctx && rest.length >= id.size && rest.slice(-id.size).every(x => /^[0-9a-fA-F]{2}$/.test(x))) {
+                const v = rest.slice(-id.size).reduce((n, x, k) => n | (parseInt(x, 16) << (8 * k)), 0), n = byId.get(id.form === 'global' ? globalsFrom + v : v / 3);
+                if (n !== undefined) rest.splice(-id.size, id.size, '@/' + n);
+            }
+            const last = rest[rest.length - 1];
+            if (last?.startsWith('@') && names) rest[rest.length - 1] = '@' + resolveName(last.slice(1), self, x => names.has(x));
+            const op = Number.isNaN(b) ? t[0].toLowerCase() : hex2(FASTEST[b] ?? LONGER[b] ?? b);
+            return [op, ...rest.map(x => x.startsWith('@') ? x : x.toLowerCase())].join(' ');
+        }).join('\n') + '\n')];
     },
 
     explode(rom, name, _options, count, nameAt) {
@@ -289,9 +297,9 @@ export const scriptsCodec: Codec = {
         for (const n of names) if (!reached.has(n)) findings.warning('left-out', fileOf(n), '', 'no table, map or reached script names this script: it is left out of the ROM');
 
         const items: Item[] = [], groups: Group[] = [];
-        // Vanilla's groups stay together in a stable build and with --strict; a random build places every script on
-        // its own, its relative calls written as absolute ones (the proof maps the moved commands: segments).
-        const free = ctx.random && !ctx.strict, globalsFrom = u16(ctx.base.image, HEADER + 8) / 3;
+        // Without --strict every call takes its fastest form, the absolute one, and every script is placed on its own; with
+        // --strict vanilla's forms and groups stay (the proof maps the re-encoded commands: segments).
+        const free = !ctx.strict, globalsFrom = u16(ctx.base.image, HEADER + 8) / 3;
         for (const full of lists) {
             const members: Member[] = [];
             for (const n of full.filter(x => reached.has(x))) {

@@ -3,6 +3,7 @@
 // CLI: open-evermore.mts.
 import type { Codec, Exploded } from './codec.mts';
 import { baseFiles } from './base.mts';
+import { folders, mapTree } from './folders.mts';
 import { CHECKSUM, FILE as MANIFEST, manifestFor } from './manifest.mts';
 import type { Manifest } from './manifest.mts';
 import { json } from './tree.mts';
@@ -28,5 +29,6 @@ export function explode(rom: Uint8Array, base: Manifest['base'], game: string, k
     const manifest = manifestFor(rom, game, base);
     if (Object.keys(options).length) manifest.options = options;
     tree.set(MANIFEST, json(manifest));
-    return tree;
+    // Each kind's files in its folder (folders.mts).
+    return mapTree(tree, folders(kinds).toTree);
 }

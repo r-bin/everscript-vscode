@@ -35,7 +35,7 @@ for (const [list, prefix] of [['ANIMATION_BOY', 'boy_'], ['ANIMATION_DOG', 'dog_
 }
 
 export const animationsCodec: Codec = {
-    kind: KIND, version: 2, path: DIR,
+    kind: KIND, version: 2, path: DIR, folder: `characters/${DIR}`,
 
     defaultName: id => NAMES.get(id) ?? `animation_${id.toString(16).padStart(3, '0')}`,
 

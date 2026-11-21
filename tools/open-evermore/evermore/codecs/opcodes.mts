@@ -85,7 +85,7 @@ const DEFAULT: string[] = (() => {
 })();
 
 export const opcodesCodec: Codec = {
-    kind: KIND, version: 1, path: DIR,
+    kind: KIND, version: 1, path: DIR, folder: `scripts/${DIR}`,
 
     defaultName: id => DEFAULT[id] ?? `opcode_${hex(id, 2)}`,
 

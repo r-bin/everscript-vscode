@@ -69,7 +69,7 @@ function fromPng(bytes: Uint8Array, file: string, findings: import('../../findin
 }
 
 export const tileFamiliesCodec: Codec = {
-    kind: KIND, version: 1, path: DIR,
+    kind: KIND, version: 1, path: DIR, folder: `maps/${DIR}`,
 
     defaultName: id => 'family_' + id.toString(16).padStart(3, '0'),
     canonical: (path, bytes) => {

@@ -25,6 +25,8 @@ export interface Manifest {
     renames: { kind: string; from: string; to: string }[];
     /** How explode wrote a kind's files, by kind (`tile_families: { format: 'png' }`); the round trip writes them so again. */
     options?: Record<string, Record<string, string>>;
+    /** The kinds this tree was exploded with, when not all (`explode --kinds`, to prove kinds apart); the rest is `_base/`. */
+    kinds?: string[];
 }
 
 // The internal header of a HiROM cartridge, as file offsets (hardware).

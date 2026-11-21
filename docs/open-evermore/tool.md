@@ -14,7 +14,7 @@ No npm commands (owner, 2026-11-19). `npm run build:ts` first: the codecs call t
 
 ```sh
 T=tools/open-evermore/open-evermore.mts
-node $T explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json]   # rom: else the library's base ROM; dir: out/open-evermore
+node $T explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json] [--kinds a,b]   # rom: else the library's base ROM; dir: out/open-evermore; --kinds: only those (proving kinds apart)
 node $T implode <dir> [--random [seed]] [--check-only] [--strict]
 node $T prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
 ```
@@ -22,7 +22,7 @@ node $T prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
 | Action | Does | Writes |
 |---|---|---|
 | `explode` | ROM → tree; refuses a folder in the repository outside `out/`, and an existing tree without `--force` | the tree |
-| `implode` | validate, ids, encode, place (stable, or shuffled by `--random`, which grows the image to 4 MiB), tables, checksum, validate again. A kind may write a command in a longer form so it can go anywhere (scripts: a relative call as the absolute one); `--strict` keeps every form as written, and warnings become errors | `<dir>/_build/evermore.sfc` (only without errors), `report.md`, `report.json` |
+| `implode` | validate, ids, encode, place (stable, or shuffled by `--random`, which grows the image to 4 MiB), tables, checksum, validate again. Without `--strict` a kind writes a command in its fastest form (scripts: every call absolute, so each script goes anywhere); `--strict` keeps every form as written (G0: the vanilla sha1), and warnings become errors | `<dir>/_build/evermore.sfc` (only without errors), `report.md`, `report.json` |
 | `prove` | build the original and a random layout (`--strict`: lockstep needs vanilla's cycle counts; `--promoted` builds it as plain implode does) from the tree, play every stored playback recorded on the original in lockstep (G1, [README.md](README.md) §5.1) | `<dir>/_build/prove-<seed>/REPORT.md`, both ROMs, one result per playback |
 
 Planned: `rename` (a resource and every reference to it, logged in the manifest), a BPS patch next to the ROM.

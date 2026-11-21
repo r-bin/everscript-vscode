@@ -107,7 +107,7 @@ function blockCodec(s: Spec): Codec {
     const rule = { noCrossBank: true, above: (s.base - 0xC0) << 16, below: FOUR_MIB };
     const png = (raw: Uint8Array) => new Uint8Array(encodeIndexedPng(s.size, s.size, pixelsOf(raw, s.size), GREY, ALPHA));
     return {
-        kind: DIR, version: 1, path: DIR,
+        kind: DIR, version: 1, path: DIR, folder: `characters/${DIR}`,
 
         defaultName: id => `block_${id.toString(16).padStart(4, '0')}`,
 

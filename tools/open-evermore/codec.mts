@@ -126,8 +126,10 @@ export interface Write { at: number; bytes: Uint8Array; file: string }
 export interface Codec {
     kind: string;
     version: number;
-    /** The top-level folder of the tree this kind owns. */
+    /** The kind's own path: the codec's files are `<path>/…`, and so is the tree's top-level folder unless `folder`. */
     path: string;
+    /** Where the kind lives in the tree when not `<path>/`: inside a related kind's folder (`maps/tiles`, folders.mts). */
+    folder?: string;
     /** Only the names `_enum.json` lists get an id; the others are reached by name alone (scripts). */
     listedIdsOnly?: boolean;
     /** What a name of this kind may look like, when not NAME_RE (scripts: `<map>/<local>`). */
@@ -146,9 +148,10 @@ export interface Codec {
      * What of a file the round trip compares, as [path, bytes], when not all of it is the resource: a tile's indices
      * whether PNG or JSON (a PNG's palette only shows it), a JSON file without what explode derives (which maps use a
      * family) or caches (vanilla packed bytes). The path may drop the file format, so either form compares equal.
-     * Null: a file only for the reader (a map's preview.png), left out.
+     * Null: a file only for the reader (a map's preview.png), left out. `ctx`: the build's names and ids, to compare a
+     * reference written by id with one written by name.
      */
-    canonical?(path: string, bytes: Uint8Array): [string, Uint8Array] | null;
+    canonical?(path: string, bytes: Uint8Array, ctx?: ImplodeContext): [string, Uint8Array] | null;
     /** The names of the resources in the tree (folder or file names, unordered); stray files are warnings. */
     names(ctx: ImplodeContext): Set<string>;
     /** Reads, validates and encodes the resources; findings go to ctx.findings. */

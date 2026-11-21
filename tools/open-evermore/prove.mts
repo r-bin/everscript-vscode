@@ -52,7 +52,7 @@ export async function prove(tree: Tree, game: string, kinds: Codec[], seed: numb
     const lines: string[] = [];
     const log = (s: string) => { lines.push(s); console.log(s); };
     // The original is plain HiROM at the base size: the playbacks were recorded on it.
-    const original = implode(tree, game, kinds, { layout: 'hirom', pastEnd });
+    const original = implode(tree, game, kinds, { layout: 'hirom', pastEnd, strict: true });
     // Strict by default: a longer encoding (a relative script call written as the absolute one) does the same in
     // fewer cycles, and the engine is busy most of each frame, so any cycle change leaves WRAM out of step for good
     // (docs/open-evermore/progress.md §2). Lockstep proves placement; `strict = false` shows how far that goes.

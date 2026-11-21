@@ -48,6 +48,12 @@ update the table.
   (`snes-asm-asar-patching` §3.4): then compare the master clocks of each call (save state:
   `CPU.Cycles` at offset 36, `V_Counter` at 44, 1364 clocks a line). A cycle-exact hook can still
   differ on a lag frame whose end lands inside it: the half-written scratch shows for one frame.
+- **A move can cost cycles too.** The main thread is busy most of every frame, so any cycle change
+  leaves WRAM out of step for good. Data keeps its cycle counts only while every reader takes the same
+  path: the same bank turns (a read that crosses a bank, or ends on a bank's last byte where `iny`
+  wraps), no slow banks (`$00-$3F`, ExHiROM's `$40-$7D`), commands in the same encoding (a script's
+  absolute call is faster than its relative one). Open Evermore's placement rules keep these
+  (`open-evermore` skill).
 - **No sample reaches free play.** The user's recordings
   `Secret of Evermore (U) [!]_2026-10-11_08-20-51` (control from frame 15869, room `$46`) and
   `…_2026-10-07_11-40-27` (from 18290) do, both after many Start presses on the title and intro.

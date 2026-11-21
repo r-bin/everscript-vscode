@@ -120,7 +120,7 @@ const toRows = (bytes: Uint8Array): string[] => {
 const pairs = new WeakMap<ImplodeContext, Map<string, { key: string; offset: number }>>();
 
 export const tilesCodec: Codec = {
-    kind: KIND, version: 1, path: DIR,
+    kind: KIND, version: 1, path: DIR, folder: `maps/${DIR}`,
 
     defaultName: id => 'tile_' + id.toString(16).padStart(4, '0'),
 

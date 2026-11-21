@@ -137,9 +137,9 @@ function enterScripts(ctx: ImplodeContext, names: Set<string>, report: boolean):
 export const mapsCodec: Codec = {
     kind: 'maps', version: treeMap.TREE_MAP_VERSION, path: DIR,
     // preview.png shows the room; nothing reads it back.
-    canonical(path, bytes) {
+    canonical(path, bytes, ctx) {
         if (path.endsWith('/' + PREVIEW)) return null;
-        if (scriptOf(path)) return scriptsCodec.canonical!(path, bytes);
+        if (scriptOf(path)) return scriptsCodec.canonical!(path, bytes, ctx);
         // Hand-written text may order flags or pad numbers differently: compare what it means.
         const cells = (rows: string[]) => rows.map(r => r.trim().split(/\s+/).map(t => /^[0-9a-f]+$/.test(t) ? parseInt(t, 16) : t));
         if (path.endsWith('/' + TREE_MAP.grid)) return [path, json(cells(readText(bytes).trim().split('\n')))];

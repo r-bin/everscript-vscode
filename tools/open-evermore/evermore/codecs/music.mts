@@ -250,7 +250,7 @@ export const musicCodec: Codec = {
 };
 
 export const soundsCodec: Codec = {
-    kind: SOUNDS, version: 1, path: SOUNDS,
+    kind: SOUNDS, version: 1, path: SOUNDS, folder: `${MUSIC}/${SOUNDS}`,
 
     defaultName: id => SOUND_NAMES.get(id) ?? `sound_${hex2(id)}`,
 

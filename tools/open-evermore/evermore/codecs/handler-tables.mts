@@ -31,7 +31,7 @@ function handlerTable(t: Table): Codec {
     const DIR = t.kind, BANK = 0x80 | (t.at >> 16), COUNT = t.entries.length, HANDLERS = routines(BANK);
     const bank = `$${BANK.toString(16).toUpperCase()}`;
     return {
-        kind: t.kind, version: 1, path: DIR,
+        kind: t.kind, version: 1, path: DIR, folder: `characters/${DIR}`,
         defaultName: id => t.entries[id]?.[0] ?? `${t.kind}_${(2 * id).toString(16).padStart(2, '0')}`,
 
         // Only the handler is the entry; `what` is for the reader.

@@ -24,6 +24,10 @@ export const BY_ID: Record<number, { size: number; form: 'global' | 'trigger' }>
 const JUMP: Record<number, 'r16' | 'rb'> = { 0x04: 'r16', 0x05: 'rb', 0x08: 'r16', 0x09: 'r16', 0x0A: 'r16', 0x0B: 'r16', 0x8E: 'r16', 0x8F: 'r16' };
 /** The longer form a command may take when its offset does not reach: the same meaning, an absolute target. */
 export const LONGER: Record<number, number> = { 0xA5: 0x29, 0xA6: 0x29, 0xB2: 0xAF, 0xB3: 0xAF, 0x05: 0x04 };
+/** The fastest form of a call: every relative or id call ends in the code of `0x29` (`$8C:D3DA`) after working out its
+ *  target, so the absolute call does the same with less (2026-11-21, routines script_op_*). Not `goto_back`: it
+ *  reads one byte where `goto` reads two, so it takes `goto` only when its label is out of reach. */
+export const FASTEST: Record<number, number> = { 0xA5: 0x29, 0xA6: 0x29, 0xA3: 0x29, 0xA4: 0x29, 0xB2: 0xAF, 0xB3: 0xAF, 0xB0: 0xAF, 0xB1: 0xAF };
 /** A line for bytes no command reaches (between commands or after a script's last one): the script skips them. */
 export const SKIP = 'skip';
 export const LABEL_RE = /^([a-z_][a-z0-9_]*):$/, LABEL_NAME_RE = /^[a-z_][a-z0-9_]*$/;
@@ -119,12 +123,12 @@ export interface Member { name: string; file: string; entries: Entry[] }
 /**
  * A group's bytes, as one item: each member's commands in the given forms (`forms`: command → opcode; longer forms
  * replace those that do not reach, unless `strict`), relative calls and jumps worked out, absolute calls as patches
- * (0 in the bytes), ids by the scripts enum. `free`: every relative call takes its absolute form, so each script may
- * go anywhere. Problems are findings.
+ * (0 in the bytes), ids by the scripts enum. `free`: every call by offset or id takes the absolute form (the fastest,
+ * FASTEST), so each script may go anywhere. Problems are findings.
  */
 export function assemble(members: Member[], ctx: ImplodeContext, opts: { strict: boolean; free: boolean }, globalsFrom: number) {
     const cmds = members.flatMap(m => m.entries.filter((e): e is Extract<Entry, { kind: 'cmd' }> => e.kind === 'cmd'));
-    const forms = new Map(cmds.map(c => [c, opts.free && REF[c.op] && REF[c.op].form !== 'u24' ? LONGER[c.op] : c.op]));
+    const forms = new Map(cmds.map(c => [c, opts.free && c.ref !== undefined && FASTEST[c.op] ? FASTEST[c.op] : c.op]));
     const memberOf = new Map(members.flatMap(m => m.entries.map(e => [e, m] as const)));
     const at = new Map<Entry, number>(), start = new Map<string, number>(), label = new Map<string, number>();
     const layout = () => {
