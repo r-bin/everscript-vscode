@@ -7,8 +7,8 @@ category: 🧠
 name: apu_command_handshake
 title: APU command handshake / `$2140` spinlock
 confidence: confirmed
-tags: [audio, spc700, widescreen, widescreen.audio]
-evidence: ["disasm: SEI, SEP #$20, checks DP $9F against $2142 with 0x2800 timeout; increments sequence tag with 0-skip; writes 16-bit payload (from Y) to $2140 and command+seq (from A) to $2142; restores PLP", "main-loop: called by play_music_track ($8C:828F) and boot/fade sequences"]
+tags: [audio, spc700, widescreen, widescreen.audio, reconstructed-c, g1-pass]
+evidence: ["disasm: SEI, SEP #$20, checks DP $9F against $2142 with 0x2800 timeout; increments sequence tag with 0-skip; writes 16-bit payload (from Y) to $2140 and command+seq (from A) to $2142; restores PLP", "main-loop: called by play_music_track ($8C:828F) and boot/fade sequences", "reconstructed-c: 100% differential parity in G1 (41 real states, 656 fuzzed states)"]
 see: [docs/disassembly/audio/spc-handshake.md]
 ---
 Atomic APU command transfer handshake across the SNES hardware I/O communication ports
@@ -17,3 +17,4 @@ active sequence tag in `$2142` (with a `0x2800` iteration timeout recovery), adv
 counter DP `$9F` (skipping 0), and writes the 16-bit payload parameter to `$2140`–`$2141` and the
 command byte to `$2142`.
 Full disassembly and clean C reconstruction: `docs/disassembly/audio/spc-handshake.md`.
+Reconstructed C binding in `reconstructed-c/8C/8C81FD_spc_handshake.c` verified via G1 differential testing.
