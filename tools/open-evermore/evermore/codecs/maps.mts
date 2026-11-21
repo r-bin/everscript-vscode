@@ -135,7 +135,7 @@ function enterScripts(ctx: ImplodeContext, names: Set<string>, report: boolean):
 }
 
 export const mapsCodec: Codec = {
-    kind: 'maps', version: treeMap.TREE_MAP_VERSION, path: DIR,
+    kind: 'maps', version: treeMap.TREE_MAP_VERSION, path: DIR, folder: `${DIR}/rooms`,
     // preview.png shows the room; nothing reads it back.
     canonical(path, bytes, ctx) {
         if (path.endsWith('/' + PREVIEW)) return null;

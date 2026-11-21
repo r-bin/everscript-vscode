@@ -190,7 +190,7 @@ const encoded = new WeakMap<ImplodeContext, { groups: Group[]; boot: string | nu
 const paths = new WeakMap<ImplodeContext, Map<string, string>>();
 
 export const scriptsCodec: Codec = {
-    kind: KIND, version: VERSION, path: DIR, listedIdsOnly: true, nameRe: SCRIPT_NAME_RE,
+    kind: KIND, version: VERSION, path: DIR, folder: `${DIR}/global`, listedIdsOnly: true, nameRe: SCRIPT_NAME_RE,
 
     defaultName: id => `script_${id.toString(16).padStart(4, '0')}`,
 
@@ -297,8 +297,8 @@ export const scriptsCodec: Codec = {
         for (const n of names) if (!reached.has(n)) findings.warning('left-out', fileOf(n), '', 'no table, map or reached script names this script: it is left out of the ROM');
 
         const items: Item[] = [], groups: Group[] = [];
-        // Without --strict every call takes its fastest form, the absolute one, and every script is placed on its own; with
-        // --strict vanilla's forms and groups stay (the proof maps the re-encoded commands: segments).
+        // Without --strict every relative call between scripts takes the absolute form and every script is placed on its
+        // own; with --strict vanilla's forms and groups stay (the proof maps the re-encoded commands: segments).
         const free = !ctx.strict, globalsFrom = u16(ctx.base.image, HEADER + 8) / 3;
         for (const full of lists) {
             const members: Member[] = [];

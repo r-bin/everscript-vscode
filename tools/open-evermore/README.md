@@ -12,7 +12,7 @@ node $T explode                                   # base ROM of the ROM library 
 node $T explode rom.smc --out <dir> --force       # a given ROM and folder (inside the repo: only under out/)
 node $T explode --kinds music,sounds --out <dir>   # only those kinds (the rest stays in _base/): prove them apart
 node $T implode out/open-evermore --strict        # stable: the original, byte for byte → _build/evermore.sfc
-node $T implode out/open-evermore                 # every script call in its fastest form (absolute)
+node $T implode out/open-evermore                 # relative calls between scripts written absolute
 node $T implode out/open-evermore --random        # every resource somewhere else; the seed is printed
 node $T implode <dir> --random 42 --check-only    # … reproduce a seed; validate and place without building
 node $T implode <dir> --random 42 --strict         # … keeping every encoding as written (vanilla's script groups)

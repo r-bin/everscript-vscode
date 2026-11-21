@@ -18,11 +18,12 @@ before touching its codec. This skill is how to work on it and what bit us.
   pick, flag words as `a | b` (null when 0). No name yet: create the knowledge entry first
   (`game-knowledge` skill), then use it.
 - **One tool, no npm commands**; `<kind>/_enum.json` is the one ordered file of a kind.
-- **Fastest form by default, vanilla with `--strict`.** Without `--strict` every script call takes the
-  absolute form (it ends in `0x29`'s code anyway); `--strict` keeps vanilla's forms and groups and is what
-  G0 (vanilla sha1) and the lockstep proof are made of.
-- Related kinds sit together: `Codec.folder` (`maps/tiles`, `characters/behaviours`, `scripts/opcodes`,
-  `music/sounds`).
+- **Untangled by default, vanilla with `--strict`.** Without `--strict` every relative call into another
+  script is written absolute (it ends in `0x29`'s code anyway), so no script must lie near another; jumps
+  inside a script and id calls keep their form, and the files never change. `--strict` keeps vanilla's
+  forms and groups: G0 (vanilla sha1) and the lockstep proof.
+- Related kinds share a group folder, every kind in a subfolder of its own (`characters/records/` beside
+  `characters/behaviours/`, `maps/rooms/` beside `maps/tiles/`): `Codec.folder`.
 
 ## A kind is done when
 

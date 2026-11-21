@@ -39,7 +39,7 @@ const MAP_TABLE = 0x1FFDE7, INTRO = 0x12E0CA, ROOM_ID = 0x7E0ADB;
  *  0x36, rom-export.md row 4); the reference gets the same bytes at $BF:F000, in the 4th MB, as a packed pointer:
  *  bank $92 + (p >> 15), $8000 | p. */
 const FADE_IN = [0xA3, 0x36, 0x00], FADE_AT = 0x3FF000, FADE_PACKED = ((0xBF - 0x92) << 15) | (FADE_AT & 0x7FFF);
-const FADE_FILE = 'call_global 36\nend\n', INTRO_SCRIPT = `maps/${OPENING}/scripts/enter.txt`;
+const FADE_FILE = 'call_global 36\nend\n', INTRO_SCRIPT = `maps/rooms/${OPENING}/scripts/enter.txt`;
 const ENTER_TABLE = 0x12801B;
 /** Brian's entrance in 8 px units (tools/table-hack/evs/string-3003.evs: entrance(0x17, 0d40)). */
 const ENTRANCE = [0x17, 40];
@@ -99,12 +99,12 @@ const enterByScript = (tree: Tree, id: number): Tree => {
  *  own enter script (map.json `enter`), none when it had none. Triggers naming the source's own scripts (local
  *  names) name them `<source>/<name>` in the copy. */
 const copyMap = (tree: Tree, from: string, to: string) => {
-    const kept = tree.has(`maps/${to}/map.json`) ? JSON.parse(Buffer.from(tree.get(`maps/${to}/map.json`)!).toString()).enter : undefined;
-    for (const f of ['map.json', 'grid.txt', 'metatiles.json', 'objects.json']) tree.set(`maps/${to}/${f}`, tree.get(`maps/${from}/${f}`)!);
-    const m = JSON.parse(Buffer.from(tree.get(`maps/${to}/map.json`)!).toString());
+    const kept = tree.has(`maps/rooms/${to}/map.json`) ? JSON.parse(Buffer.from(tree.get(`maps/rooms/${to}/map.json`)!).toString()).enter : undefined;
+    for (const f of ['map.json', 'grid.txt', 'metatiles.json', 'objects.json']) tree.set(`maps/rooms/${to}/${f}`, tree.get(`maps/rooms/${from}/${f}`)!);
+    const m = JSON.parse(Buffer.from(tree.get(`maps/rooms/${to}/map.json`)!).toString());
     if (kept === undefined) delete m.enter; else m.enter = kept;
-    for (const t of [...m.stepOn, ...m.bTrigger]) if (typeof t.script === 'string' && tree.has(`maps/${from}/scripts/${t.script}.txt`)) t.script = `${from}/${t.script}`;
-    tree.set(`maps/${to}/map.json`, new TextEncoder().encode(JSON.stringify(m)));
+    for (const t of [...m.stepOn, ...m.bTrigger]) if (typeof t.script === 'string' && tree.has(`maps/rooms/${from}/scripts/${t.script}.txt`)) t.script = `${from}/${t.script}`;
+    tree.set(`maps/rooms/${to}/map.json`, new TextEncoder().encode(JSON.stringify(m)));
 };
 
 const path = games.baseRomPath('evermore');
@@ -134,16 +134,16 @@ if (!path || !existsSync(path)) {
     // 2. A new map: a copy of Brian's under a new name, listed last in the enum (id 0x7F, past vanilla's table).
     const added = new Map(tree);
     copyMap(added, BRIAN, COPY);
-    const e = JSON.parse(Buffer.from(added.get('maps/_enum.json')!).toString());
+    const e = JSON.parse(Buffer.from(added.get('maps/rooms/_enum.json')!).toString());
     e.names.push(COPY);
-    added.set('maps/_enum.json', new TextEncoder().encode(JSON.stringify(e)));
-    added.set(`maps/${COPY}/scripts/enter.txt`, new TextEncoder().encode(FADE_FILE));
-    const copied = JSON.parse(Buffer.from(added.get(`maps/${COPY}/map.json`)!).toString());
+    added.set('maps/rooms/_enum.json', new TextEncoder().encode(JSON.stringify(e)));
+    added.set(`maps/rooms/${COPY}/scripts/enter.txt`, new TextEncoder().encode(FADE_FILE));
+    const copied = JSON.parse(Buffer.from(added.get(`maps/rooms/${COPY}/map.json`)!).toString());
     copied.enter = { script: 'enter', word: '$0000' };
-    added.set(`maps/${COPY}/map.json`, new TextEncoder().encode(JSON.stringify(copied)));
+    added.set(`maps/rooms/${COPY}/map.json`, new TextEncoder().encode(JSON.stringify(copied)));
     const grown = implode(enterByScript(added, NEW_ID), GAME, KINDS);
     // The opening's enter script no longer calls its helper: implode leaves that one out, and says so.
-    const leftOut = [`left-out maps/${OPENING}/scripts/enter_sub_1.txt`];
+    const leftOut = [`left-out maps/rooms/${OPENING}/scripts/enter_sub_1.txt`];
     assert.deepStrictEqual(grown.findings.list.filter(f => f.severity !== 'info').map(f => `${f.rule} ${f.file}`), leftOut);
     assert.strictEqual(grown.image!.length, 0x400000, 'the grown tables go to the 4th MB');
     const moved = grown.placed.filter(p => p.key.startsWith('maps/_') && p.at !== p.home).map(p => p.key);

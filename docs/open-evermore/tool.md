@@ -22,7 +22,7 @@ node $T prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
 | Action | Does | Writes |
 |---|---|---|
 | `explode` | ROM → tree; refuses a folder in the repository outside `out/`, and an existing tree without `--force` | the tree |
-| `implode` | validate, ids, encode, place (stable, or shuffled by `--random`, which grows the image to 4 MiB), tables, checksum, validate again. Without `--strict` a kind writes a command in its fastest form (scripts: every call absolute, so each script goes anywhere); `--strict` keeps every form as written (G0: the vanilla sha1), and warnings become errors | `<dir>/_build/evermore.sfc` (only without errors), `report.md`, `report.json` |
+| `implode` | validate, ids, encode, place (stable, or shuffled by `--random`, which grows the image to 4 MiB), tables, checksum, validate again. Without `--strict` a kind may write a command in another form (scripts: every relative call into another script absolute, so each script goes anywhere); `--strict` keeps every form as written (G0: the vanilla sha1), and warnings become errors | `<dir>/_build/evermore.sfc` (only without errors), `report.md`, `report.json` |
 | `prove` | build the original and a random layout (`--strict`: lockstep needs vanilla's cycle counts; `--promoted` builds it as plain implode does) from the tree, play every stored playback recorded on the original in lockstep (G1, [README.md](README.md) §5.1) | `<dir>/_build/prove-<seed>/REPORT.md`, both ROMs, one result per playback |
 
 Planned: `rename` (a resource and every reference to it, logged in the manifest), a BPS patch next to the ROM.

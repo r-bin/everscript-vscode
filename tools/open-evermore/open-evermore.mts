@@ -12,7 +12,7 @@
 // implode: the tree → <dir>/_build/evermore.sfc (only without errors), report.md, report.json. --random shuffles
 //          where every resource goes (a seed reproduces a layout; without one, a new seed is drawn and printed) and
 //          grows the image to 4 MiB, the 4th MB free. --strict keeps every encoding as written (scripts: relative
-//          calls stay relative, so a group of scripts is placed together) and makes warnings errors.
+//          calls between scripts stay relative, so a group of scripts is placed together) and makes warnings errors.
 // prove:   build the original (stable) and a random layout from the tree, play the stored playbacks on both, compare
 //          every frame (G1). Minutes; on demand. Writes <dir>/_build/prove-<seed>/REPORT.md. The layout is built
 //          --strict (lockstep needs vanilla's cycle counts); --promoted builds it as implode does without --strict.

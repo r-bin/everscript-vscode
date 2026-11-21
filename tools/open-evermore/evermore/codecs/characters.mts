@@ -155,7 +155,7 @@ function freshNames(rom: Uint8Array): { records: string[]; enemies: (string | nu
 }
 
 export const charactersCodec: Codec = {
-    kind: CHARACTERS, version: 2, path: DIR, listedIdsOnly: true,
+    kind: CHARACTERS, version: 2, path: DIR, folder: `${DIR}/records`, listedIdsOnly: true,
 
     defaultName: id => ENEMY_DEFAULT.get(id) ?? `enemy_${id.toString(16).padStart(2, '0')}`,
 

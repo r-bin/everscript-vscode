@@ -40,7 +40,7 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
 
 ## tile_families — background palettes *(built, S2)*
 
-**Folder.** `tile_families/_enum.json` + one file per family, by default `<family>.json`:
+**Folder.** `maps/tile_families/_enum.json` + one file per family, by default `<family>.json`:
 
 ```jsonc
 { "format": "open-evermore/tile-family", "version": 1,
@@ -107,13 +107,13 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
 **Folder.**
 
 ```
-music/_enum.json                   names[package id]: 0 the base (driver data, most sound effects), 1–70 the songs
-music/<package>/package.json       the transfers the driver's upload makes, in order: { "data", "to": "$1F38" }
+music/packages/_enum.json                 names[package id]: 0 the base (driver data, most sound effects), 1–70 the songs
+music/packages/<package>/package.json       the transfers the driver's upload makes, in order: { "data", "to": "$1F38" }
                                    (+ "offset", "length" for part of a piece); for the reader the music ids and
                                    driver sound effects that load the package
-music/<package>/data_<n>.bin       the bytes those transfers copy (sequences, instruments, samples: raw)
-sounds/<name>.json                 a script sound id (opcode 0x30, animation opcode 0x2E): { "sfx": <driver effect> }
-sounds/_enum.json                  names[script sound id]
+music/packages/<package>/data_<n>.bin       the bytes those transfers copy (sequences, instruments, samples: raw)
+music/sounds/<name>.json                 a script sound id (opcode 0x30, animation opcode 0x2E): { "sfx": <driver effect> }
+music/sounds/_enum.json                 names[script sound id]
 ```
 
 - **Names.** Packages by our music names (`localizations/sounds.ts`: package p plays music p − 1), the base
@@ -136,7 +136,7 @@ sounds/_enum.json                  names[script sound id]
 
 ## tiles — the 16×16 map graphics *(built, S3)*
 
-**Folder.** `tiles/_enum.json` + one file per tile, by default `<tile>.png` (owner, 2026-11-19): an **indexed** PNG,
+**Folder.** `maps/tiles/_enum.json` + one file per tile, by default `<tile>.png` (owner, 2026-11-19): an **indexed** PNG,
 16×16, 16 palette entries, index 0 transparent. The indices are the tile; the palette only shows it (the family
 vanilla draws the tile with most, from every room's metatile words), so an editor can repaint it but must save it
 indexed (an RGB PNG is `invalid-value`). `explode --tiles json` writes `<tile>.json` instead:
@@ -179,13 +179,13 @@ round trip compares the indices, not the file.
 **Folder.** One folder per room:
 
 ```
-maps/_enum.json                      names[id]: the map table's order (README.md §4); up to 256 ids
-maps/<map>/map.json                  header, families, palette cycles, graphics, animations, triggers, cuttable grass
-maps/<map>/grid.txt                  the cells: one row per line, each cell its metatile id in hex
-maps/<map>/metatiles.json            what each metatile draws (canopy, terrain) and how it collides
-maps/<map>/objects.json              each object's states: where, which cells, how long each is held
-maps/<map>/scripts/<name>.txt        the room's scripts: enter.txt, step_<n>.txt, b_<n>.txt and what they call (§scripts)
-maps/<map>/preview.png               the room drawn by the repo's renderer; for the reader, implode ignores it
+maps/rooms/_enum.json                    names[id]: the map table's order (README.md §4); up to 256 ids
+maps/rooms/<map>/map.json                  header, families, palette cycles, graphics, animations, triggers, cuttable grass
+maps/rooms/<map>/grid.txt                  the cells: one row per line, each cell its metatile id in hex
+maps/rooms/<map>/metatiles.json            what each metatile draws (canopy, terrain) and how it collides
+maps/rooms/<map>/objects.json              each object's states: where, which cells, how long each is held
+maps/rooms/<map>/scripts/<name>.txt        the room's scripts: enter.txt, step_<n>.txt, b_<n>.txt and what they call (§scripts)
+maps/rooms/<map>/preview.png               the room drawn by the repo's renderer; for the reader, implode ignores it
 ```
 
 `map.json` (version 6; the files are `src/games/evermore/maps/tree-map.ts`, which the Rooms tab reads too):
@@ -295,10 +295,10 @@ first. A script belongs to the room whose trigger or enter record reaches it fir
 it `<map>/<name>`. The rest (globals, the boot script and what they call first) in `scripts/`:
 
 ```
-scripts/_enum.json          names[id]: the pointer table (trigger ids are byte offsets 3·id; globals from id 1,917)
-scripts/_scripts.json       the boot script (header +$0C) and the groups (below)
-scripts/<script>.txt        globals, the boot script and what they call
-maps/<map>/scripts/<name>.txt     the room's scripts (2,700 of 3,288); full name `<map>/<name>` (the enum, other rooms)
+scripts/global/_enum.json        names[id]: the pointer table (trigger ids are byte offsets 3·id; globals from id 1,917)
+scripts/global/_scripts.json     the boot script (header +$0C) and the groups (below)
+scripts/global/<script>.txt      globals, the boot script and what they call
+maps/rooms/<map>/scripts/<name>.txt     the room's scripts (2,700 of 3,288); full name `<map>/<name>` (the enum, other rooms)
 ```
 
 A line is one command: the opcode by its name in `opcodes/` (a hex byte works too), then its operand bytes in hex;
@@ -329,10 +329,11 @@ skip 7                      7 bytes no command reaches: not this script's
   offsets follow. `goto_back` (`05`, one byte back) takes `goto`'s form when its label is out of its reach.
 - **Groups.** Vanilla ties 141 groups of scripts (the largest 20 KB) by relative calls, which only reach backwards
   inside one item. `call_back` (`a5`, `a6`) does what `call` (`29`) does and `call_back_with_args` (`b2`, `b3`)
-  what `call_with_args` (`af`) does (opcodes/a5.md), and the id calls (`a3`, `a4`, `b0`, `b1`) look their script
-  up and then do the same. Every one ends in `29`'s code, so the absolute form is the fastest (owner, 2026-11-21:
-  fastest wins, ROM size is no limit). **Without `--strict` every call is written absolute** and every script is
-  placed alone (~10 KB more, which no longer fits the full 3 MiB image: it grows to 4 MiB). **`--strict`** keeps
+  what `call_with_args` (`af`) does (opcodes/a5.md): each ends in `29`'s code, so the absolute form is faster too.
+  **Without `--strict` every relative call into another script is written absolute** (owner, 2026-11-21), so no
+  script has to lie near another, and every script is placed alone (a few KB more, which no longer fits the full
+  3 MiB image: it grows to 4 MiB). Jumps inside a script (loops, labels) and calls by global or trigger id keep
+  their form, and the files never change: only the bytes implode writes. **`--strict`** keeps
   every form as written: vanilla's groups placed together, a call out of reach an error (`out-of-range`), the
   vanilla sha1 (G0). `goto_back` stays: it reads one byte where `goto` reads two, and takes `goto` only out of reach. The bytes between a group's scripts are holes (`skip`): vanilla keeps tiles in bank `$95`
   between two scripts of one group; a script placed alone drops the hole after it.
@@ -356,7 +357,7 @@ skip 7                      7 bytes no command reaches: not this script's
 
 ## opcodes *(built, 2026-11-20)*
 
-**Folder.** `opcodes/<name>.json`, one per opcode `$00–$C2`; `opcodes/_enum.json` gives each its byte:
+**Folder.** `scripts/opcodes/<name>.json`, one per opcode `$00–$C2`; `scripts/opcodes/_enum.json` gives each its byte:
 
 ```jsonc
 {
@@ -393,17 +394,17 @@ code right after (`handler-tables.mts`). Id `$10`'s handler got its entry (`atta
 The table hack's tables (`tools/table-hack/`, moved and proven there), now resources:
 
 ```
-characters/<name>/character.json    one 74-byte record as named fields (hp, attack, …, palette); `spawn` for the Boy
+characters/records/<name>/character.json    one 74-byte record as named fields (hp, attack, …, palette); `spawn` for the Boy
                                     and the Dog, whose ENEMY ids spawn from WRAM ($0A26, $0A70); `behaviour` and
                                     `attack_proc` by name (above); `flags` (+$05, entity +$10's bits) and `flags2`
                                     (+$07) as bit names, "invincible | inactive", null for none
-characters/<name>/animations.json   its twelve animation records (stand, walk, …, dodge), each with its facings,
+characters/records/<name>/animations.json   its twelve animation records (stand, walk, …, dodge), each with its facings,
                                     frames and the sprite blocks every frame shows (for the reader)
-characters/_enum.json               names[ENEMY id], what spawn opcodes take; null: an id with no record
-characters/_records.json            the record block in order: record k at $xx:B678 + 74·k
-animations/<name>.json              an id `animate()` plays: its record ($C4:xxxx) and what it shows
-sprite_blocks_16/<name>.png         16×16 sprite block pixels, indexed, grey (the palette comes from the entity)
-sprite_blocks_8/<name>.png          8×8; sprite_blocks_8/block_17c5.json: an alias (below)
+characters/records/_enum.json              names[ENEMY id], what spawn opcodes take; null: an id with no record
+characters/records/_records.json           the record block in order: record k at $xx:B678 + 74·k
+characters/animations/<name>.json            an id `animate()` plays: its record ($C4:xxxx) and what it shows
+characters/sprite_blocks_16/<name>.png       16×16 sprite block pixels, indexed, grey (the palette comes from the entity)
+characters/sprite_blocks_8/<name>.png        8×8; sprite_blocks_8/block_17c5.json: an alias (below)
 ```
 
 - **Names.** Characters: our compiler's ENEMY names (`language/data/index.json`), `boy`, `dog`; animations: its

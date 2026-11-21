@@ -36,7 +36,7 @@ function findTrees(roots: string[]): Tree[] {
         if (out.length >= MAX_TREES) return;
         try {
             const m = readJson(path.join(dir, 'manifest.json'));
-            if (m.format === 'open-evermore' && m.game === 'evermore' && fs.existsSync(path.join(dir, 'maps', '_enum.json'))) {
+            if (m.format === 'open-evermore' && m.game === 'evermore' && ['maps/rooms', 'maps'].some(f => fs.existsSync(path.join(dir, f, '_enum.json')))) {
                 out.push({ dir, label: path.relative(path.dirname(root), dir) });
                 return;
             }
@@ -61,11 +61,13 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         if (!trees || Date.now() - trees.at > 5000) trees = { at: Date.now(), list: findTrees(deps.roots()) };
         return trees.list;
     };
-    /** A kind's folder in a tree: tiles and families live in maps/ (v0.449.0), older trees have them at the top. */
-    const folderOf = (dir: string, kind: string): string => {
-        const inMaps = path.join('maps', kind);
-        return (kind === 'tiles' || kind === 'tile_families') && fs.existsSync(path.join(dir, inMaps, '_enum.json')) ? inMaps : kind;
+    /** A kind's folder in a tree (v0.450.0: maps/rooms, maps/tiles, maps/tile_families, scripts/global); older trees
+     *  have them elsewhere, so the first folder holding the kind's _enum.json wins. */
+    const FOLDERS: Record<string, string[]> = {
+        maps: ['maps/rooms', 'maps'], tiles: ['maps/tiles', 'tiles'], tile_families: ['maps/tile_families', 'tile_families'], scripts: ['scripts/global', 'scripts'],
     };
+    const folderOf = (dir: string, kind: string): string =>
+        (FOLDERS[kind] ?? [kind]).find(f => fs.existsSync(path.join(dir, f, '_enum.json'))) ?? kind;
     /** A kind's names[id] in a tree, read again when its _enum.json changes. */
     const names = (dir: string, kind: string): string[] => {
         const file = path.join(dir, folderOf(dir, kind), '_enum.json'), at = mtime(file), hit = enums.get(file);
@@ -89,8 +91,8 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
     /** Room `id` of a tree built into its image; throws with the problems when its files do not build. */
     function entry(tree: Tree, id: number): Entry {
         const name = names(tree.dir, 'maps')[id];
-        if (name === undefined) throw new Error(`maps/_enum.json has no map ${id}`);
-        const dir = path.join(tree.dir, 'maps', name), build = path.join(tree.dir, '_build', 'evermore.sfc');
+        if (name === undefined) throw new Error(`${folderOf(tree.dir, 'maps')}/_enum.json has no map ${id}`);
+        const dir = path.join(tree.dir, folderOf(tree.dir, 'maps'), name), build = path.join(tree.dir, '_build', 'evermore.sfc');
         const watched = [...Object.values(TREE_MAP).map(f => path.join(dir, f)), build,
             ...['tile_families', 'tiles', 'scripts'].map(k => path.join(tree.dir, folderOf(tree.dir, k), '_enum.json'))];
         const soe = deps.soeRom();
@@ -102,7 +104,7 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         try {
             const read = (f: string) => fs.readFileSync(path.join(dir, f), 'utf8');
             files = { map: JSON.parse(read(TREE_MAP.map)), grid: read(TREE_MAP.grid), metatiles: JSON.parse(read(TREE_MAP.metatiles)), objects: JSON.parse(read(TREE_MAP.objects)) };
-        } catch (e) { throw new Error(`maps/${name}: ${(e as Error).message}`); }
+        } catch (e) { throw new Error(`${folderOf(tree.dir, 'maps')}/${name}: ${(e as Error).message}`); }
         const byName = (kind: string) => new Map(names(tree.dir, kind).map((n, i) => [n, i] as [string, number]));
         const families = byName('tile_families'), tiles = byName('tiles'), scripts = byName('scripts');
         // A trigger names its script; the trigger record holds its table offset, 3·id (scripts/_enum.json).
@@ -113,7 +115,7 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         } };
         const problems: TreeProblem[] = [];
         const blob = blobFromTree(files, refs, p => problems.push(p));
-        if (!blob) throw new Error(problems.filter(p => p.level === 'error').map(p => `maps/${name}/${p.file}${p.pointer ? '#' + p.pointer : ''}: ${p.message}`).join('; '));
+        if (!blob) throw new Error(problems.filter(p => p.level === 'error').map(p => `${folderOf(tree.dir, 'maps')}/${name}/${p.file}${p.pointer ? '#' + p.pointer : ''}: ${p.message}`).join('; '));
 
         let source: Rom | null = null;
         try { const b = fs.readFileSync(build); if (b.length === ROM_3MIB) source = new Uint8Array(b); } catch { /* not imploded */ }

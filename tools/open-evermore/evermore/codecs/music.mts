@@ -114,7 +114,7 @@ interface Encoded { descriptors: Map<string, { key: string; transfers: { piece: 
 const encoded = new WeakMap<ImplodeContext, Encoded>();
 
 export const musicCodec: Codec = {
-    kind: MUSIC, version: 1, path: MUSIC,
+    kind: MUSIC, version: 1, path: MUSIC, folder: `${MUSIC}/packages`,
 
     defaultName: packageName,
 

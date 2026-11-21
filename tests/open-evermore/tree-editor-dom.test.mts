@@ -43,7 +43,7 @@ async function main() {
         console.log('\nOpen Evermore tree in the editor:');
         const group = service.groups().find((g: any) => g.key === 'tree');
         const list = group ? group.areas[0].rooms : [];
-        const enumNames: string[] = JSON.parse(readFileSync(join(dir, 'maps', '_enum.json'), 'utf8')).names;
+        const enumNames: string[] = JSON.parse(readFileSync(join(dir, 'maps', 'rooms', '_enum.json'), 'utf8')).names;
         check('the rail has an Open Evermore group: the tree, its 127 maps by their names in id order',
             list.length === 127 && list.every((r: any, i: number) => r.name === enumNames[i]), JSON.stringify(list.slice(0, 2)));
 
@@ -120,7 +120,7 @@ async function main() {
         check('the Object tab lists the map\'s objects (objects.json)', /#0/.test(objects), objects.slice(0, 300));
 
         // An edit to the files shows the next time the map is opened: one cell of grid.txt becomes another metatile.
-        const grid = join(dir, 'maps', first.name, 'grid.txt'), text = readFileSync(grid, 'utf8');
+        const grid = join(dir, 'maps', 'rooms', first.name, 'grid.txt'), text = readFileSync(grid, 'utf8');
         const cells = text.trim().split('\n').map(r => r.split(' '));
         const other = cells.flat().find(c => c !== cells[0][0])!;   // a metatile the grid already uses, so Markov order holds
         writeFileSync(grid, [[other, ...cells[0].slice(1)].join(' '), ...cells.slice(1).map(r => r.join(' '))].join('\n') + '\n');
