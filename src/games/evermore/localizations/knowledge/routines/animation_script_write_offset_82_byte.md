@@ -7,8 +7,8 @@ category: 🎮
 name: animation_script_write_offset_82_byte
 title: Read byte operand and store into animation record field +$82 ($90:8447)
 confidence: confirmed
-evidence: ["disasm: reads byte operand from [<$5D] into +$82,Y; advances 24-bit pointer <$5D..<$5E by 1 byte"]
+evidence: ["disasm: reads byte operand from [<$5D] into +$82,Y; advances 24-bit pointer <$5D..<$5E by 1 byte", "c: G1 passed (tools/c-to-rom/g1.mts, v0.399.70): 34/34 states (34/34 oracle, 507/507 fuzzed) match ROM, mutation caught"]
 see: []
-tags: ["animation","operand","byte","record"]
+tags: ["animation","operand","byte","record","reconstructed-c","g1-pass"]
 ---
 Reads byte operand from script stream `[<$5D]` and stores into animation record field `+$82,Y`, advancing 24-bit pointer `<$5D..$5E` by 1 byte.
