@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7112,
+    "total_entries": 7109,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -545,7 +545,7 @@
         "0xC47FFF"
       ],
       "name": "Master Item, Weapon, Armor & Formula Tables",
-      "routines": 90,
+      "routines": 87,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -8161,17 +8161,13 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $C4 — Master Item, Weapon, Armor & Formula Tables
 
-**Coverage:** 90 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 87 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
-| `$C4:0000` | [`dialogue_font_glyphs`](knowledge/routines/dialogue_font_glyphs.md) | `table` | 3,072 B | ui, font, graphics, tables | Dialogue window font glyph bitmap data table: Master font bitmap data table stored in Bank `$C4` for the in-game dialogue window and menu text system: - Contains glyph bitmaps for 201+ c... |
-| `$C4:0C00` | [`BANKC4_PAD_0C00`](knowledge/routines/BANKC4_PAD_0C00.md) | `padding` | 2 B | unused, padding | Bank $C4 alignment padding ($0C00): 2 B alignment padding and unmapped ROM space in Bank $C4 ($C4:0C00..$C4:0C01). |
-| `$C4:0C02` | [`dialogue_font_widths`](knowledge/routines/dialogue_font_widths.md) | `table` | 95 B | ui, font, tables, table | Proportional font character width table (128 bytes): 128-byte proportional font character width table stored in Bank `$C4`: - Indexed directly by ASCII character code (e.g. `'A'`–`'J'` have wid... |
-| `$C4:0C61` | [`BANKC4_PAD_0C61`](knowledge/routines/BANKC4_PAD_0C61.md) | `padding` | 2 B | unused, padding | Bank $C4 alignment padding ($0C61): 2 B alignment padding and unmapped ROM space in Bank $C4 ($C4:0C61..$C4:0C62). |
-| `$C4:0C63` | [`data_C40C63`](knowledge/routines/data_C40C63.md) | `data` | 31 B | data, cdl | CDL data block ($C4:0C63): CDL-identified data block in ROM at $C4:0C63. |
-| `$C4:0C82` | [`data_C40C82`](knowledge/routines/data_C40C82.md) | `data` | 1 B | data, cdl | CDL data block ($C4:0C82): CDL-identified data block in ROM at $C4:0C82. |
-| `$C4:0C83` | [`data_C40C83`](knowledge/routines/data_C40C83.md) | `data` | 3,233 B | data, cdl | CDL data block ($C4:0C83): CDL-identified data block in ROM at $C4:0C83. |
+| `$C4:0000` | [`font_default`](knowledge/routines/font_default.md) | `table` | 3,202 B | ui, font, graphics, tables, table | The default font: header, 128 glyphs, 128 widths: The font dialogue and menus write with, the one `font 0` selects: a header (12 rows a glyph, 2 bytes a row), 128 glyphs for codes `$20`-`$9F... |
+| `$C4:0C82` | [`font_outro`](knowledge/routines/font_outro.md) | `table` | 3,202 B | ui, font, graphics, tables, table | The outro font: header, 128 glyphs, 128 widths: The second font, the one `font 2` selects (the ending): the same layout as the default font. Open Evermore: `graphics/fonts/outro/`. |
+| `$C4:1904` | [`data_C41904`](knowledge/routines/data_C41904.md) | `data` | 32 B | graphics | 16 words after the outro font, colour-shaped ($C4:1904): Sixteen 15-bit words that look like a 16-colour palette; nothing found reads them yet. |
 | `$C4:1924` | [`menu_cursor_arrow_tiles_c41924`](knowledge/routines/menu_cursor_arrow_tiles_c41924.md) | `data` | 96 B | graphics, ui, menu, cdl | Menu navigation cursor arrow tiles ($C4:1924): Menu navigation cursor arrow tiles ($C4:1924). |
 | `$C4:1984` | [`menu_scroll_bar_tiles_c41984`](knowledge/routines/menu_scroll_bar_tiles_c41984.md) | `data` | 32 B | graphics, ui, menu, cdl | Menu vertical scroll bar track and thumb tiles ($C4:1984): Menu vertical scroll bar track and thumb tiles ($C4:1984). |
 | `$C4:19A4` | [`menu_selection_bracket_tiles_c419a4`](knowledge/routines/menu_selection_bracket_tiles_c419a4.md) | `data` | 16 B | graphics, ui, menu, cdl | Menu option selection bracket indicator tiles ($C4:19A4): Menu option selection bracket indicator tiles ($C4:19A4). |
@@ -8190,11 +8186,12 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$C4:1EEC` | [`menu_window_palette_secondary_c41eec`](knowledge/routines/menu_window_palette_secondary_c41eec.md) | `data` | 8 B | graphics, palette, menu, cdl | Menu window and dialogue frame secondary palette ($C4:1EEC): Menu window and dialogue frame secondary palette ($C4:1EEC). |
 | `$C4:1EF4` | [`menu_hud_boy_dog_portrait_frame_tiles_c41ef4`](knowledge/routines/menu_hud_boy_dog_portrait_frame_tiles_c41ef4.md) | `data` | 128 B | graphics, hud, portrait, cdl | HUD Boy/Dog character portrait frame tiles ($C4:1EF4): HUD Boy/Dog character portrait frame tiles ($C4:1EF4). |
 | `$C4:1F74` | [`menu_stone_background_tileset_c41f74`](knowledge/routines/menu_stone_background_tileset_c41f74.md) | `data` | 4,096 B | graphics, tileset, menu, cdl | Menu stone texture background tileset ($C4:1F74): Menu stone texture background tileset ($C4:1F74). |
-| `$C4:2F74` | [`menu_window_corner_accent_tiles_c42f74`](knowledge/routines/menu_window_corner_accent_tiles_c42f74.md) | `data` | 128 B | graphics, ui, window, cdl | Menu window frame ornate corner flourish tiles ($C4:2F74): Menu window frame ornate corner flourish tiles ($C4:2F74). |
-| `$C4:2FF4` | [`menu_window_frame_border_tiles_c42ff4`](knowledge/routines/menu_window_frame_border_tiles_c42ff4.md) | `data` | 1,808 B | graphics, ui, window, cdl | Menu window frame and 9-slice border tileset ($C4:2FF4): Menu window frame and 9-slice border tileset ($C4:2FF4). |
-| `$C4:3704` | [`menu_equipment_slot_border_tiles_c43704`](knowledge/routines/menu_equipment_slot_border_tiles_c43704.md) | `data` | 352 B | graphics, ui, menu, cdl | Menu equipment inventory slot bezel border tiles ($C4:3704): Menu equipment inventory slot bezel border tiles ($C4:3704). |
-| `$C4:3864` | [`menu_stat_arrow_up_tiles_c43864`](knowledge/routines/menu_stat_arrow_up_tiles_c43864.md) | `data` | 8 B | graphics, ui, menu, cdl | Menu status comparison green up arrow tiles ($C4:3864): Menu status comparison green up arrow tiles ($C4:3864). |
-| `$C4:386C` | [`menu_stat_arrow_down_tiles_c4386c`](knowledge/routines/menu_stat_arrow_down_tiles_c4386c.md) | `data` | 8 B | graphics, ui, menu, cdl | Menu status comparison red down arrow tiles ($C4:386C): Menu status comparison red down arrow tiles ($C4:386C). |
+| `$C4:2F74` | [`menu_screen_background_palette`](knowledge/routines/menu_screen_background_palette.md) | `data` | 128 B | graphics, menu, palette | Menu screen stone background palette (64 colours to CGRAM 32): The stone background's colours. Was called window corner tiles (a guess). |
+| `$C4:2FF4` | [`menu_screen_background_tilemap`](knowledge/routines/menu_screen_background_tilemap.md) | `data` | 1,792 B | graphics, menu, tilemap | Menu screen BG1 tilemap (32×28 entries): How the stone background's 8bpp tiles are laid out on the menu screens (mode 4, BG1). Was called window frame tiles (a guess). The 16 bytes ... |
+| `$C4:36F4` | [`data_C436F4`](knowledge/routines/data_C436F4.md) | `data` | 16 B | graphics | 16 bytes between the menu tilemap and the HUD gauge tiles, tile-shaped ($C4:36F4): One tile's worth of bytes no known upload reads. |
+| `$C4:3704` | [`hud_gauge_tiles`](knowledge/routines/hud_gauge_tiles.md) | `data` | 352 B | graphics, hud | Field HUD gauge tiles: digits, %, /, level marks (22 2bpp tiles): The field HUD's gauge graphics. Was called equipment slot border tiles (a guess). Open Evermore: `graphics/hud/gauge_tiles.png`. |
+| `$C4:3864` | [`hud_gauge_palette`](knowledge/routines/hud_gauge_palette.md) | `data` | 8 B | graphics, hud, palette | Field HUD gauge palette (4 colours to CGRAM 8): Four colours of the HUD gauge tiles. Was called stat arrow tiles (a guess). Open Evermore: `graphics/hud/gauge_palette.json`. |
+| `$C4:386C` | [`hud_gauge_palette_2`](knowledge/routines/hud_gauge_palette_2.md) | `data` | 8 B | graphics, hud, palette | Field HUD gauge palette, second load (4 colours to CGRAM 8): A second set of four colours for the same CGRAM slot. Open Evermore: `graphics/hud/gauge_palette_2.json`. |
 | `$C4:3874` | [`weapon_entries`](knowledge/routines/weapon_entries.md) | `table` | 40 B | weapons, tables, table | Weapon index → 36-byte weapon entry (and the Bazooka's by ammo at $C4:388E): Entry layout, as `$8F:81C9` copies it: `+$04` palette (bank `$90`), `+$06` range, `+$08`-`+$18` nine animation ids (stand, walk, run, attack... |
 | `$C4:389C` | [`BANKC4_PAD_389C`](knowledge/routines/BANKC4_PAD_389C.md) | `padding` | 74 B | unused, padding | Bank $C4 alignment padding ($389C): 74 B alignment padding and unmapped ROM space in Bank $C4 ($C4:389C..$C4:38E5). |
 | `$C4:38E6` | [`BOY_WEAPON_TABLE`](knowledge/routines/BOY_WEAPON_TABLE.md) | `table` | 540 B | table | Boy weapon table: 15 × 36 bytes: attack, walk, run, knockback per weapon. |

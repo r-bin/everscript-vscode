@@ -68,8 +68,9 @@ const FIELDS: Field[] = [
 /** The animation ids at +$32-+$48, by what the game plays them for (character-model.ts): animation record offsets. */
 /** Entries of the handler tables (handler-tables.mts): an id past them is written as hex. */
 const TABLE_SIZE: Record<string, number> = { [ATTACK_PROCS]: 15, [BEHAVIOURS]: 15 };
-const ANIMATIONS = ['stand', 'walk', 'run', 'attack_0', 'attack_1', 'attack_2', 'attack_3', 'knockback', 'death', 'death_with_drop', 'cast', 'dodge'];
-const ANIM_AT = 0x32;
+/** The character's 12 animations at +$32, by what the game plays them for; `animate` names them with bit 15 set. */
+export const ANIMATION_SLOTS = ['stand', 'walk', 'run', 'attack_0', 'attack_1', 'attack_2', 'attack_3', 'knockback', 'death', 'death_with_drop', 'cast', 'dodge'];
+const ANIMATIONS = ANIMATION_SLOTS, ANIM_AT = 0x32;
 
 const word = (b: Uint8Array, at: number, n: number) => { let v = 0; for (let k = n - 1; k >= 0; k--) v = v * 256 + b[at + k]; return v; };
 

@@ -35,7 +35,8 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$91:F46C` | `0x09746C` | `tbl_dialogue_phrase_pointers` | 2 bytes | 256 | 512 B | Master primary 256-word dictionary phrase offset lookup table |
 | `$92:801B` | `0x12801B` | `tbl_room_enter_scripts` | 5 bytes | 127 | 635 B | Master room enter script 24-bit packed pointers and flags |
 | `$9F:FDE7` | `0x0FFDE7` | `tbl_room_blob_pointers` | 4 bytes | 127 | 508 B | 32-bit far pointers to compressed room data blobs |
-| `$C4:0C02` | `0x220C02` | `tbl_font_glyph_widths` | 1 byte | 95 | 95 B | Proportional character glyph pixel widths (ASCII 32..126) |
+| `$C4:0000` | `0x040000` | `font_default` | 24 bytes a glyph | 128 | 3,202 B | The default font: 2-byte header (height 12, 2 planes a row), 128 glyphs (codes `$20`-`$9F`, 8×12, ink and shadow), 128 widths at `$C4:0C02` (corrected v0.453.0) |
+| `$C4:0C82` | `0x040C82` | `font_outro` | 24 bytes a glyph | 128 | 3,202 B | The outro font, the same layout (`font 2`) |
 | `$C4:3874` | `0x223874` | `tbl_alchemy_formula_costs` | 6 bytes | 35 | 210 B | Ingredient requirements, count quantities, and formula base damage |
 | `$C4:38E6` | `0x2238E6` | `tbl_boy_weapons` | 36 bytes | 15 | 540 B | Boy melee weapon master records (attack power, knockback) |
 | `$C4:3B02` | `0x223B02` | `tbl_armor_records` | 10 bytes | 40 | 400 B | Master armor and collar attributes (pdef, mdef, name, icon) |

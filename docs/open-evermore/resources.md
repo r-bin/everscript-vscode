@@ -342,7 +342,14 @@ skip 7                                   7 bytes no command reaches: not this sc
   trip, implode tells explode where each named script landed and which folder held it.
 - **References.** `@name` replaces the operand of `07`, `29`, `af`, `b4` (a packed pointer, any script), of
   `a5`, `b2` (one byte back), `a6`, `b3` (a word back), and the id of `a3`, `b0` (a global: id − header word +8 / 3)
-  and `a4`, `b1` (a trigger: 3·id); a number still works. Still numbers: map ids, object indices, window slots.
+  and `a4`, `b1` (a trigger: 3·id), and of `attach_talk_script` (`3d`) and `attach_script` (`3f`), which hand an entity a
+  script by its trigger offset; a number still works. Still numbers: window slots, music, sounds past the table.
+- **More names** (v0.453.0). A room's script names that room's objects (`object_20`, or an entry's `name` in its
+  `objects.json`; `object_<n>` always means index n, also in a room whose map was replaced; global scripts keep numbers:
+  their room is the one running), maps by their folder (`load_map 23, 40,
+  <room>` with `:n` for an entrance), the character's own animations with bit 15 (`own.stand`, `own.death_with_drop`),
+  flag enums as `A | B` (`SPAWNER | INACTIVE`), fonts (`font default`), a value written to or compared with a named cell
+  by that cell's value names (`write_word PRIZE, HONEY`, `SAVE_SPOT == MADRONIUS_BROTHER`).
 - **Jumps** (`04`, `05`, `08`–`0b`, `8e`, `8f`) name a label of their own script: a line may change length and the
   offsets follow. `goto_back` (`05`, one byte back) takes `goto`'s form when its label is out of its reach.
 - **Groups.** Vanilla ties 141 groups of scripts (the largest 20 KB) by relative calls, which only reach backwards
@@ -371,7 +378,7 @@ skip 7                                   7 bytes no command reaches: not this sc
   stretch where a command took a longer form (`Item.segments`).
   In game (G2): the opening's enter script rewritten to `load_map(0x7F)`, and a new map's own enter script
   (`tests/open-evermore/in-game.test.mts`).
-- **Next.** Map ids and object indices by name; WRAM names for the remaining cells (knowledge entries); everscript text once the compiler writes relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7).
+- **Next.** Object names worth reading (objects.json `name`); WRAM names for the remaining cells (knowledge entries); a songs kind for `music`; everscript text once the compiler writes relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7).
 
 ## opcodes *(built, 2026-11-20)*
 
@@ -433,6 +440,21 @@ routine name (the table `$90:D967`, 2·k, k ≤ 14; a selector outside it as hex
   in address order). A new one is an error (`no-room`: bank `$90` has no free byte). The five records the table does
   not list (`$D9EE`, `$DB0E`, `$DB26`, `$DB56`, `$DB6E`) stay in `_base/`.
 - **Next.** Records that move once animation scripts name them; names from what each projectile is.
+
+## fonts, hud *(built, 2026-11-21)*
+
+Graphics the engine uploads from bank `$C4` by fixed addresses; each stays at its home (an item only its home fits).
+
+- **fonts** (`graphics/fonts/<font>/`): `default` (`$C4:0000`) and `outro` (`$C4:0C82`), the two offsets of the table
+  `$8C:E6E6` that `font` (`0x9A`) indexes with 2·id. `font.json`: `height` (rows), `row_bytes` (planes a row: 2, ink and
+  shadow), 128 `widths`; `glyphs.png`: 128 glyphs (codes `$20`-`$9F`), 16 a row, 8×`height` each, one colour per plane
+  combination. Scripts write `font default`. Knowledge `font_default`, `font_outro` (the old entries had 95 × 32 bytes).
+- **hud** (`graphics/hud/`): `gauge_tiles.png` (22 2bpp tiles: digits, %, /, the level marks; `$C4:3704` → VRAM
+  `$1F48`, `$8F:8710`), `gauge_palette.json`, `gauge_palette_2.json` (4 colours each to CGRAM 8). Fixed names.
+- **Found on the way** (knowledge corrected): the menu screens run in mode 4 with an 8bpp stone background (`$C4:1F74`),
+  its palette (`$C4:2F74`) and its BG1 tilemap (`$C4:2FF4`, 32×28); those were named as corner and frame tiles.
+- **Next.** The menu screen as a kind (8bpp tiles, palette, tilemap: all verified, `$8C:B797`); the HUD's sprites
+  (portraits, HP pips); moving fonts within bank `$C4` (rewrite `$8C:E6E6` and the `ldx #0` callers).
 
 ## characters, animations, sprite blocks *(built, 2026-11-20)*
 

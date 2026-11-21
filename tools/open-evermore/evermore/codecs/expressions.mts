@@ -31,6 +31,9 @@ export interface ExprNames {
     flagOf(name: string): { addr: number; mask: number } | undefined;
     field(offset: number): string;
     fieldOf(name: string): number | undefined;
+    /** A named value of the cell at `addr` (absolute): what `CELL == NAME` compares with. */
+    value?(addr: number, v: number): string;
+    valueOf?(addr: number, name: string): number | undefined;
 }
 
 interface Term { op: number; imm?: number; size: 0 | 1 | 2 }
@@ -170,8 +173,18 @@ function nodeText(n: Node, names: ExprNames, outer = 0): string {
         return `${op === '-' ? '-' : op}(${nodeText(n.arg, names)})`;
     }
     const op = spec(n.t.op)!.name, p = PREC[op];
-    const s = `${nodeText(n.left, names, p)} ${op} ${nodeText(n.right, names, p + 1)}`;
+    // A cell compared with a constant its values name: `PRIZE == WAX`.
+    const cell = (op === '==' || op === '!=') ? readCell(n.left) : undefined;
+    const named = cell !== undefined && n.right.k === 'leaf' && spec(n.right.t.op)!.kind === 'const' && constTerm(constValue(n.right.t))?.op === n.right.t.op ? names.value?.(cell, constValue(n.right.t)) : '';
+    const s = `${nodeText(n.left, names, p)} ${op} ${named || nodeText(n.right, names, p + 1)}`;
     return p < outer ? `(${s})` : s;
+}
+
+/** The absolute address a save- or temp-area read leaf reads; undefined for anything else. */
+function readCell(n: Node): number | undefined {
+    if (n.k !== 'leaf') return undefined;
+    const s = spec(n.t.op)!;
+    return s.kind === 'read' && s.area !== 'local' ? BASE[s.area!] + (n.t.imm ?? 0) : undefined;
 }
 
 /** An expression's bytes as text; null when they are not in the plain postfix order (write them as hex). */
@@ -202,7 +215,7 @@ export function exprBytes(text: string, names: ExprNames): number[] {
         if (!m) throw new Error(`cannot read "${text.slice(at).trim()}"`);
         toks.push(m[1]); at = TOKEN.lastIndex;
     }
-    let i = 0;
+    let i = 0, valueCell: number | undefined;
     const peek = () => toks[i], next = () => toks[i++], expect = (t: string) => { if (toks[i++] !== t) throw new Error(`"${t}" expected`); };
     const num = (t: string | undefined): number => { if (t === undefined || !/^(0x[0-9a-f]+|\d+)$/i.test(t)) throw new Error(`a number expected, not "${t}"`); return Number(t); };
     const leaf = (t: Term): Node => ({ k: 'leaf', t });
@@ -256,6 +269,8 @@ export function exprBytes(text: string, names: ExprNames): number[] {
                 const base = leaf({ op: e, size: 0 }), arg: Node = f ? { k: 'bin', t: { op: 0x1A, size: 0 }, left: base, right: leaf(constTerm(f)!) } : base;
                 return { k: 'un', t: { op: width === 'b' ? 0x56 : 0x55, size: 0 }, arg };
             }
+            const value = valueCell !== undefined && plain ? names.valueOf?.(valueCell, t) : undefined;
+            if (value !== undefined) { const c = constTerm(value); if (c) return leaf(c); }
             const e = names.entityOf(t), fl = names.flagOf(t), mem = names.memoryOf(t);
             if ([e, fl, mem].filter(x => x !== undefined).length > 1) throw new Error(`"${t}" names more than one thing`);
             if (e !== undefined && plain) return leaf({ op: e, size: 0 });
@@ -283,7 +298,11 @@ export function exprBytes(text: string, names: ExprNames): number[] {
             const t = peek(), p = t === undefined ? undefined : PREC[t];
             if (p === undefined || p < min) return left;
             next();
-            left = { k: 'bin', t: { op: BINARY.get(t!)!, size: 0 }, left, right: expr(p + 1) };
+            const outer = valueCell;
+            valueCell = t === '==' || t === '!=' ? readCell(left) : undefined;
+            const right = expr(p + 1);
+            valueCell = outer;
+            left = { k: 'bin', t: { op: BINARY.get(t!)!, size: 0 }, left, right };
         }
     };
     const tree = expr(0);

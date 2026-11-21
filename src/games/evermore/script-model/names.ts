@@ -195,6 +195,23 @@ const WEAPON_REQUEST = 0x2441;
 const LOOT_CELLS = new Set([0x2391, 0x23a1, 0x23a3, 0x23a5]);
 const BOOLEAN_CELLS = new Set([0x23bf, 0x238d]);
 
+/**
+ * The values `printNames().value` may name for the cell at `addr` (absolute), so a writer can map a name back to its
+ * value: the booleans, the loot rewards, the cell's enum, names.json's values for it.
+ */
+export function cellValueCandidates(addr: number): number[] {
+    const out = new Set<number>();
+    if (BOOLEAN_CELLS.has(addr)) { out.add(0); out.add(1); }
+    if (LOOT_CELLS.has(addr)) for (const k of Object.keys(LOOT_REWARDS)) out.add(Number(k));
+    const type = CELL_TYPES[addr];
+    if (type) {
+        for (const c of ENUMS[type] ?? []) { const v = Number(c.value); if (Number.isFinite(v)) out.add(v); }
+        for (const v of ownEnum(type)?.values.keys() ?? []) out.add(v);
+    }
+    for (const v of Object.keys(RAM_VALUES[String(WEAPON_CELLS.has(addr) ? WEAPON_REQUEST : addr)] ?? {})) out.add(Number(v));
+    return [...out];
+}
+
 /** `Hut/house to enter?` → `HUT_HOUSE_TO_ENTER`. */
 export function identifier(name: string): string {
     return name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^(\d)/, '_$1');

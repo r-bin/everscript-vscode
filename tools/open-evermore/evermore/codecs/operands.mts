@@ -7,14 +7,18 @@
 import { createRequire } from 'node:module';
 import { cellText, cellValue, constBytes, exprBytes, exprText, shortConst } from './expressions.mts';
 import type { Area, ExprNames } from './expressions.mts';
+import { ANIMATION_SLOTS } from './characters.mts';
 
 const require = createRequire(import.meta.url);
 const PARAMETERS: Record<string, any> = require('../../../../src/games/evermore/script-vm/parameters.json');
-const { displayNames, constantName } = require('../../../../dist/games/evermore/script-model/names');
+const { displayNames, constantName, cellValueCandidates } = require('../../../../dist/games/evermore/script-model/names');
 const { ownEnum } = require('../../../../dist/games/evermore/script-vm/parameters');
 const COMPILER: Record<string, { name: string; value: string }[]> = require('../../../../src/games/evermore/language/data/index.json').enums;
 
-export interface Param { name: string; type: string; enum?: string; hex?: boolean }
+const NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const NUMBER = /^(0x[0-9a-fA-F]+|\d+)$/;
+
+export interface Param { name: string; type: string; enum?: string; hex?: boolean; /** The cell (absolute) a written value goes to: its values' names. */ cell?: number }
 /** A resource of another kind by its id: name → id and back (undefined: none). */
 export interface Refs { name(kind: string, id: number): string | undefined; id(kind: string, name: string): number | undefined }
 
@@ -60,10 +64,28 @@ function wramNames() {
     return wram;
 }
 
+/** The named values of a cell (absolute address): value → name and back, kept where a name means one value. */
+const cellValueMaps = new Map<number, { name: Map<number, string>; value: Map<string, number> }>();
+export function cellValues(addr: number) {
+    let m = cellValueMaps.get(addr);
+    if (!m) {
+        const d = displayNames(() => 0), pairs: [string, number][] = [];
+        for (const v of cellValueCandidates(addr) as number[]) { const n = d.value(addr, v); if (n && NAME.test(n)) pairs.push([n, v]); }
+        const seen = new Map<string, number>();
+        for (const [n, v] of pairs) seen.set(n, seen.has(n) && seen.get(n) !== v ? NaN : v);
+        const value = new Map([...seen].filter(([, v]) => !Number.isNaN(v)));
+        const name = new Map<number, string>();
+        for (const [n, v] of value) if (!name.has(v)) name.set(v, n);
+        cellValueMaps.set(addr, m = { name, value });
+    }
+    return m;
+}
+
 /** The names expressions use: WRAM's, and entities by the entities kind. */
 export function exprNames(refs: Refs, entities: string): ExprNames {
     const w = wramNames();
     return {
+        value: (a, v) => cellValues(a).name.get(v) ?? '', valueOf: (a, n) => cellValues(a).value.get(n),
         entity: op => refs.name(entities, op), entityOf: n => refs.id(entities, n),
         memory: a => w.mem.get(a) ?? '', memoryOf: n => w.memOf.get(n),
         flag: (a, m) => w.flag.get(`${a}:${m}`) ?? '', flagOf: n => w.flagOf.get(n),
@@ -91,21 +113,73 @@ function enumOf(type: string | undefined) {
     return e;
 }
 
-/** A value's name: its kind's resource, or its enum's constant; undefined when it has none. */
+/** A flags enum's named values, the widest first: a value is written as the ones it holds, joined with |. */
+const flagSets = new Map<string, [string, number][] | null>();
+function flagsOf(type: string | undefined): [string, number][] | null {
+    if (!type) return null;
+    if (flagSets.has(type)) return flagSets.get(type)!;
+    const own = ownEnum(type);
+    let list: [string, number][] | null = null;
+    if (own?.flags) {
+        const pairs: [string, number][] = [...own.values].map(([v, n]: [number, string]) => [n, v]);
+        for (const c of own.base ? COMPILER[own.base] ?? [] : []) { const v = Number(c.value); if (Number.isFinite(v) && v && NAME.test(c.name)) pairs.push([c.name, v]); }
+        const pop = (v: number) => v.toString(2).replace(/0/g, '').length;
+        list = pairs.filter(([n, v], i) => v && pairs.findIndex(x => x[0] === n) === i).sort((a, b) => pop(b[1]) - pop(a[1]) || b[1] - a[1]);
+    }
+    flagSets.set(type, list);
+    return list;
+}
+
+/** The character's own animations (record +$32, 12 words: characters.mts), what `animate` names with bit 15 set. */
+const OWN = 'own.';
+/** A value's name: its kind's resource, a flags enum's names joined with |, or its enum's constant; undefined when it
+ *  has none. A map is the room's name and, when not 0, its entrance (`load_map`: map id low byte, entrance high). */
 function valueName(v: number, p: Param | undefined, refs: Refs): string | undefined {
     const k = kindOf(p);
+    if (k?.kind === 'animations' && v & 0x8000) { const o = v & 0x7FFF; return o % 2 === 0 && o / 2 < ANIMATION_SLOTS.length ? OWN + ANIMATION_SLOTS[o / 2] : undefined; }
+    if (k?.kind === 'maps') { const n = refs.name('maps', v & 0xFF); return n && (v >> 8 ? `${n}:${v >> 8}` : n); }
     if (k) return v % k.scale === 0 && (k.below === undefined || v < k.below) ? refs.name(k.kind, v / k.scale) : undefined;
+    const flags = flagsOf(p?.enum);
+    if (flags) {
+        if (!v) return undefined;
+        const parts: string[] = [];
+        let rest = v;
+        for (const [n, m] of flags) if ((rest & m) === m) { parts.push(n); rest &= ~m; }
+        if (!parts.length) return undefined;
+        return [...parts, ...(rest ? ['0x' + rest.toString(16)] : [])].join(' | ');
+    }
+    if (p?.cell !== undefined && !p.enum) return cellValues(p.cell).name.get(v);
     return enumOf(p?.enum)?.name.get(v);
 }
 /** A name → the value, or undefined. */
-function valueOf(name: string, p: Param | undefined, refs: Refs): number | undefined {
+function valueOf(text: string, p: Param | undefined, refs: Refs): number | undefined {
     const k = kindOf(p);
-    if (k) { const id = refs.id(k.kind, name); return id === undefined ? undefined : id * k.scale; }
-    return enumOf(p?.enum)?.value.get(name);
+    if (k?.kind === 'animations' && text.startsWith(OWN)) { const i = ANIMATION_SLOTS.indexOf(text.slice(OWN.length)); return i < 0 ? undefined : 0x8000 | (2 * i); }
+    if (k?.kind === 'maps') { const m = /^([a-z0-9_]+)(?::(\d+))?$/.exec(text), id = m ? refs.id('maps', m[1]) : undefined; return id === undefined || Number(m![2] ?? 0) > 0xFF ? undefined : id | (Number(m![2] ?? 0) << 8); }
+    if (k) { const id = refs.id(k.kind, text); return id === undefined ? undefined : id * k.scale; }
+    const flags = flagsOf(p?.enum);
+    if (flags) {
+        let v = 0;
+        for (const part of text.split('|').map(x => x.trim())) {
+            const named = flags.find(f => f[0] === part)?.[1], n = named ?? (/^(0x[0-9a-fA-F]+|\d+)$/.test(part) ? Number(part) : undefined);
+            if (n === undefined) return undefined;
+            v |= n;
+        }
+        return v;
+    }
+    if (p?.cell !== undefined && !p.enum) return cellValues(p.cell).value.get(text);
+    return enumOf(p?.enum)?.value.get(text);
+}
+
+/** A write's parameters with its value tied to its cell: operand 1 a save- or temp-area cell (its bytes `first`), the
+ *  next the value written there, named by that cell's values (`write_word PRIZE, WAX`). */
+export function withCell(params: Param[], first: number[]): Param[] {
+    const w = wramOf(params[0]);
+    if (!w || w.flag || w.area === 'local' || params.length !== 2 || first.length !== 2) return params;
+    return [params[0], { ...params[1], cell: (w.area === 'save' ? 0x2258 : 0x2834) + (first[0] | (first[1] << 8)) }];
 }
 
 const hex2 = (b: number) => b.toString(16).padStart(2, '0');
-const NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 /** Splits `a, (b, c), d` at its top-level commas. */
 export function splitTop(s: string): string[] {
     const out: string[] = [];
@@ -129,13 +203,13 @@ export function operandBytes(token: string, text: string, p: Param | undefined, 
     if (raw) return (raw[1] ?? '').split(/\s+/).filter(Boolean).map(b => parseInt(b, 16));
     if (token === 'u8' || token === 'u16' || token === 'skip') {
         const size = token === 'u16' ? 2 : 1, max = size === 2 ? 0xFFFF : 0xFF, w = wramOf(p);
-        const v = w && !/^(0x[0-9a-fA-F]+|\d+)$/.test(text) ? cellValue(text, w.area, w.flag, names) : NAME.test(text) ? valueOf(text, p, refs) : /^(0x[0-9a-fA-F]+|\d+)$/.test(text) ? Number(text) : undefined;
-        if (v === undefined) throw new Error(NAME.test(text) ? `"${text}" names nothing ${p?.type ?? ''} ${p?.enum ?? ''} takes`.replace(/\s+/g, ' ') : `"${text}": a number 0-${max}, a name or [bytes]`);
+        const v = NUMBER.test(text) ? Number(text) : w ? cellValue(text, w.area, w.flag, names) : valueOf(text, p, refs);
+        if (v === undefined) throw new Error(`"${text}" names nothing ${p?.type ?? ''} ${p?.enum ?? ''} takes; or a number 0-${max}, [bytes]`.replace(/\s+/g, ' '));
         if (v < 0 || v > max) throw new Error(`${text} does not fit ${size === 2 ? 'a word' : 'a byte'}`);
         return size === 2 ? [v & 0xFF, v >> 8] : [v];
     }
     if (token === 'E') {
-        if (NAME.test(text)) { const v = valueOf(text, p, refs); if (v !== undefined) return constBytes(v)!; }
+        if (!NUMBER.test(text)) { const v = valueOf(text, p, refs); if (v !== undefined) { const c = constBytes(v); if (c) return c; } }
         return exprBytes(text, names);
     }
     if (token === 'A' || token === 'Z') {

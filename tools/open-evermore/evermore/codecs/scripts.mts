@@ -45,9 +45,10 @@ import { ENTITY_SUB_OPS, KIND as ENTITIES } from './entities.mts';
 import { SOUND_COUNT, SOUNDS } from './music.mts';
 import type { Refs } from './operands.mts';
 import { KIND as PROJECTILES, PROJECTILE_COUNT } from './projectiles.mts';
-import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, parse, REF, SCRIPTS, scriptText, SKIP, WINDOW } from './script-lines.mts';
+import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, OBJECTS, objectName, parse, REF, SCRIPTS, scriptText, SKIP, WINDOW } from './script-lines.mts';
 import type { Member, Patch, Script } from './script-lines.mts';
 import { KIND as STRINGS, STRING_COUNT } from './strings.mts';
+import { FONT_COUNT, FONTS } from './graphics.mts';
 
 export { WINDOW };
 
@@ -243,18 +244,35 @@ export const scriptsCodec: Codec = {
             [ANIMATIONS, Array.from({ length: count(ANIMATIONS) ?? ANIMATION_COUNT }, (_, i) => name(ANIMATIONS, i))],
             [PROJECTILES, Array.from({ length: count(PROJECTILES) ?? PROJECTILE_COUNT }, (_, i) => name(PROJECTILES, i))],
             [CHARACTERS, characterNames(rom, name, count, nameAt).enemies],
+            [MAP_DIR, Array.from({ length: count(MAP_DIR) ?? MAP_COUNT }, (_, i) => name(MAP_DIR, i))],
+            [FONTS, Array.from({ length: count(FONTS) ?? FONT_COUNT }, (_, i) => name(FONTS, i))],
         ]);
         const entities: (string | undefined)[] = [];
         for (const op of ENTITY_SUB_OPS) entities[op] = name(ENTITIES, op);
         lists.set(ENTITIES, entities);
         const back = new Map([...lists].map(([k, l]) => [k, new Map(l.flatMap((n, i) => n ? [[n, i] as [string, number]] : []))]));
         const refs: Refs = { name: (k, id) => lists.get(k)?.[id] ?? undefined, id: (k, n) => back.get(k)?.get(n) };
+        // A room's script names that room's objects (`object_<id>`, maps writes no names); a global one keeps numbers.
+        const blobs = roomBlobs(rom, count(MAP_DIR) ?? MAP_COUNT), objectCount = new Map<string, number>();
+        const roomOf = (script: string) => {
+            const map = script.includes('/') ? script.slice(0, script.indexOf('/')) : undefined, room = map === undefined ? undefined : back.get(MAP_DIR)!.get(map);
+            if (map === undefined || room === undefined) return 0;
+            if (!objectCount.has(map)) objectCount.set(map, maps.modelFromRom(rom, room, blobs[room]).objectOffsets.length);
+            return objectCount.get(map)!;
+        };
+        const refsIn = (script: string): Refs => {
+            const n = roomOf(script);
+            return {
+                name: (k, id) => k === OBJECTS ? (id < n ? objectName(undefined, id) : undefined) : refs.name(k, id),
+                id: (k, x) => { if (k !== OBJECTS) return refs.id(k, x); const m = /^object_(\d+)$/.exec(x); return m && Number(m[1]) < n ? Number(m[1]) : undefined; },
+            };
+        };
         for (const group of L.groups) {
             const next = (s: Script, i: number) => i + 1 < group.length ? group[i + 1].at : s.end;
             const { start, bytes } = groupBytes(rom, group, next);
             const holes: Span[] = [];
             group.forEach((s, i) => {
-                const t = scriptText(rom, s, windowPos(WINDOW, next(s, i)), at => '@' + relativeName(nameOf(at), s.name, exists), opName, byId, refs);
+                const t = scriptText(rom, s, windowPos(WINDOW, next(s, i)), at => '@' + relativeName(nameOf(at), s.name, exists), opName, byId, refsIn(s.name));
                 files.set(scriptPath(s.name), text(t.text));
                 holes.push(...t.holes.map(h => ({ start: h.start - start, end: h.end - start })));
             });

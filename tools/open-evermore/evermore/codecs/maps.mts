@@ -144,7 +144,8 @@ export const mapsCodec: Codec = {
         const cells = (rows: string[]) => rows.map(r => r.trim().split(/\s+/).map(t => /^[0-9a-f]+$/.test(t) ? parseInt(t, 16) : t));
         if (path.endsWith('/' + TREE_MAP.grid)) return [path, json(cells(readText(bytes).trim().split('\n')))];
         if (path.endsWith('/' + TREE_MAP.objects)) {
-            const v = JSON.parse(readText(withoutKeys(path, bytes, ['id'])));
+            // An object's `name` is how the room's scripts write it (scripts.mts), not the room's bytes.
+            const v = JSON.parse(readText(withoutKeys(path, bytes, ['id', 'name'])));
             for (const o of v.list ?? []) for (const st of o.states ?? []) if (Array.isArray(st.cells)) st.cells = cells(st.cells);
             return [path, json(v)];
         }

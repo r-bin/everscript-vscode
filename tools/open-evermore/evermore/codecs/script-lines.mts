@@ -11,7 +11,7 @@ import { ENUM } from '../../enum.mts';
 import { windowFile, windowPos } from '../../layout.mts';
 import { KIND as ENTITIES } from './entities.mts';
 import { KIND as OPCODES } from './opcodes.mts';
-import { exprNames, operandBytes, operandText, paramsOf, splitTop } from './operands.mts';
+import { exprNames, operandBytes, operandText, paramsOf, splitTop, withCell } from './operands.mts';
 import type { Refs } from './operands.mts';
 
 const require = createRequire(import.meta.url);
@@ -25,9 +25,11 @@ export const REF: Record<number, { size: number; form: 'u24' | 'cb' | 'c16' }> =
     0x07: { size: 3, form: 'u24' }, 0x29: { size: 3, form: 'u24' }, 0xAF: { size: 3, form: 'u24' }, 0xB4: { size: 3, form: 'u24' },
     0xA5: { size: 1, form: 'cb' }, 0xB2: { size: 1, form: 'cb' }, 0xA6: { size: 2, form: 'c16' }, 0xB3: { size: 2, form: 'c16' },
 };
-/** A script named by its id: a global's index (one byte) or a trigger's table offset 3·id (a word). */
+/** A script named by its id: a global's index (one byte) or a trigger's table offset 3·id (a word); attach_talk_script
+ *  (0x3D) and attach_script (0x3F) hand a script to an entity by its trigger offset, as their last operand. */
 export const BY_ID: Record<number, { size: number; form: 'global' | 'trigger' }> = {
     0xA3: { size: 1, form: 'global' }, 0xB0: { size: 1, form: 'global' }, 0xA4: { size: 2, form: 'trigger' }, 0xB1: { size: 2, form: 'trigger' },
+    0x3D: { size: 2, form: 'trigger' }, 0x3F: { size: 2, form: 'trigger' },
 };
 /** Jumps inside a script, by the size of their offset: a signed word from the operand's end, or a byte back. */
 const JUMP: Record<number, 'r16' | 'rb'> = { 0x04: 'r16', 0x05: 'rb', 0x08: 'r16', 0x09: 'r16', 0x0A: 'r16', 0x0B: 'r16', 0x8E: 'r16', 0x8F: 'r16' };
@@ -47,12 +49,34 @@ const HEX_RE = /^[0-9a-fA-F]{2}$/;
 /** The operand tokens of an opcode (spec.ts); undefined for one without a handler. */
 const tokensOf = (op: number): string[] | undefined => SPEC.get(op)?.operands;
 
-/** The names a build resolves references with: each kind's enum (ctx.ids). */
-export function buildRefs(ctx: ImplodeContext): Refs {
+/** A room's objects, as its scripts name them: an entry's `name` in objects.json, else `object_<id>`. */
+export const OBJECTS = 'objects';
+export const objectName = (entry: { name?: unknown } | undefined, id: number): string => typeof entry?.name === 'string' ? entry.name : `object_${id}`;
+
+/** The names a build resolves references with: each kind's enum (ctx.ids); for a room's script (`path` in a map's
+ *  folder), that room's objects. */
+export function buildRefs(ctx: ImplodeContext, path?: string): Refs {
     const back = new Map<string, Map<number, string>>();
+    const room = path ? /^maps\/([^/]+)\/scripts\//.exec(path)?.[1] : undefined;
+    let objects: string[] | undefined;
+    const objectsOf = (): string[] => {
+        if (objects === undefined) {
+            objects = [];
+            const raw = room ? ctx.tree.get(`maps/${room}/objects.json`) : undefined;
+            try { if (raw) objects = (JSON.parse(new TextDecoder().decode(raw)).list ?? []).map((o: { name?: unknown }, i: number) => objectName(o, i)); } catch { /* the maps kind reports it */ }
+        }
+        return objects ?? [];
+    };
     return {
-        id: (kind, name) => ctx.ids.get(kind)?.get(name),
+        // A default name is its index, also where the room has no such object (a room whose map was replaced keeps its
+        // scripts); a name of the room's own must be in its objects.json.
+        id: (kind, name) => {
+            if (kind !== OBJECTS) return ctx.ids.get(kind)?.get(name);
+            const i = objectsOf().indexOf(name), d = /^object_(\d+)$/.exec(name);
+            return i >= 0 ? i : d && Number(d[1]) <= 0xFF ? Number(d[1]) : undefined;
+        },
         name: (kind, id) => {
+            if (kind === OBJECTS) return objectsOf()[id];
             if (!back.has(kind)) back.set(kind, new Map([...(ctx.ids.get(kind) ?? [])].map(([n, i]) => [i, n])));
             return back.get(kind)!.get(id);
         },
@@ -61,7 +85,8 @@ export function buildRefs(ctx: ImplodeContext): Refs {
 
 /** A command's operand bytes and the bytes the last one names a script or label with: the line's body, as text. */
 function operandsText(i: any, bytes: number[], refs: Refs, tailText: string | undefined): string[] {
-    const tokens: string[] = i.spec.operands, params = paramsOf(i.opcode, tokens.length), names = exprNames(refs, ENTITIES);
+    const tokens: string[] = i.spec.operands, names = exprNames(refs, ENTITIES);
+    let params = paramsOf(i.opcode, tokens.length);
     const out: string[] = [];
     let p = 1;
     i.operands.forEach((o: any, k: number) => {
@@ -75,6 +100,7 @@ function operandsText(i: any, bytes: number[], refs: Refs, tailText: string | un
             for (const e of o.k === 'A' ? o.args : o.list) { parts.push(part.slice(q, q + e.size)); q += e.size; }
         }
         out.push(k === tokens.length - 1 && tailText !== undefined ? tailText : operandText(tokens[k], part, parts, params[k], refs, names));
+        if (k === 0) params = withCell(params, part);
         p += size;
     });
     return out;
@@ -127,7 +153,7 @@ export type Entry =
 
 /** A script file → its lines; problems are findings at the line. */
 export function parse(path: string, raw: string, ctx: ImplodeContext): Entry[] | null {
-    const out: Entry[] = [], labels = new Set<string>(), refs = buildRefs(ctx), names = exprNames(refs, ENTITIES);
+    const out: Entry[] = [], labels = new Set<string>(), refs = buildRefs(ctx, path), names = exprNames(refs, ENTITIES);
     let ok = true;
     const bad = (n: number, rule: string, message: string) => { ctx.findings.error(rule, path, `/${n + 1}`, message); ok = false; };
     raw.split('\n').forEach((line, n) => {
@@ -155,10 +181,11 @@ export function parse(path: string, raw: string, ctx: ImplodeContext): Entry[] |
         const last = operands[operands.length - 1] ?? '';
         const ref = last.startsWith('@') ? last.slice(1) : undefined;
         const jump = !ref && JUMP[op] && LABEL_NAME_RE.test(last) ? last : undefined;
-        if (ref !== undefined && !REF[op] && !BY_ID[op]) return bad(n, 'invalid-value', `opcode $${hex2(op)} names no script; @${ref} needs a call: 07, 29, af, b4 (absolute), a5, a6, b2, b3 (relative), a3, b0 (global), a4, b1 (trigger)`);
-        const params = paramsOf(op, opTokens.length), body: number[] = [];
+        if (ref !== undefined && !REF[op] && !BY_ID[op]) return bad(n, 'invalid-value', `opcode $${hex2(op)} names no script; @${ref} needs a call: 07, 29, af, b4 (absolute), a5, a6, b2, b3 (relative), a3, b0 (global), a4, b1 (trigger), or an attach (3d, 3f)`);
+        let params = paramsOf(op, opTokens.length);
+        const body: number[] = [];
         for (let k = 0; k < operands.length - (ref !== undefined || jump !== undefined ? 1 : 0); k++) {
-            try { body.push(...operandBytes(opTokens[k], operands[k], params[k], refs, names)); }
+            try { const b = operandBytes(opTokens[k], operands[k], params[k], refs, names); body.push(...b); if (k === 0) params = withCell(params, b); }
             catch (e) { return bad(n, /names nothing|is no |names more/.test((e as Error).message) ? 'unknown-reference' : 'invalid-value', `operand ${k + 1} (${params[k]?.name ?? opTokens[k]}): ${(e as Error).message}`); }
         }
         out.push({ kind: 'cmd', line: n + 1, op, body, ...(ref !== undefined ? { ref } : {}), ...(jump ? { jump } : {}) });

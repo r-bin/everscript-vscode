@@ -46,8 +46,7 @@ interface RomKnowledgeItem {
 
 const KNOWN_SIZES: Record<string, number> = {
     '91d800': 136,   // alchemy_deduct_ingredients_and_award_xp
-    'c40000': 3072,  // dialogue_font_glyphs (95 glyphs * 32 bytes)
-    'c40c02': 95,    // dialogue_font_widths
+    'c40000': 3202,  // font_default (header, 128 glyphs · 24 bytes, 128 widths)
     'd180a6': 68,    // ALCHEMY_BLOCK_TABLE (34 words)
 };
 

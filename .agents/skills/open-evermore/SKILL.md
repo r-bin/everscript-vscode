@@ -91,4 +91,6 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
 - Shell loops over a list: zsh does not split `$VAR`; write such scripts for bash.
 - `npm run build:ts` deletes `dist/`, which the codecs load: never while a test or proof runs.
 - `tools/generate-rom-map.mts` (needed after new knowledge entries) also rewrites sizes of entries
-  around them.
+  around them, re-creates entries from the CDL export where no entry covers an address, and deletes and rewrites
+  entries it owns: run it as it is, once, and read its diff; never a modified copy (one with writes stubbed out deleted
+  a thousand entries, 2026-11-21). It calls unknown gaps padding: check the bytes before keeping such an entry.
