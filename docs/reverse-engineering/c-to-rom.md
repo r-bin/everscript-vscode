@@ -660,3 +660,17 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 2/2 fuzzed states match ROM (100% parity).
   - Mutation caught: yes.
 - Rated and audited: 304 clean, 0 stale/unrated. Total bound routines: **304**.
+
+### Routine #305: `apu_wait_ready_timeout` ($8C:81D4)
+- Bound in `reconstructed-c/8C/8C81D4_apu_wait_ready_timeout.c`:
+  - Implements the SPC700 ready state polling loop with 65,536-cycle timeout recovery:
+    - Reads and preserves the 16-bit APU communication lock from `$7E:0E65` into X and clears the byte at `$0E65`.
+    - Loads the expected command sequence tag from DP `$9F` into the 8-bit accumulator.
+    - Polls APU port `$2142` for up to 65,536 iterations comparing against the sequence tag.
+    - On timeout fallback, reads raw byte from `$2142` directly to re-synchronize DP `$9F`.
+    - Restores the 16-bit lock to `$7E:0E65`, sets Carry (`SEC`), clears M and X flags (`REP #$20`), and returns via `RTS`.
+- Verified under Gate G1:
+  - 20/20 real states match ROM (100% parity, 18/18 snes9x oracle agreement).
+  - 320/320 fuzzed states match ROM (100% parity).
+  - Mutation caught: yes.
+- Rated and audited: 305 clean, 0 stale/unrated. Total bound routines: **305**.
