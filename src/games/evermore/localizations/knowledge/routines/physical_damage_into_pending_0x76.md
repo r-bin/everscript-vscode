@@ -1,7 +1,7 @@
 ---
 addr: 8FC067
-size: 51
-end: 8FC099
+size: 6
+end: 8FC06C
 kind: code
 category: 🧠
 name: physical_damage_into_pending_0x76

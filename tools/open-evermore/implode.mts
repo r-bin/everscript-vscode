@@ -3,7 +3,7 @@
 // (`seed`), which proves that nothing reaches it by a fixed address. CLI: open-evermore.mts.
 import { readBase, DIR as BASE_DIR } from './base.mts';
 import { ENUM, resolveEnum } from './enum.mts';
-import type { Codec, Item, Span, Write } from './codec.mts';
+import type { Codec, Item, Segment, Span, Write } from './codec.mts';
 import { explode } from './explode.mts';
 import { Findings } from './findings.mts';
 import { FILE as MANIFEST, busOf, checkHeader, checkManifest, checkRegions, fileOf, formatAddr, parseAddr } from './manifest.mts';
@@ -32,7 +32,7 @@ export interface Result {
     seed: number | null;
     /** Where each resource was (home) and where this build put it; `pieces`: the file spans it covers, each with its
      *  offset in the resource (one, unless it runs on in a window or has holes). */
-    placed: { key: string; home: number | undefined; at: number; length: number; changed: boolean; pieces: (Span & { offset: number })[] }[];
+    placed: { key: string; home: number | undefined; at: number; length: number; changed: boolean; pieces: (Span & { offset: number })[]; segments: Segment[] }[];
 }
 
 export interface Options {
@@ -42,6 +42,8 @@ export interface Options {
     layout?: Layout;
     /** Bytes the game reads past the base image (layouts.mts PastEnd; Evermore: evermore/kinds.mts PAST_END). */
     pastEnd?: PastEnd[];
+    /** Every encoding as written (ImplodeContext.strict). */
+    strict?: boolean;
 }
 
 /** The plans to try, smallest first: hirom grows to 4 MiB, then to exhirom (manifest `grow`, default on). */
@@ -84,9 +86,11 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     const ctx = {
         tree, manifest, size, base, findings, ids: new Map<string, Map<string, number>>(), marks: new Map<string, Set<string>>(),
         pointer: (at: number) => chosen!.pointer(at), names: new Map<string, Set<string>>(), symbols: new Map<string, number>(),
+        random: seed !== null, strict: !!opts.strict,
     };
     const items: Item[] = [];
     const stats: KindStats[] = [];
+    const isChanged = (i: Item) => !i.generated && !i.same && base.homeSha1.get(i.key) !== sha1(i.bytes);
     // Every enum first: a kind's resources reference other kinds by name.
     const present = new Map<string, Set<string>>();
     for (const codec of kinds) {
@@ -101,7 +105,7 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     for (const codec of kinds) {
         const list = codec.encode(ctx, present.get(codec.kind)!);
         items.push(...list);
-        const changed = list.filter(i => !i.generated && base.homeSha1.get(i.key) !== sha1(i.bytes)).length;
+        const changed = list.filter(i => isChanged(i)).length;
         stats.push({ kind: codec.kind, items: list.length, bytes: list.reduce((s, i) => s + i.bytes.length, 0), changed, moved: 0 });
     }
     for (const path of tree.keys()) {
@@ -126,7 +130,7 @@ export function implode(tree: Tree, game: string, kinds: Codec[], opts: Options 
     }
     if (chosen !== tried[0]) findings.info('grown', MANIFEST, '/memoryMap', `${tried[0].label} did not hold every resource: built as ${chosen!.label}`);
     for (const item of layout.failed) findings.error('no-space', item.file, '', `no free space for ${item.bytes.length} bytes under its rule ${JSON.stringify(item.rule)}`);
-    for (const item of items) if (layout.at.has(item.key)) placed.push({ key: item.key, home: base.homes.get(item.key)?.at, at: layout.at.get(item.key)!, length: item.bytes.length, changed: !item.generated && base.homeSha1.get(item.key) !== sha1(item.bytes), pieces: piecesOf(item, layout.at.get(item.key)!) });
+    for (const item of items) if (layout.at.has(item.key)) placed.push({ key: item.key, home: base.homes.get(item.key)?.at, at: layout.at.get(item.key)!, length: item.bytes.length, changed: isChanged(item), pieces: piecesOf(item, layout.at.get(item.key)!), segments: item.segments ?? [{ key: item.key, src: 0, dst: 0, length: item.bytes.length }] });
     for (const s of stats) s.moved = items.filter(i => i.key.startsWith(s.kind + '/') && layout.at.get(i.key) !== base.homes.get(i.key)?.at).length;
     if (findings.failed || opts.checkOnly) return done(null, stats);
 

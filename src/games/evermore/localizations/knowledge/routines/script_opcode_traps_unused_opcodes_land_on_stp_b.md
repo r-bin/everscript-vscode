@@ -1,7 +1,7 @@
 ---
 addr: 8CE8B5
-size: 8
-end: 8CE8BC
+size: 1
+end: 8CE8B5
 kind: code
 category: 🧠
 name: script_opcode_traps_unused_opcodes_land_on_stp_b

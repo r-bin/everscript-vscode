@@ -255,6 +255,12 @@ export const tilesCodec: Codec = {
             if (pairOf.has(n) || paired.has(`${DIR}/${n}`)) continue;
             items.push({ key: `${DIR}/${n}`, file: t.file, bytes: t.out!, rule: { noCrossBank: true } });
         }
+        // A tile ends on a bank's last byte only where vanilla's did (13 do): the decoder's pointer then turns the bank,
+        // which costs cycles vanilla did not spend elsewhere (the music upload's rule, music.mts).
+        for (const item of items) {
+            const home = ctx.base.homes.get(item.key);
+            if (!home || ((home.at + home.length) & 0xFFFF) !== 0) item.rule = { ...item.rule, noBankEnd: true };
+        }
         const listed = ctx.ids.get(KIND);
         const count = listed && listed.size ? Math.max(...listed.values()) + 1 : 0;
         items.push({ key: TABLE, file: `${DIR}/${ENUM}`, bytes: new Uint8Array(count * 3), rule: { noCrossBank: true }, generated: true });

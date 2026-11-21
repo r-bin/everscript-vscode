@@ -18,6 +18,9 @@
 //   ENEMY     the index at $8E:B55A, one word per id (a record's 16-bit address), read by `lda.l $8EB55A,x` in the
 //             four spawn handlers ($8C:DC9A/DCC3/DCD9/DCEC); 143 ids: 0 and 1 the Boy's and Dog's WRAM records, one
 //             0, the rest one record each; 0xBA/0xC2 take a byte id: 256 at most
+//   fields    behaviour (+$03) and attack proc (+$30) are even ids into the jump tables of handler-tables.mts: written
+//             by those kinds' names; the flag words +$05 (OR'd into entity +$10 at spawn) and +$07 as their bits' names,
+//             `a | b`, null for none (docs/entities/entities-reference.md §+0x10 bits, character-properties.md §+$07)
 // Names: our compiler's ENEMY names (language/data/index.json; D4); `boy`, `dog` for ids 0 and 1.
 import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Span, Write } from '../../codec.mts';
@@ -25,6 +28,7 @@ import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { describeRecord } from './animation-view.mts';
+import { ATTACK_PROCS, BEHAVIOURS } from './handler-tables.mts';
 import { hexText, parseHex, readerSpans, readerWrites, tableAt } from './readers.mts';
 import type { Reader } from './readers.mts';
 
@@ -44,17 +48,26 @@ const ENEMY_READERS: Reader[] = [0x0CDCA2, 0x0CDCCD, 0x0CDCE3, 0x0CDCF4].map(at 
 const LONG_OPS = new Set([0xAF, 0x8F, 0x6F, 0xEF, 0xCF, 0x2F, 0x0F, 0x4F, 0xBF, 0x9F, 0x7F, 0xFF, 0xDF, 0x3F, 0x1F, 0x5F]);
 const CODE_BANKS = new Set([0x00, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11]);
 
-/** A record's fields: name, offset, bytes, written as a number or as hex (`$xxxx`; the name pointer `$xxxxxx`). */
-type Field = [string, number, number, 'n' | 'hex'];
+/** The bits of +$05 (entity +$10's names, entities-reference.md) and +$07 (character-properties.md), bit 0 first. */
+const SPAWN_FLAGS = ['hidden', 'invincible', 'party', 'parked', 'never_sleeps', 'inactive', 'animating', 'through_bodies',
+    'awake', 'asleep', 'phasing', 'following', 'no_gravity', 'hides_after_fall', 'takes_no_damage', 'bit_15'];
+const FLAGS2 = ['segmented_body', 'partner_hit_penalty', 'ring_menu_target', 'mask_4000_target', 'projectile_immune',
+    ...Array.from({ length: 11 }, (_, k) => `bit_${k + 5}`)];
+/** How a field is written: a number, hex (`$xxxx`; the name pointer `$xxxxxx`), an entry of a handler-table kind by
+ *  name (the record holds 2·id), or flags by their bits' names. */
+type Form = 'n' | 'hex' | { kind: string } | { bits: string[] };
+type Field = [string, number, number, Form];
 const FIELDS: Field[] = [
-    ['name', 0x00, 3, 'hex'], ['behaviour', 0x03, 2, 'hex'], ['flags', 0x05, 2, 'hex'], ['flags2', 0x07, 2, 'hex'],
+    ['name', 0x00, 3, 'hex'], ['behaviour', 0x03, 2, { kind: BEHAVIOURS }], ['flags', 0x05, 2, { bits: SPAWN_FLAGS }], ['flags2', 0x07, 2, { bits: FLAGS2 }],
     ['palette', 0x09, 2, 'hex'], ['palette2', 0x0B, 2, 'hex'], ['radius', 0x0D, 2, 'n'], ['hp', 0x0F, 2, 'n'],
     ['unknown_11', 0x11, 2, 'n'], ['aggro_range', 0x13, 2, 'n'], ['aggro_chance', 0x15, 2, 'n'], ['leash', 0x17, 2, 'n'],
     ['attack', 0x19, 2, 'n'], ['defense', 0x1B, 2, 'n'], ['magic_defense', 0x1D, 2, 'n'], ['evade', 0x1F, 2, 'n'],
     ['hit_rate', 0x21, 2, 'n'], ['exp', 0x23, 4, 'n'], ['money', 0x27, 2, 'n'], ['prize_chance', 0x29, 1, 'n'],
-    ['level', 0x2A, 2, 'n'], ['charge_limit', 0x2C, 2, 'n'], ['charge_speed', 0x2E, 2, 'n'], ['attack_proc', 0x30, 2, 'hex'],
+    ['level', 0x2A, 2, 'n'], ['charge_limit', 0x2C, 2, 'n'], ['charge_speed', 0x2E, 2, 'n'], ['attack_proc', 0x30, 2, { kind: ATTACK_PROCS }],
 ];
 /** The animation ids at +$32-+$48, by what the game plays them for (character-model.ts): animation record offsets. */
+/** Entries of the handler tables (handler-tables.mts): an id past them is written as hex. */
+const TABLE_SIZE: Record<string, number> = { [ATTACK_PROCS]: 15, [BEHAVIOURS]: 15 };
 const ANIMATIONS = ['stand', 'walk', 'run', 'attack_0', 'attack_1', 'attack_2', 'attack_3', 'knockback', 'death', 'death_with_drop', 'cast', 'dodge'];
 const ANIM_AT = 0x32;
 
@@ -64,15 +77,36 @@ const word = (b: Uint8Array, at: number, n: number) => { let v = 0; for (let k =
 function recordBytes(c: any, a: any, dir: string, ctx: ImplodeContext): Uint8Array | null {
     const out = new Uint8Array(STRIDE);
     let ok = true;
-    const put = (value: unknown, at: number, size: number, form: 'n' | 'hex', path: string, pointer: string) => {
+    const put = (value: unknown, at: number, size: number, form: Form, path: string, pointer: string) => {
         const max = 2 ** (8 * size) - 1;
-        const n = form === 'n' ? (Number.isInteger(value) && (value as number) >= 0 && (value as number) <= max ? value as number : null) : parseHex(value, max);
-        if (n === null) { ctx.findings.error('invalid-value', path, pointer, form === 'n' ? `a whole number 0-${max}` : `"$${'x'.repeat(size * 2)}"`); ok = false; return; }
+        const n = fieldValue(value, form, max, ctx);
+        if (n === null) { ctx.findings.error(typeof form === 'object' && 'kind' in form && typeof value === 'string' && !value.startsWith('$') ? 'unknown-reference' : 'invalid-value', path, pointer, expected(form, size, max)); ok = false; return; }
         for (let k = 0, x = n; k < size; k++, x = Math.floor(x / 256)) out[at + k] = x & 0xFF;
     };
     for (const [n, at, size, form] of FIELDS) put(c?.[n], at, size, form, `${dir}/${CHARACTER}`, `/${n}`);
     ANIMATIONS.forEach((n, k) => put(a?.[n]?.record, ANIM_AT + 2 * k, 2, 'hex', `${dir}/${ANIMS}`, `/${n}/record`));
     return ok ? out : null;
+}
+
+/** A field as written → its value, or null. */
+function fieldValue(v: unknown, form: Form, max: number, ctx: ImplodeContext): number | null {
+    if (form === 'n') return Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max ? v as number : null;
+    if (form === 'hex') return parseHex(v, max);
+    if ('kind' in form) { const id = typeof v === 'string' ? ctx.ids.get(form.kind)?.get(v) : undefined; return id !== undefined ? 2 * id : parseHex(v, max); }
+    if (v === null) return 0;
+    if (typeof v !== 'string') return null;
+    let n = 0;
+    for (const t of v.split('|').map(x => x.trim())) { const b = form.bits.indexOf(t); if (b < 0) return null; n |= 1 << b; }
+    return n;
+}
+const expected = (form: Form, size: number, max: number) => form === 'n' ? `a whole number 0-${max}` : form === 'hex' ? `"$${'x'.repeat(size * 2)}"`
+    : 'kind' in form ? `a name in ${form.kind}/` : `null, or bits joined by " | " (${form.bits.filter(b => !b.startsWith('bit_')).join(', ')}, bit_<n>)`;
+/** A field's value as written. */
+function fieldText(v: number, form: Form, size: number, name: (kind: string, id: number) => string, count: (kind: string) => number): unknown {
+    if (form === 'n') return v;
+    if (form === 'hex') return hexText(v, size * 2);
+    if ('kind' in form) return v % 2 === 0 && v / 2 < count(form.kind) ? name(form.kind, v / 2) : hexText(v, size * 2);
+    return v ? form.bits.filter((_, b) => v & (1 << b)).join(' | ') : null;
 }
 
 /** Our name for ENEMY id `id`: the compiler's, as snake case; the Boy and the Dog by theirs. */
@@ -150,7 +184,7 @@ export const charactersCodec: Codec = {
         const files: Tree = new Map();
         records.forEach((n, k) => {
             const b = rom.subarray(at + STRIDE * k, at + STRIDE * (k + 1)), c: Record<string, unknown> = {};
-            for (const [f, off, size, form] of FIELDS) c[f] = form === 'n' ? word(b, off, size) : hexText(word(b, off, size), size * 2);
+            for (const [f, off, size, form] of FIELDS) c[f] = fieldText(word(b, off, size), form, size, name, k => countOf(k) ?? TABLE_SIZE[k]);
             if (spawn.has(n)) c.spawn = hexText(spawn.get(n)!, 4);
             files.set(`${DIR}/${n}/${CHARACTER}`, json(c));
             files.set(`${DIR}/${n}/${ANIMS}`, json(Object.fromEntries(ANIMATIONS.map((f, i) => {

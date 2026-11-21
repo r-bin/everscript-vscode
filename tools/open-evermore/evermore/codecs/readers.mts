@@ -38,3 +38,19 @@ export function parseHex(v: unknown, max: number, bank?: number): number | null 
     const n = parseInt(m[bank === undefined ? 1 : 2], 16);
     return n <= max ? n : null;
 }
+
+const KNOWLEDGE = require('../../../../dist/games/evermore/localizations/knowledge');
+/**
+ * The routines of one bank by name, as the knowledge base names them (the routine names of soe://rom/code/): a
+ * handler table's entries are written by these names. Code is not a kind yet, so a name stands for its fixed
+ * address. `name(at)`: the routine at 16-bit address `at` (`$BB:xxxx` when none is named); `at(text)`: back, from a
+ * name or `$BB:xxxx` (null when neither).
+ */
+export function routines(bank: number): { name(at: number): string; at(text: unknown): number | null } {
+    const list: { name: string; addr: number }[] = KNOWLEDGE.entries('rom').filter((e: { kind: string; addr: number }) => e.kind === 'code' && e.addr >> 16 === bank);
+    const byAt = new Map(list.map(e => [e.addr & 0xFFFF, e.name])), byName = new Map(list.map(e => [e.name, e.addr & 0xFFFF]));
+    return {
+        name: at => byAt.get(at) ?? hexText(at, 4, bank),
+        at: text => typeof text !== 'string' ? null : byName.get(text) ?? parseHex(text, 0xFFFF, bank),
+    };
+}

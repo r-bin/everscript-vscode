@@ -1,6 +1,6 @@
 # Open Evermore: the resource kinds
 
-Status: **design (2026-11-18), nothing built.** Back to [README.md](README.md). Labels as there.
+Status: **design 2026-11-18; the kinds marked *(built)* exist** ([progress.md](progress.md)). Back to [README.md](README.md). Labels as there.
 
 Every kind gets the same description. **Folder**: what lives where. **References**: which names it uses, and who
 uses its names. **Implode generates**: the tables and counts it writes from the folder. **Limits**: what implode
@@ -124,6 +124,11 @@ sounds/_enum.json                  names[script sound id]
   read on through upper halves) and the package pointers at `$81:9903` (in place); the sound id table at `$8C:8362`
   (in place). The data move anywhere: in a window of upper halves, or for the 11 pieces vanilla reads inside a
   lower half, within one bank.
+- **Placement keeps vanilla's cycles.** The upload is paced by the SPC700, but a bank turn in its byte loop costs
+  cycles: the 22 pieces that cross a bank keep their offset in it, the rest never cross, and **no piece or descriptor
+  ends on a bank's last byte** (`Rule.noBankEnd`: the copy's `iny` would turn the bank after it; routines
+  `spc700_ipl_bootloader_handshake_block_upload`). Items held to an offset are placed first (`layout.mts`).
+- **Proven (G1).** Music alone: seeds 1, 2, 3, 7 (2,721 resources moved each); with every kind: progress.md §2.
 - **Limits.** 71 packages: the tables after the pointers (`$81:99D8` music → package, `$81:9A1E` driver sound →
   package) are found from the count (`$8C:82A8`), so the count and those tables stay (`_base/`); 112 sound ids.
 - **Next.** Decode the pieces (sample directory entries, BRR samples, sequences, instruments) so a package reads as
@@ -160,8 +165,8 @@ round trip compares the indices, not the file.
   ([../map-format/map_tile_graphics_decompression.md](../map-format/map_tile_graphics_decompression.md) §4.1); two
   of them (run form) are fetched three bytes past their end, so implode places each with the tile after it as one
   item while both still give their pixels. A changed tile is encoded anew (`reencoded`, info).
-- **Placement.** Anywhere, never across a bank. Vanilla scatters them over ~80 banks in the gaps other data
-  leaves; `--random` shuffles them among their neighbours and into the 4th MB.
+- **Placement.** Anywhere, never across a bank, and ending on a bank's last byte only where vanilla's did (13
+  tiles; `Rule.noBankEnd`, as music's). Vanilla scatters them over ~80 banks in the gaps other data leaves; `--random` shuffles them among their neighbours and into the 4th MB.
 - **Limits.** 16 rows of 16 hex digits (`invalid-value`); 21,845 ids (the readers index the table with id·3 in
   16 bits); a room's graphics list ≤ 264 slots is a map limit.
 - **Logic warnings.** A tile no map uses (`unreferenced`; vanilla uses all 6,688). *(Proposal: identical pixels.)*
@@ -298,12 +303,15 @@ maps/<map>/scripts/<name>.txt     the room's scripts (2,700 of 3,288); full name
 
 A line is one command: the opcode by its name in `opcodes/` (a hex byte works too), then its operand bytes in hex;
 another script as `@name` (`@b_1` this room's, `@global_x` one in `scripts/`, `@<map>/b_1` another room's, `@/name`
-the one in `scripts/` when this room has one of that name too); `skip <n>`:
+the one in `scripts/` when this room has one of that name too); a jump's target as a label; `label_<n>:` where a jump
+lands; `skip <n>`:
 
 ```
-call_global 36              call_id(FADE_IN)
+call_global @global_fade_in call a global by name (its id is generated)
 call @enter_sub_1           call (absolute: the packed pointer is generated)
-call_back @global_loot_part1_sub_1           call back (relative: the offset is generated)
+call_back @enter_sub_2      call back (relative, vanilla's form: see Groups)
+label_1:                    a jump lands here
+jump_if_false 05 9d 04 94 label_1     the condition's bytes, then the label: the offset is generated
 load_map 17 28 15 00        load_map(0x15, 0x17, 40): ends the script
 skip 7                      7 bytes no command reaches: not this script's
 ```
@@ -313,13 +321,23 @@ skip 7                      7 bytes no command reaches: not this script's
   `boot`, a called one `<root>_sub_<n>` after the first table script, map or boot script that reaches it. A map
   names its enter script and its triggers' scripts in `map.json`. Every name and folder is the tree's: on a round
   trip, implode tells explode where each named script landed and which folder held it.
-- **References.** `@name` replaces the operand of `07`, `29`, `af`, `b4` (a packed pointer, any script) and of
-  `a5`, `b2` (one byte back), `a6`, `b3` (a word back). Ids stay numbers: global ids (`a3`, `b0`), trigger
-  offsets (`a4`, `b1`), string keys, map ids, enemy ids, animate ids.
-- **Groups.** Scripts that call each other backwards by a relative offset are placed as one item, in the order
-  `_scripts.json` lists them; implode works out each offset and says when one is out of reach (`out-of-range`).
-  141 groups in vanilla, the largest 20 KB. The bytes between them are holes (`skip`): vanilla keeps tiles in
-  bank `$95` between two scripts of one group.
+- **References.** `@name` replaces the operand of `07`, `29`, `af`, `b4` (a packed pointer, any script), of
+  `a5`, `b2` (one byte back), `a6`, `b3` (a word back), and the id of `a3`, `b0` (a global: id − header word +8 / 3)
+  and `a4`, `b1` (a trigger: 3·id); a hex id still works. Still numbers: string keys, map ids, enemy ids, animate
+  ids, inside commands' operands.
+- **Jumps** (`04`, `05`, `08`–`0b`, `8e`, `8f`) name a label of their own script: a line may change length and the
+  offsets follow. `goto_back` (`05`, one byte back) takes `goto`'s form when its label is out of its reach.
+- **Groups.** Vanilla ties 141 groups of scripts (the largest 20 KB) by relative calls, which only reach backwards
+  inside one item. `call_back` (`a5`, `a6`) does what `call` (`29`) does and `call_back_with_args` (`b2`, `b3`)
+  what `call_with_args` (`af`) does (opcodes/a5.md), so **implode writes a relative call as the absolute one
+  whenever its target is not in reach** (owner, 2026-11-21): a stable build keeps vanilla's groups (`_scripts.json`,
+  byte for byte, G0), a random build places every script alone with every relative call absolute.
+  **`--strict`** keeps every form as written: groups are placed together and a call out of reach is an error
+  (`out-of-range`). The bytes between a group's scripts are holes (`skip`): vanilla keeps tiles in bank `$95`
+  between two scripts of one group; a script placed alone drops the hole after it.
+- **Absolute calls cost fewer cycles** (`29` about half of `a5`), and the engine is busy most of every frame, so a
+  random build without `--strict` plays the same scenes but not frame for frame: `prove` builds its layout
+  `--strict` (seed 1: the screens differ in 1,029 of 6,224 attract frames, and match again from frame 5,400).
 - **Implode generates** the pointer table (a generated item: in place while the ids fit, else moved, with the
   four reader operands rebased by header word +0, which stays), the packed pointers of `@name` calls, the boot
   pointer and (maps kind) the enter-script table.
@@ -329,11 +347,11 @@ skip 7                      7 bytes no command reaches: not this script's
   reaches is left out of the ROM (`left-out`, a warning).
 - **Limits.** 21,625 ids (header word +0 plus 3·id in 16 bits); globals 256 (a one-byte operand).
 - **Proven (G1).** Seed 1 moved 2,597 of 2,599 script items; both stored playbacks identical. The proof
-  translates packed pointers (the engine keeps one at `$7E0026`) and the script program counter `$82–$84`.
+  translates packed pointers (the engine keeps one at `$7E0026`) and the script program counter `$82–$84`, stretch by
+  stretch where a command took a longer form (`Item.segments`).
   In game (G2): the opening's enter script rewritten to `load_map(0x7F)`, and a new map's own enter script
   (`tests/open-evermore/in-game.test.mts`).
-- **Next.** Labels for jumps inside a script (they are relative: editing a line's length moves the targets after
-  it); everscript text once the compiler writes relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7).
+- **Next.** Map, string and enemy ids by name inside operands; everscript text once the compiler writes relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7).
 
 ## opcodes *(built, 2026-11-20)*
 
@@ -341,9 +359,8 @@ skip 7                      7 bytes no command reaches: not this script's
 
 ```jsonc
 {
-  "handler": "$8C:D5AA",                       // the opcode: implode encodes this only
+  "handler": "script_op_7e_currency_convert",  // the routine's name (soe://rom/code/): implode encodes this only
   "what": "Exchange money",                    // knowledge/opcodes/<xx>.md
-  "c": "void currency_convert(uint16_t divisor, uint16_t currency_from, uint16_t multiplier, uint16_t currency_to);",
   "params": [{ "name": "currency_from", "type": "uint16_t", "enum": "CURRENCY", "encoding": "expression",
                "unit": "currency: offset into $0AC6 (0 talons, 3 jewels, 6 gold coins, 9 credits)" }, …],
   "flow": "next: the next command runs in the same frame"
@@ -351,14 +368,24 @@ skip 7                      7 bytes no command reaches: not this script's
 ```
 
 Names are the Scripts tab's (`script-vm/spec.ts`); a name two opcodes share takes the byte (`write_byte_14`); the 27
-without a handler are `unused_<xx>` (STP). Parameters, types, units: `script-vm/parameters.json` (2026-11-20: units
-for coordinates, durations, amounts and currencies from the handler readings in `knowledge/opcodes/`; 22 unnamed
-parameters named; `currency_convert` corrected to divisor, source, multiplier, destination). Still unresolved:
-`color_filter` (0x97) operands 1–7 and `projectile` (0xB5) operand 8.
+without a handler are `unused_<xx>` (STP). Handlers are written by the name of their knowledge entry; every one of
+the 195 has one (2026-11-21: the STP bytes got entries, `script_op_<xx>_stop`, `script_op_unused_stop`); a name
+stands for its address in `$8C` while code is not a kind, `$8C:xxxx` is still read. Parameters, types, units:
+`script-vm/parameters.json`; **every parameter is named** (2026-11-21: `color_filter` red, green, blue, mix,
+colour, first, count from `$8C:E4B1`; `mode7_scene` from, to, heading; `projectile` speed).
 
 - **Implode generates** the dispatch table at `$8C:E8BD` (`JSR ($E8BD,x)` in `$8C:D0A6`), in place: handlers
   live in bank `$8C` and the table cannot grow (opcodes `$C3` and up index past it into code): 195.
 - **Scripts** write each command's opcode by these names; renaming an opcode here renames it in every script.
+
+## attack_procs, behaviours *(built, 2026-11-21)*
+
+Two jump tables a character record picks by an even id: `attack_procs/<name>.json` (record `+$30`, the contact
+handler table `$8F:B6AE`, `JSR ($B6AE,x)`; projectiles use it too) and `behaviours/<name>.json` (record `+$03`, the
+idle-tick table `$8F:CBE0`, `JMP ($CBE0,x)`). A file is `{ "handler": <routine name>, "what": … }`; `_enum.json`
+names[id], the record holds 2·id. Names are ours from what each does (`melee`, `melee_poison_1_in_4`,
+`damage_without_roll`; `chase`, `wander`, the `IDLE_BEHAVIOR` names). Implode writes each table in place: 15 entries,
+code right after (`handler-tables.mts`). Id `$10`'s handler got its entry (`attack_proc_melee_no_knockback`).
 
 ## characters, animations, sprite blocks *(built, 2026-11-20)*
 
@@ -366,7 +393,9 @@ The table hack's tables (`tools/table-hack/`, moved and proven there), now resou
 
 ```
 characters/<name>/character.json    one 74-byte record as named fields (hp, attack, …, palette); `spawn` for the Boy
-                                    and the Dog, whose ENEMY ids spawn from WRAM ($0A26, $0A70)
+                                    and the Dog, whose ENEMY ids spawn from WRAM ($0A26, $0A70); `behaviour` and
+                                    `attack_proc` by name (above); `flags` (+$05, entity +$10's bits) and `flags2`
+                                    (+$07) as bit names, "invincible | inactive", null for none
 characters/<name>/animations.json   its twelve animation records (stand, walk, …, dodge), each with its facings,
                                     frames and the sprite blocks every frame shows (for the reader)
 characters/_enum.json               names[ENEMY id], what spawn opcodes take; null: an id with no record

@@ -1,7 +1,7 @@
 ---
 addr: 8CD7D1
-size: 21
-end: 8CD7E5
+size: 16
+end: 8CD7E0
 kind: code
 category: 🧠
 name: script_op_18_1c_write_word

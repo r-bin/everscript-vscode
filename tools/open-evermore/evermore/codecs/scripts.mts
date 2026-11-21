@@ -20,9 +20,15 @@
 //   starts       code starts scripts only through $8C:CF18, called from five places in the script engine, each
 //                fed by the table, the enter table, the boot pointer or an opcode's operand
 //   references   absolute: u24 operands (0x07, 0x29, 0xAF, 0xB4); relative backwards: one byte (0xA5, 0xB2, 1-256
-//                bytes) or a word (0xA6, 0xB3, up to 64 KiB). Jumps stay inside a script. Scripts tied by relative
-//                calls form a group placed as one item, in order (_scripts.json `groups`); no vanilla script shares
-//                an instruction with another or lies inside another's range
+//                bytes) or a word (0xA6, 0xB3, up to 64 KiB); by id: a global's index from header word +8 (0xA3, 0xB0,
+//                a byte) or a table offset 3·id (0xA4, 0xB1, a word). Scripts tied by relative calls form a group in
+//                vanilla (_scripts.json `groups`); no vanilla script shares an instruction with another or lies inside
+//                another's range. 0xA5/0xA6 do what 0x29 does and 0xB2/0xB3 what 0xAF does, with the target counted
+//                back from the opcode (knowledge opcodes/a5.md, b2.md): so implode may write a relative call as the
+//                absolute one, which frees the group (below)
+//   jumps        stay inside a script: a signed word from the end of the operand (0x04, 0x08-0x0B, 0x8E, 0x8F) or
+//                one byte back from the opcode (0x05, 1-256 bytes, the same as 0x04 otherwise: opcodes/05.md). Written
+//                as labels, so a command may change length
 //   gaps         bytes no command reaches, inside a script or between the scripts of a group, are not the script's
 //                (bank $95 keeps tiles between two scripts that call each other): `skip <n>`, a hole in the item
 import { createRequire } from 'node:module';
@@ -33,14 +39,18 @@ import { json, NAME_RE, readText, sha1, text } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { locate as locateMaps, roomBlobs } from './maps.mts';
 import { DEFAULT_OPCODE, KIND as OPCODES } from './opcodes.mts';
+import { assemble, BY_ID, LABEL_RE, LONGER, META, parse, REF, SCRIPTS, scriptText, SKIP, WINDOW } from './script-lines.mts';
+import type { Member, Patch, Script } from './script-lines.mts';
+
+export { WINDOW };
 
 const require = createRequire(import.meta.url);
 const V = require('../../../../dist/games/evermore/script-vm');
 const maps = require('../../../../dist/games/evermore/maps');
 const { globalScriptName } = require('../../../../dist/games/evermore/script-model/names');
 
-export const KIND = 'scripts';
-const DIR = KIND, META = '_scripts.json', TABLE = `${DIR}/_table`;
+export const KIND = SCRIPTS;
+const DIR = KIND, TABLE = `${DIR}/_table`;
 const MAP_DIR = 'maps', IN_MAP = 'scripts';
 /** A script's name: `<local>` in scripts/, or `<map>/<local>` in that map's scripts/ folder. */
 export const SCRIPT_NAME_RE = /^(?:[a-z][a-z0-9_]{0,79}\/)?[a-z][a-z0-9_]{0,79}$/;
@@ -69,18 +79,8 @@ export function scriptOf(path: string): string | null {
     return m ? (m[1] !== undefined ? m[1] : `${m[2]}/${m[3]}`) : null;
 }
 const FORMAT = 'open-evermore/scripts', VERSION = 1;
-/** File banks $92-$BF: their upper halves are the script window (4 MiB HiROM at most). */
-export const WINDOW = { from: 0x12, to: 0x40 };
 const HEADER = 0x128000, BOOT = 0x12800C, MAP_COUNT = 127;
 const READERS = [{ at: 0x0CCE64, add: 0 }, { at: 0x0CCE6A, add: 2 }, { at: 0x0CD3B6, add: 0 }, { at: 0x0CD3BC, add: 2 }];
-/** The operand an opcode names another script with, as the last bytes of its line. */
-const REF: Record<number, { size: number; form: 'u24' | 'cb' | 'c16' }> = {
-    0x07: { size: 3, form: 'u24' }, 0x29: { size: 3, form: 'u24' }, 0xAF: { size: 3, form: 'u24' }, 0xB4: { size: 3, form: 'u24' },
-    0xA5: { size: 1, form: 'cb' }, 0xB2: { size: 1, form: 'cb' }, 0xA6: { size: 2, form: 'c16' }, 0xB3: { size: 2, form: 'c16' },
-};
-/** A line for bytes no command reaches (between commands or after a script's last one): the script skips them. */
-const SKIP = 'skip';
-
 const u16 = (rom: Uint8Array, at: number) => rom[at] | (rom[at + 1] << 8);
 const u24 = (rom: Uint8Array, at: number) => rom[at] | (rom[at + 1] << 8) | (rom[at + 2] << 16);
 /** The packed pointer of a file offset in the window, and back. */
@@ -97,8 +97,7 @@ function tableOf(rom: Uint8Array): number {
     return maps.romFileOffset(rom, (u24(rom, READERS[0].at) + u16(rom, HEADER)) & 0xFFFFFF);
 }
 
-interface Script { name: string; at: number; end: number; ins: Map<number, any> }
-interface Layout { scripts: Script[]; byAt: Map<number, Script>; table: number; ids: number[]; boot: number; groups: Script[][] }
+interface Layout { scripts: Script[]; byAt: Map<number, Script>; table: number; ids: number[]; globalsFrom: number; boot: number; groups: Script[][] }
 
 /** Every script and its name: the table's in id order, the maps' enter scripts, the boot script, then what they
  *  call (named after the root that first reaches it). Cached per ROM and naming. */
@@ -171,7 +170,7 @@ export function scriptLayout(rom: Uint8Array, name: (kind: string, id: number) =
     const byRoot = new Map<Script, Script[]>();
     for (const s of [...scripts].sort((a, b) => pos(a.at) - pos(b.at))) { const r = find(s); if (!byRoot.has(r)) byRoot.set(r, []); byRoot.get(r)!.push(s); }
     const groups = [...byRoot.values()].sort((a, b) => pos(a[0].at) - pos(b[0].at));
-    const out = { scripts, byAt, table, ids, boot, groups };
+    const out = { scripts, byAt, table, ids, globalsFrom, boot, groups };
     if (!cache.has(rom)) cache.set(rom, new Map());
     cache.get(rom)!.set(key, out);
     return out;
@@ -185,60 +184,7 @@ function groupBytes(rom: Uint8Array, group: Script[], next: (s: Script, i: numbe
     return { start, bytes };
 }
 
-/** One script's file: its commands, a line each, and `skip <n>` for bytes no command reaches; its holes (positions). */
-function scriptText(rom: Uint8Array, s: Script, until: number, nameOf: (at: number) => string, opName: (op: number) => string, exists: (n: string) => boolean): { text: string; holes: Span[] } {
-    const lines: string[] = [], holes: Span[] = [];
-    let skip = 0;
-    const flush = (p: number) => { if (skip) { lines.push(`${SKIP} ${skip}`); holes.push({ start: p - skip, end: p }); skip = 0; } };
-    for (let p = windowPos(WINDOW, s.at); p < until;) {
-        const at = windowFile(WINDOW, p), i = s.ins.get(at);
-        if (!i) { skip++; p++; continue; }
-        flush(p);
-        const bytes = Array.from({ length: i.size }, (_, k) => rom[windowFile(WINDOW, p + k)]);
-        const r = REF[i.opcode], body = bytes.slice(1, r ? i.size - r.size : i.size).map(hex2);
-        lines.push([opName(bytes[0]), ...body, ...(r ? ['@' + relativeName(nameOf(i.operands[i.operands.length - 1].target & 0x3FFFFF), s.name, exists)] : [])].join(' '));
-        p += i.size;
-    }
-    flush(until);
-    return { text: lines.join('\n') + '\n', holes };
-}
-
-/** `start`: where the command begins (relative calls count from there); `offset`: where its operand is. */
-interface Parsed { bytes: number[]; holes: Span[]; refs: { start: number; offset: number; size: number; form: 'u24' | 'cb' | 'c16'; target: string; line: number }[] }
-
-/** A script file → its bytes and its references; problems are findings at the line. */
-function parse(path: string, raw: string, ctx: ImplodeContext): Parsed | null {
-    const out: Parsed = { bytes: [], holes: [], refs: [] };
-    let ok = true;
-    raw.split('\n').forEach((line, n) => {
-        const tokens = line.trim().split(/\s+/).filter(Boolean);
-        if (!tokens.length || tokens[0].startsWith('#')) return;
-        if (tokens[0] === SKIP) {
-            const k = Number(tokens[1]);
-            if (tokens.length !== 2 || !Number.isInteger(k) || k < 1) { ctx.findings.error('invalid-value', path, `/${n + 1}`, '`skip <n>`: n bytes that are not this script\'s'); ok = false; return; }
-            out.holes.push({ start: out.bytes.length, end: out.bytes.length + k });
-            out.bytes.push(...new Array(k).fill(0));
-            return;
-        }
-        const body = tokens;
-        const ref = body[body.length - 1]?.startsWith('@') ? body.pop()!.slice(1) : null;
-        // The opcode by its name in opcodes/ (or as a hex byte), then its operands in hex.
-        const op = /^[0-9a-fA-F]{2}$/.test(body[0] ?? '') ? parseInt(body[0], 16) : ctx.ids.get(OPCODES)?.get(body[0]);
-        if (op === undefined) { ctx.findings.error('unknown-reference', path, `/${n + 1}`, `"${body[0]}" is no opcode in ${OPCODES}/`); ok = false; return; }
-        if (!body.slice(1).every(t => /^[0-9a-fA-F]{2}$/.test(t))) { ctx.findings.error('invalid-value', path, `/${n + 1}`, 'a line is one command: its opcode, then its operand bytes in hex (`call @name` names a script), or `skip <n>`'); ok = false; return; }
-        const bytes = [op, ...body.slice(1).map(t => parseInt(t, 16))];
-        if (ref !== null) {
-            const r = REF[bytes[0]];
-            if (!r) { ctx.findings.error('invalid-value', path, `/${n + 1}`, `opcode $${hex2(bytes[0] ?? 0)} names no script; @${ref} needs opcode 07, 29, af, b4 (absolute) or a5, a6, b2, b3 (relative)`); ok = false; return; }
-            out.refs.push({ start: out.bytes.length, offset: out.bytes.length + bytes.length, size: r.size, form: r.form, target: ref, line: n + 1 });
-            bytes.push(...new Array(r.size).fill(0));
-        }
-        out.bytes.push(...bytes);
-    });
-    return ok ? out : null;
-}
-
-interface Group { key: string; members: { name: string; offset: number }[]; patches: { offset: number; target: string; file: string; line: number }[] }
+interface Group { key: string; members: { name: string; offset: number }[]; patches: Patch[] }
 const encoded = new WeakMap<ImplodeContext, { groups: Group[]; boot: string | null }>();
 /** Each script's file, from `names` (a script may live in a map's folder). */
 const paths = new WeakMap<ImplodeContext, Map<string, string>>();
@@ -249,26 +195,36 @@ export const scriptsCodec: Codec = {
     defaultName: id => `script_${id.toString(16).padStart(4, '0')}`,
 
     canonical(path, bytes) {
-        // The order of the groups is where explode found them, not part of what they say.
-        if (path === `${DIR}/${META}`) { const v = JSON.parse(readText(bytes)); v.groups = (v.groups ?? []).slice().sort((a: string[], b: string[]) => a[0] < b[0] ? -1 : 1); return [path, json(v)]; }
+        // Vanilla's groups are packing: a random build places each script alone (G0 checks the stable packing).
+        if (path === `${DIR}/${META}`) { const v = JSON.parse(readText(bytes)); delete v.groups; delete v.why; return [path, json(v)]; }
         if (!scriptOf(path)) return [path, bytes];
-        // An opcode may be written by its name or as a hex byte: both compare as the byte (default names).
-        const op = (t: string) => DEFAULT_OPCODE.has(t) ? DEFAULT_OPCODE.get(t)!.toString(16).padStart(2, '0') : t.toLowerCase();
+        // An opcode may be written by its name or as a hex byte, and a command in its longer form (a relative call
+        // written as the absolute one): all compare as the shorter form's byte (default names). The room a script
+        // keeps after it (`skip` at its end) belongs to its group, not to it.
+        const op = (t: string) => { const b = DEFAULT_OPCODE.get(t) ?? parseInt(t, 16); return Number.isNaN(b) ? t.toLowerCase() : hex2(LONGER[b] ?? b); };
         const lines = readText(bytes).split('\n').map(l => l.trim().split(/\s+/).filter(Boolean)).filter(t => t.length && !t[0].startsWith('#'));
-        return [path, text(lines.map(t => t.map((x, k) => x.startsWith('@') ? x : k === 0 && t[0] !== SKIP ? op(x) : x.toLowerCase()).join(' ')).join('\n') + '\n')];
+        while (lines.length && lines[lines.length - 1][0] === SKIP) lines.pop();
+        // A call by global or trigger id may be written with the id or the name (explode writes the name): implode
+        // takes the id from the enum, not from placement, so the comparison leaves it out.
+        for (const t of lines) {
+            const b = DEFAULT_OPCODE.get(t[0]) ?? (/^[0-9a-fA-F]{2}$/.test(t[0]) ? parseInt(t[0], 16) : -1);
+            if (BY_ID[b]) t.splice(t[t.length - 1].startsWith('@') ? -1 : -BY_ID[b].size);
+        }
+        return [path, text(lines.map(t => t.map((x, k) => x.startsWith('@') ? x : k === 0 && t[0] !== SKIP && !LABEL_RE.test(x) ? op(x) : x.toLowerCase()).join(' ')).join('\n') + '\n')];
     },
 
     explode(rom, name, _options, count, nameAt) {
         const L = scriptLayout(rom, name, count, nameAt);
         const files: Tree = new Map(), pool: Span[] = [], homes = [];
         const nameOf = (at: number) => L.byAt.get(at)!.name, opName = (op: number) => name(OPCODES, op);
+        const byId = (form: 'global' | 'trigger', v: number) => form === 'global' ? L.ids[L.globalsFrom + v] : v % 3 === 0 ? L.ids[v / 3] : undefined;
         const all = new Set(L.scripts.map(s => s.name)), exists = (n: string) => all.has(n);
         for (const group of L.groups) {
             const next = (s: Script, i: number) => i + 1 < group.length ? group[i + 1].at : s.end;
             const { start, bytes } = groupBytes(rom, group, next);
             const holes: Span[] = [];
             group.forEach((s, i) => {
-                const t = scriptText(rom, s, windowPos(WINDOW, next(s, i)), nameOf, opName, exists);
+                const t = scriptText(rom, s, windowPos(WINDOW, next(s, i)), at => '@' + relativeName(nameOf(at), s.name, exists), opName, byId);
                 files.set(scriptPath(s.name), text(t.text));
                 holes.push(...t.holes.map(h => ({ start: h.start - start, end: h.end - start })));
             });
@@ -284,7 +240,7 @@ export const scriptsCodec: Codec = {
         files.set(`${DIR}/${META}`, json({
             format: FORMAT, version: VERSION,
             boot: nameOf(L.boot),
-            why: 'groups: scripts that call each other backwards by a relative offset, placed together in this order (`skip` lines keep the room between them, which other resources may use); every other script is placed on its own',
+            why: 'groups: vanilla\'s scripts that call each other backwards by a relative offset, kept together in this order by a stable build and by --strict (`skip` lines keep the room between them, which other resources may use); a random build places each script alone, its relative calls written as absolute ones',
             groups: L.groups.filter(g => g.length > 1).map(g => g.map(s => s.name)),
         }));
         const length = L.ids.length * 3;
@@ -333,44 +289,42 @@ export const scriptsCodec: Codec = {
         for (const n of names) if (!reached.has(n)) findings.warning('left-out', fileOf(n), '', 'no table, map or reached script names this script: it is left out of the ROM');
 
         const items: Item[] = [], groups: Group[] = [];
+        // Vanilla's groups stay together in a stable build and with --strict; a random build places every script on
+        // its own, its relative calls written as absolute ones (the proof maps the moved commands: segments).
+        const free = ctx.random && !ctx.strict, globalsFrom = u16(ctx.base.image, HEADER + 8) / 3;
         for (const full of lists) {
-            const list = full.filter(n => reached.has(n));
-            if (!list.length) continue;
-            const bytes: number[] = [], members: Group['members'] = [], patches: Group['patches'] = [], holes: Span[] = [];
-            const relative: { at: number; ref: Parsed['refs'][number]; file: string }[] = [];
-            for (const n of list) {
+            const members: Member[] = [];
+            for (const n of full.filter(x => reached.has(x))) {
                 const file = fileOf(n);
                 if (!SCRIPT_NAME_RE.test(n)) { findings.error('bad-name', file, '', `"${n}": snake_case, at most 80 characters`); continue; }
-                const p = parse(file, readText(tree.get(file)!), ctx);
-                if (!p) continue;
-                members.push({ name: n, offset: bytes.length });
-                for (const r of p.refs) {
-                    const written = r.target;
-                    r.target = resolveName(r.target, n, x => names.has(x));
-                    if (!names.has(r.target)) { findings.error('unknown-reference', file, `/${r.line}`, `@${written} is no script (this room's scripts/, scripts/, or <map>/<name>)`); continue; }
-                    if (r.form === 'u24') patches.push({ offset: bytes.length + r.offset, target: r.target, file, line: r.line });
-                    else relative.push({ at: bytes.length, ref: r, file });
+                const entries = parse(file, readText(tree.get(file)!), ctx);
+                if (!entries) continue;
+                for (const e of entries) if (e.kind === 'cmd' && e.ref !== undefined) {
+                    const written = e.ref;
+                    e.ref = resolveName(e.ref, n, x => names.has(x));
+                    if (!names.has(e.ref)) findings.error('unknown-reference', file, `/${e.line}`, `@${written} is no script (this room's scripts/, scripts/, or <map>/<name>)`);
                 }
-                holes.push(...p.holes.map(h => ({ start: h.start + bytes.length, end: h.end + bytes.length })));
-                bytes.push(...p.bytes);
+                members.push({ name: n, file, entries });
             }
             if (!members.length) continue;
-            // Relative calls: the target comes before the call, in this group, within the operand's reach.
-            for (const { at, ref, file } of relative) {
-                const target = members.find(m => m.name === ref.target);
-                const back = target ? at + ref.start - target.offset : -1;
-                const reach = ref.form === 'cb' ? 0x100 : 0x10000;
-                if (!target || back < 1 || back > reach) {
-                    findings.error('out-of-range', file, `/${ref.line}`, `@${ref.target} is a relative call backwards: it must come before this line in the same group (${META} groups), at most ${reach} bytes back`);
-                    continue;
-                }
-                const v = reach - back;
-                bytes[at + ref.offset] = v & 0xFF;
-                if (ref.size === 2) bytes[at + ref.offset + 1] = v >> 8;
+            const key = `${DIR}/${members[0].name}`;
+            // As written, the group is the resource explode found: unchanged when its bytes are.
+            const written = assemble(members, ctx, { strict: true, free: false }, globalsFrom);
+            const same = sha1(written.bytes) === ctx.base.homeSha1.get(key);
+            const parts = free ? members.map(m => [m]) : [members];
+            for (const part of parts) {
+                const a = free ? assemble(part, ctx, { strict: false, free: true }, globalsFrom) : assemble(part, ctx, { strict: ctx.strict, free: false }, globalsFrom);
+                for (const [rule, file, at, message] of a.problems) findings.error(rule, file, at, message);
+                // A script on its own does not keep the room after it (the bytes up to the next one of its group).
+                const holes = part.length === 1 ? a.holes.filter(h => h.end < a.bytes.length) : a.holes;
+                const length = part.length === 1 && a.holes.length && a.holes[a.holes.length - 1].end === a.bytes.length ? a.holes[a.holes.length - 1].start : a.bytes.length;
+                const group: Group = { key: `${DIR}/${part[0].name}`, members: a.offsets, patches: a.patches };
+                groups.push(group);
+                items.push({
+                    key: group.key, file: part[0].file, bytes: a.bytes.slice(0, length), rule: { window: WINDOW }, patched: a.patches.length > 0, holes,
+                    segments: a.segments.map(g => ({ ...g, length: Math.min(g.length, length - g.dst) })).filter(g => g.length > 0), ...(same ? { same: true } : {}),
+                });
             }
-            const group: Group = { key: `${DIR}/${members[0].name}`, members, patches };
-            groups.push(group);
-            items.push({ key: group.key, file: fileOf(members[0].name), bytes: Uint8Array.from(bytes), rule: { window: WINDOW }, patched: patches.length > 0, holes });
         }
         encoded.set(ctx, { groups, boot: meta.boot ?? null });
         const ids = ctx.ids.get(KIND);

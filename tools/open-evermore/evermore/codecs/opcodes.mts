@@ -10,12 +10,15 @@
 //              into code, so 195 is the limit while the table stays where it is (bank $8C has no free space)
 //   unused     the opcodes spec.ts does not list point at STP instructions ($8C:E8B5-$E8BC): `unused_<xx>`
 //   names      spec.ts's (the script viewer's); a name two opcodes share gets the byte as a suffix
+//   handlers   by the name of their knowledge entry (the routine names of soe://rom/code/): every one of the 195 has
+//              one. Code is not a kind yet, so a name stands for its fixed address in bank $8C
 // Everything but the handler is derived for the reader: implode encodes only the handler.
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import type { Codec, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText } from '../../tree.mts';
+import { routines } from './readers.mts';
 import type { Tree } from '../../tree.mts';
 
 const require = createRequire(import.meta.url);
@@ -45,8 +48,8 @@ function summary(op: number): string | undefined {
     try { return /^title: (.*)$/m.exec(readFileSync(new URL(`${op.toString(16).toUpperCase().padStart(2, '0')}.md`, KNOWLEDGE), 'utf8'))?.[1]; } catch { return undefined; }
 }
 
-/** The reader's part of an opcode's file: a C prototype, each parameter, the flow. */
-function described(op: number, name: string): Record<string, unknown> {
+/** The reader's part of an opcode's file: each parameter, the flow. */
+function described(op: number): Record<string, unknown> {
     const spec = OPCODES.get(op);
     if (!spec) return { what: 'no handler: STP, the CPU stops' };
     const params = PARAMETERS['0x' + hex(op, 2)]?.params ?? [];
@@ -58,7 +61,6 @@ function described(op: number, name: string): Record<string, unknown> {
     }));
     return {
         what: summary(op),
-        c: `void ${name}(${list.map(q => q.type.includes('[]') ? `${q.type.replace(/\[\].*$/, '')} ${q.name}[]` : `${q.type} ${q.name}`).join(', ')});`,
         params: list,
         flow: `${spec.flow}: ${FLOW[spec.flow] ?? ''}`,
     };
@@ -67,7 +69,8 @@ function described(op: number, name: string): Record<string, unknown> {
 export const KIND = 'opcodes';
 const DIR = KIND, TABLE = 0x0CE8BD, COUNT = 0xC3, BANK = 0x8C;
 const hex = (v: number, n: number) => v.toString(16).padStart(n, '0');
-const HANDLER_RE = /^\$8C:([0-9A-Fa-f]{4})$/;
+/** Handlers by routine name (`$8C:xxxx` for code no entry names yet). */
+const HANDLERS = routines(BANK);
 
 /** Each opcode's default name: spec.ts's, unique (a shared name takes the byte), else unused_<xx>. */
 const DEFAULT: string[] = (() => {
@@ -98,7 +101,7 @@ export const opcodesCodec: Codec = {
         for (let op = 0; op < COUNT; op++) {
             const n = name(KIND, op), handler = rom[TABLE + 2 * op] | (rom[TABLE + 2 * op + 1] << 8);
             names.push(n);
-            files.set(`${DIR}/${n}.json`, json({ handler: `$8C:${hex(handler, 4).toUpperCase()}`, ...described(op, n) }));
+            files.set(`${DIR}/${n}.json`, json({ handler: HANDLERS.name(handler), ...described(op) }));
         }
         files.set(`${DIR}/${ENUM}`, enumFile({
             kind: KIND, limit: COUNT, names,
@@ -123,7 +126,7 @@ export const opcodesCodec: Codec = {
             if (!NAME_RE.test(n)) { ctx.findings.error('bad-name', path, '', `"${n}": snake_case, at most 80 characters`); continue; }
             try {
                 const v = JSON.parse(readText(ctx.tree.get(path)!));
-                if (typeof v.handler !== 'string' || !HANDLER_RE.test(v.handler)) ctx.findings.error('invalid-value', path, '/handler', `"$8C:xxxx": handlers live in bank $${BANK.toString(16).toUpperCase()} (JSR ($E8BD,x))`);
+                if (HANDLERS.at(v.handler) === null) ctx.findings.error('unknown-reference', path, '/handler', `"${v.handler}" is no routine of bank $${BANK.toString(16).toUpperCase()} (handlers live there: JSR ($E8BD,x)); a routine's name (soe://rom/code/) or "$8C:xxxx"`);
             } catch (e) { ctx.findings.error('parse-error', path, '', (e as Error).message); }
         }
         return [];
@@ -136,9 +139,8 @@ export const opcodesCodec: Codec = {
         for (let op = 0; op < COUNT; op++) {
             const n = byId.get(op);
             if (n === undefined) { ctx.findings.error('id-gap', `${DIR}/${ENUM}`, `/names/${op}`, `no opcode has byte $${hex(op, 2)}; the dispatch table has no gaps`); continue; }
-            const m = HANDLER_RE.exec(JSON.parse(readText(ctx.tree.get(`${DIR}/${n}.json`)!)).handler ?? '');
-            if (!m) continue;
-            const h = parseInt(m[1], 16);
+            const h = HANDLERS.at(JSON.parse(readText(ctx.tree.get(`${DIR}/${n}.json`)!)).handler);
+            if (h === null) continue;
             table.set([h & 0xFF, h >> 8], op * 2);
         }
         return [{ at: TABLE, bytes: table, file: `${DIR}/${ENUM}` }] satisfies Write[];

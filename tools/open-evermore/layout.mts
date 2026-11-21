@@ -9,7 +9,7 @@ import type { Home } from './base.mts';
 import type { Item, Rule, Span, Window } from './codec.mts';
 
 const BANK = 0x10000, HALF = 0x8000;
-const ruleKey = (r: Rule) => `${!!r.upperHalf}/${!!r.lowerHalf}/${!!r.noCrossBank}/${r.maxSize ?? ''}/${r.below ?? ''}/${r.above ?? ''}/${r.bankOffset ?? ''}/${r.window ? r.window.from + '-' + r.window.to : ''}`;
+const ruleKey = (r: Rule) => `${!!r.upperHalf}/${!!r.lowerHalf}/${!!r.noCrossBank}/${!!r.noBankEnd}/${r.maxSize ?? ''}/${r.below ?? ''}/${r.above ?? ''}/${r.bankOffset ?? ''}/${r.window ? r.window.from + '-' + r.window.to : ''}`;
 
 /** Position of file offset `at` (an upper half inside the window) in the window's space. */
 export const windowPos = (w: Window, at: number): number => ((at >> 16) - w.from) * HALF + (at & (HALF - 1));
@@ -99,6 +99,7 @@ export function fitIn(span: Span, len: number, rule: Rule, from = span.start): n
         if (rule.upperHalf && (s & (BANK - 1)) < HALF) { s = (s & ~(BANK - 1)) + HALF; continue; }
         if (rule.lowerHalf && (s & (BANK - 1)) >= HALF) { s = (s & ~(BANK - 1)) + BANK; continue; }
         if ((rule.noCrossBank || rule.upperHalf) && (s >> 16) !== ((s + len - 1) >> 16)) { s = (s & ~(BANK - 1)) + BANK; continue; }
+        if (rule.noBankEnd && ((s + len) & (BANK - 1)) === 0) { s++; continue; }
         return s;
     }
     return -1;
@@ -204,7 +205,10 @@ export function allocate(items: Item[], pool: Span[], extra: Span[], homes: Map<
                 else rest.push(item);
             }
         }
-        for (const item of shuffle(rest, next)) if (!place(item, free.randomFit(item.bytes.length, item.rule, next))) failed.push(item);
+        // Items held to an offset in their bank go first, then the largest: placed after the others, they would find
+        // no run left (a 20 KB group of scripts in the window). Where each goes stays random.
+        const tight = (i: Item) => i.rule.bankOffset !== undefined ? 0 : 1;
+        for (const item of shuffle(rest, next).sort((a, b) => tight(a) - tight(b) || b.bytes.length - a.bytes.length)) if (!place(item, free.randomFit(item.bytes.length, item.rule, next))) failed.push(item);
     }
     const moved = [...at].filter(([key, where]) => homes.get(key)?.at !== where).length;
     return { at, failed, moved };

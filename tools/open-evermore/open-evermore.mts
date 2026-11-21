@@ -3,20 +3,21 @@
 //   node tools/open-evermore/open-evermore.mts explode [rom] [--out out/open-evermore] [--force] [--families json|png]
 //                                                       [--tiles png|json]
 //   node tools/open-evermore/open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]
-//   node tools/open-evermore/open-evermore.mts prove <dir> [--random [seed]] [--movies <file|dir>…]
+//   node tools/open-evermore/open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
 // explode: the ROM (argument, else the base ROM of the ROM library) → the tree. The tree is ROM-derived: inside the
 //          repository only under the git-ignored out/; --force replaces a tree (edits there are lost). --families png
 //          writes each tile family as a 128×8 stripe of its 16 colours instead of JSON; --tiles json writes tiles as
 //          rows of hex digits instead of indexed PNGs (both kept in manifest.json).
 // implode: the tree → <dir>/_build/evermore.sfc (only without errors), report.md, report.json. --random shuffles
 //          where every resource goes (a seed reproduces a layout; without one, a new seed is drawn and printed) and
-//          grows the image to 4 MiB, the 4th MB free.
+//          grows the image to 4 MiB, the 4th MB free. --strict keeps every encoding as written (scripts: relative
+//          calls stay relative, so a group of scripts is placed together) and makes warnings errors.
 // prove:   build the original (stable) and a random layout from the tree, play the stored playbacks on both, compare
-//          every frame (G1). Minutes; on demand. Writes <dir>/_build/prove-<seed>/REPORT.md.
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+//          every frame (G1). Minutes; on demand. Writes <dir>/_build/prove-<seed>/REPORT.md. The layout is built
+//          --strict (lockstep needs vanilla's cycle counts); --promoted builds it as implode does without --strict.
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
-import { DIR as BASE_DIR } from './base.mts';
 import { GAME, KINDS, PAST_END, POINTER_WINDOWS } from './evermore/kinds.mts';
 import { explode } from './explode.mts';
 import { implode } from './implode.mts';
@@ -28,7 +29,7 @@ import { BUILD_DIR, readTree, sha1, writeTree } from './tree.mts';
 const require = createRequire(import.meta.url);
 const REPO = resolve(dirname(new URL(import.meta.url).pathname), '..', '..');
 const TOOL_VERSION: string = JSON.parse(readFileSync(join(REPO, 'package.json'), 'utf8')).version;
-const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed]] [--movies <file|dir>…]';
+const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]';
 
 function runExplode(args: string[], flag: (n: string) => boolean, value: (n: string) => string | null): number {
     const force = flag('--force');
@@ -53,7 +54,9 @@ function runExplode(args: string[], flag: (n: string) => boolean, value: (n: str
     if (families && families !== 'json') options.tile_families = { format: families };
     if (tiles && tiles !== 'png') options.tiles = { format: tiles };
     const tree = explode(rom, { release: identifyRom(rom).variant, sha1: sha1(rom), explodedWith: TOOL_VERSION }, GAME, KINDS, undefined, options);
-    if (force) for (const top of [BASE_DIR, ...KINDS.map(k => k.path)]) rmSync(join(out, top), { recursive: true, force: true });
+    // A tree is replaced whole (but its builds): a folder of a kind since renamed or merged (enemies/ into
+    // characters/) would stay behind and read as stray files.
+    if (force && existsSync(join(out, MANIFEST))) for (const top of readdirSync(out)) if (top !== BUILD_DIR) rmSync(join(out, top), { recursive: true, force: true });
     writeTree(out, tree);
     const bytes = [...tree.values()].reduce((s, b) => s + b.length, 0);
     console.log(`Exploded ${path} → ${out}: ${tree.size} files, ${bytes} bytes.`);
@@ -70,13 +73,14 @@ function takeSeed(args: string[]): number | undefined {
     return given ?? Math.floor(Math.random() * 0xFFFFFFFF);
 }
 
-async function runProve(args: string[]): Promise<number> {
+async function runProve(args: string[], flag: (n: string) => boolean): Promise<number> {
+    const strict = !flag('--promoted');
     const seed = takeSeed(args) ?? Math.floor(Math.random() * 0xFFFFFFFF);
     const m = args.indexOf('--movies');
     const movies = m < 0 ? undefined : args.splice(m).slice(1);
     if (!args[0]) { console.error(USAGE); return 2; }
     const dir = resolve(args[0]);
-    const result = await prove(readTree(dir), GAME, KINDS, seed, join(dir, BUILD_DIR, `prove-${seed}`), movies, PAST_END, POINTER_WINDOWS);
+    const result = await prove(readTree(dir), GAME, KINDS, seed, join(dir, BUILD_DIR, `prove-${seed}`), movies, PAST_END, POINTER_WINDOWS, strict);
     if (!result.ok && result.lines.length === 1) console.error(result.lines[0]);
     return result.ok ? 0 : 1;
 }
@@ -86,7 +90,7 @@ function runImplode(args: string[], flag: (n: string) => boolean): number {
     const seed = takeSeed(args);
     if (!args[0]) { console.error(USAGE); return 2; }
     const dir = resolve(args[0]);
-    const result = implode(readTree(dir), GAME, KINDS, { checkOnly, seed, pastEnd: PAST_END });
+    const result = implode(readTree(dir), GAME, KINDS, { checkOnly, seed, pastEnd: PAST_END, strict });
     if (strict) for (const f of result.findings.list) if (f.severity === 'warning') f.severity = 'error';
     const failed = result.findings.failed;
 
@@ -107,7 +111,7 @@ async function main(): Promise<void> {
     const action = args.shift();
     process.exitCode = action === 'explode' ? runExplode(args, flag, value)
         : action === 'implode' ? runImplode(args, flag)
-        : action === 'prove' ? await runProve(args)
+        : action === 'prove' ? await runProve(args, flag)
         : (console.error(USAGE), 2);
 }
 

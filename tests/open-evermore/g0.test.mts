@@ -41,10 +41,10 @@ if (!path || !existsSync(path)) {
         console.log(`  ✓ random ${seed}: ${moved} of ${r.placed.length} resources moved, ${fourth} into the 4th MB (tile families ${families.at === families.home ? 'stayed' : 'moved'}), tables rewritten, round trip holds`);
     }
 
-    const rules = (edit: (t: typeof tree) => void) => {
+    const rules = (edit: (t: typeof tree) => void, strict = false) => {
         const t = new Map(tree);
         edit(t);
-        return implode(t, GAME, KINDS).findings.list.filter(f => f.severity !== 'info').map(f => `${f.rule} ${f.file}#${f.pointer}`);
+        return implode(t, GAME, KINDS, { strict }).findings.list.filter(f => f.severity !== 'info').map(f => `${f.rule} ${f.file}#${f.pointer}`);
     };
     const editJson = (t: typeof tree, path: string, fn: (v: any) => void) => {
         const v = JSON.parse(Buffer.from(t.get(path)!).toString()); fn(v); t.set(path, new Uint8Array(Buffer.from(JSON.stringify(v))));
@@ -102,8 +102,9 @@ if (!path || !existsSync(path)) {
     console.log('  ✓ strings: an unknown tag is an error; an edited string is encoded anew and round-trips');
 
     // Scripts: one file per script, a command per line (the opcode by name, its operands in hex), `@name` for another
-    // script; a room's scripts in its folder. An edited script round-trips (an opcode as hex too); a name that is no
-    // script, an opcode that is none, a relative call to a script after it, and operands that are no bytes are errors.
+    // script (calls by global or trigger id too), labels for jumps; a room's scripts in its folder. An edited script
+    // round-trips (an opcode as hex too); a name that is no script, an opcode that is none and operands that are no
+    // bytes are errors; a relative call out of reach takes the absolute form, an error only with --strict.
     const enter = 'maps/podunk_opening_over_the_machine/scripts/enter.txt';
     assert.ok(tree.has(enter) && tree.has('scripts/boot.txt') && tree.has('scripts/_scripts.json') && !tree.has('maps/_enter_scripts.json'));
     const opening = JSON.parse(Buffer.from(tree.get('maps/podunk_opening_over_the_machine/map.json')!).toString());
@@ -121,11 +122,27 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(rules(t => setLines(t, caller, l => l.map(x => x.replace(/^call @\S+/, 'call @no_such_script')))).filter(r => !r.startsWith('left-out')), [`unknown-reference ${caller}#/${lines(caller).findIndex(l => /^call @/.test(l)) + 1}`]);
     assert.deepStrictEqual(rules(t => setLines(t, enter, l => ['no_such_opcode', ...l])), [`unknown-reference ${enter}#/1`]);
     assert.deepStrictEqual(rules(t => setLines(t, enter, l => ['end zz', ...l])), [`invalid-value ${enter}#/1`]);
-    const r1 = rules(t => setLines(t, relative, l => l.map(x => x.replace(/^call_back @\S+/, 'call_back @boot')))).filter(r => !r.startsWith('left-out'));
-    assert.ok(r1.length === 1 && r1[0].startsWith(`out-of-range ${relative}#`), r1.join());
-    const sc = implode((() => { const t = new Map(tree); setLines(t, enter, l => ['a3 36', 'call_global 36', ...l]); return t; })(), GAME, KINDS);
+    const farCall = (t: typeof tree) => setLines(t, relative, l => l.map(x => x.replace(/^call_back @\S+/, 'call_back @boot')));
+    assert.deepStrictEqual(rules(farCall).filter(r => !r.startsWith('left-out')), []);
+    const r1 = rules(farCall, true).filter(r => !r.startsWith('left-out'));
+    assert.ok(r1.length && r1.every(r => r.startsWith(`out-of-range ${relative}#`) || r.startsWith('left-out')), r1.join());
+    const globalCall = [...tree.keys()].flatMap(p => isScript(p) && !p.startsWith('maps/') ? lines(p).filter(l => /^call_global @[a-z0-9_]+$/.test(l)) : [])[0];
+    assert.ok(globalCall, 'global calls name their script');
+    const sc = implode((() => { const t = new Map(tree); setLines(t, enter, l => ['a3 36', 'call_global 36', globalCall.replace('@', '@/'), ...l]); return t; })(), GAME, KINDS);
     assert.deepStrictEqual(sc.findings.list.filter(f => f.severity === 'error'), []);
-    console.log(`  ✓ scripts: ${scriptCount} files (${inRooms} in room folders, enter and triggers named in map.json); an edited script builds and round-trips; an unknown @name or opcode, a relative call out of reach and operands that are no bytes are errors`);
+    assert.deepStrictEqual(rules(t => setLines(t, enter, l => [`call_global @${enter.split('/')[1]}/enter`, ...l])).map(r => r.split(' ')[0]), ['unknown-reference']);
+    // Jumps are labels: a line added before a jump moves its target, and the script still builds.
+    const jumper = [...tree.keys()].find(p => isScript(p) && lines(p).some(l => /^goto label_\d+$/.test(l)) && lines(p).some(l => /^label_\d+:$/.test(l)))!;
+    const longer = implode((() => { const t = new Map(tree); setLines(t, jumper, l => ['yield', ...l]); return t; })(), GAME, KINDS);
+    assert.deepStrictEqual(longer.findings.list.filter(f => f.severity === 'error'), []);
+    assert.deepStrictEqual(rules(t => setLines(t, jumper, l => l.filter(x => !/^label_\d+:$/.test(x)))).filter(r => !r.startsWith('left-out')).map(r => r.split(' ')[0]).filter((r, i, a) => a.indexOf(r) === i), ['unknown-reference']);
+    // A random build places every script alone (relative calls become absolute); --strict keeps vanilla's groups.
+    const groupKeys = (r: ReturnType<typeof implode>) => r.placed.filter(p => p.key.startsWith('scripts/') && p.segments.length > 1 && new Set(p.segments.map(g => g.key)).size > 1).length;
+    const loose = implode(tree, GAME, KINDS, { seed: 7 }), tight = implode(tree, GAME, KINDS, { seed: 7, strict: true });
+    assert.deepStrictEqual([...loose.findings.list, ...tight.findings.list].filter(f => f.severity !== 'info'), []);
+    assert.ok(groupKeys(loose) === 0 && groupKeys(tight) > 100, `groups placed together: ${groupKeys(loose)} random, ${groupKeys(tight)} strict`);
+    assert.ok(!loose.findings.list.some(f => f.rule === 'changed'), 'absolute calls are the same scripts');
+    console.log(`  ✓ scripts: ${scriptCount} files (${inRooms} in room folders, enter and triggers named in map.json); an edited script builds and round-trips; an unknown @name or opcode, operands that are no bytes and a jump to no label are errors; a relative call out of reach is promoted (an error with --strict); a random build places each script alone, --strict keeps the groups`);
 
     // Every table grows past vanilla and moves (the engine limits: 256 maps, 21,845 tiles and strings, 21,625 scripts).
     const grow = (dir: string, from: string, to: string, ext: string) => (t: typeof tree) => {
@@ -139,7 +156,7 @@ if (!path || !existsSync(path)) {
     const g = implode(grown, GAME, KINDS);
     assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
-    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['music', 71], ['sounds', 112]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${kind}/_enum.json`)!).toString()).limit, limit, kind);
+    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${kind}/_enum.json`)!).toString()).limit, limit, kind);
     console.log('  ✓ a new tile, string and table script: each table grows and moves, the round trip holds; limits at the engine\'s');
 
     // The table kinds of the table hack: a new animation, character (a record and an ENEMY id) and sprite blocks grow
@@ -155,12 +172,30 @@ if (!path || !existsSync(path)) {
     assert.ok(more.has('sprite_blocks_8/block_17c5.json'), 'the 8×8 alias (block 6085 reads blocks 0 and 407)');
     const m = implode(more, GAME, KINDS, { seed: 5 });
     assert.deepStrictEqual(m.findings.list.filter(f => f.severity !== 'info').map(f => `${f.rule} ${f.file}`), []);
-    for (const key of ['animations/_table', 'characters/_enemy_index', 'sprite_blocks_16/_table', 'sprite_blocks_8/_table']) assert.ok(m.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
+    // Each table grew past its vanilla footprint (it moves, or grows in place where the bytes after it are free).
+    for (const key of ['animations/_table', 'characters/_enemy_index', 'sprite_blocks_16/_table', 'sprite_blocks_8/_table']) {
+        const before = stable.placed.find(p => p.key === key)!, after = m.placed.find(p => p.key === key)!;
+        assert.ok(after.length > before.length, `${key} did not grow (${before.length} → ${after.length})`);
+    }
     assert.ok(m.placed.every(p => p.key !== 'characters/_records' || (p.at & 0xFFFF) === 0xB678), 'the records keep $B678');
     assert.deepStrictEqual(rules(t => editJson(t, 'characters/_records.json', e => { e.names.push('nobody'); })), ['unknown-reference characters/_records.json#/names/142']);
     assert.deepStrictEqual(rules(t => editJson(t, 'characters/fire_eyes/character.json', c => { c.hp = 70000; })), ['invalid-value characters/fire_eyes/character.json#/hp']);
     assert.deepStrictEqual(rules(t => editJson(t, 'characters/fire_eyes/animations.json', a => { a.stand.record = 'x'; })), ['invalid-value characters/fire_eyes/animations.json#/stand/record']);
+    // Fields by name: the behaviour and the attack proc name entries of their kinds, flags are their bits' names.
+    const fire = JSON.parse(Buffer.from(tree.get('characters/fire_eyes/character.json')!).toString());
+    assert.ok(tree.has(`behaviours/${fire.behaviour}.json`) && tree.has(`attack_procs/${fire.attack_proc}.json`), `${fire.behaviour}, ${fire.attack_proc}`);
+    assert.ok([...tree.keys()].some(p => p.endsWith('/character.json') && / \| /.test(JSON.parse(Buffer.from(tree.get(p)!).toString()).flags ?? '')), 'flags as names');
+    assert.deepStrictEqual(rules(t => editJson(t, 'characters/fire_eyes/character.json', c => { c.attack_proc = 'tickle'; })), ['unknown-reference characters/fire_eyes/character.json#/attack_proc']);
+    assert.deepStrictEqual(rules(t => editJson(t, 'characters/fire_eyes/character.json', c => { c.flags = 'invincible | shiny'; })), ['invalid-value characters/fire_eyes/character.json#/flags']);
+    const poisoned = implode((() => { const t = new Map(tree); editJson(t, 'characters/fire_eyes/character.json', c => { c.attack_proc = 'melee_poison'; c.flags = 'never_sleeps | through_bodies'; }); return t; })(), GAME, KINDS);
+    assert.deepStrictEqual(poisoned.findings.list.filter(f => f.severity === 'error'), []);
+    // Handlers by routine name: opcodes, attack procs, behaviours.
+    const animate = JSON.parse(Buffer.from(tree.get('opcodes/animate.json')!).toString());
+    assert.ok(animate.handler === 'script_op_78_animate' && !('c' in animate), JSON.stringify(animate).slice(0, 80));
+    assert.ok([...tree.keys()].filter(p => /^(opcodes|attack_procs|behaviours)\/[^_]/.test(p)).every(p => !JSON.parse(Buffer.from(tree.get(p)!).toString()).handler.startsWith('$')), 'every handler has a name');
+    assert.deepStrictEqual(rules(t => editJson(t, 'attack_procs/melee.json', v => { v.handler = 'no_such_routine'; })), ['unknown-reference attack_procs/melee.json#/handler']);
     console.log('  ✓ animations, characters (records + ENEMY ids), sprite blocks: new ones grow and move their tables (random), records stay at $B678; a bad record, field or animation is an error');
+    console.log('  ✓ characters name their behaviour and attack proc, flags by bit names; handlers of opcodes, attack procs and behaviours by routine name');
 
     // Music: packages and their data move anywhere (random above); an edited package rebuilds; a package naming data
     // that does not exist, and a sound that is no number, are errors.

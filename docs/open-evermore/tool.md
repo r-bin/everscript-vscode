@@ -16,14 +16,14 @@ No npm commands (owner, 2026-11-19). `npm run build:ts` first: the codecs call t
 T=tools/open-evermore/open-evermore.mts
 node $T explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json]   # rom: else the library's base ROM; dir: out/open-evermore
 node $T implode <dir> [--random [seed]] [--check-only] [--strict]
-node $T prove <dir> [--random [seed]] [--movies <file|dir>…]
+node $T prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
 ```
 
 | Action | Does | Writes |
 |---|---|---|
 | `explode` | ROM → tree; refuses a folder in the repository outside `out/`, and an existing tree without `--force` | the tree |
-| `implode` | validate, ids, encode, place (stable, or shuffled by `--random`, which grows the image to 4 MiB), tables, checksum, validate again | `<dir>/_build/evermore.sfc` (only without errors), `report.md`, `report.json` |
-| `prove` | build the original and a random layout from the tree, play every stored playback recorded on the original in lockstep (G1, [README.md](README.md) §5.1) | `<dir>/_build/prove-<seed>/REPORT.md`, both ROMs, one result per playback |
+| `implode` | validate, ids, encode, place (stable, or shuffled by `--random`, which grows the image to 4 MiB), tables, checksum, validate again. A kind may write a command in a longer form so it can go anywhere (scripts: a relative call as the absolute one); `--strict` keeps every form as written, and warnings become errors | `<dir>/_build/evermore.sfc` (only without errors), `report.md`, `report.json` |
+| `prove` | build the original and a random layout (`--strict`: lockstep needs vanilla's cycle counts; `--promoted` builds it as plain implode does) from the tree, play every stored playback recorded on the original in lockstep (G1, [README.md](README.md) §5.1) | `<dir>/_build/prove-<seed>/REPORT.md`, both ROMs, one result per playback |
 
 Planned: `rename` (a resource and every reference to it, logged in the manifest), a BPS patch next to the ROM.
 
@@ -47,6 +47,8 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `evermore/codecs/tile-families.mts` | the tile families kind: the array and its two loader operands; JSON or PNG |
 | `evermore/codecs/strings.mts` | the strings kind: the text form, the key table, our encoder |
 | `evermore/codecs/scripts.mts` | the scripts kind ([resources.md](resources.md) §scripts): one `.txt` per script, groups, the pointer table, the boot pointer; `scriptLayout` names every script (the maps kind names enter scripts with it) |
+| `evermore/codecs/script-lines.mts` | a script file's lines: `scriptText` writes one from the ROM, `parse` reads one, `assemble` builds a group (labels, relative calls, ids; a longer form where a shorter one does not reach, `segments` for the proof) |
+| `evermore/codecs/handler-tables.mts` | jump tables by routine name: `attack_procs` (`$8F:B6AE`), `behaviours` (`$8F:CBE0`) |
 | `evermore/codecs/tiles.mts` | the tiles kind: indexed PNG or pixel rows, the `$EE0000` table, kept bytes for the six bit-6 tiles |
 
 ## 3. Implode, step by step

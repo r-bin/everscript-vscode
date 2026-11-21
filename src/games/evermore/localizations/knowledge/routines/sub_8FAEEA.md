@@ -1,7 +1,7 @@
 ---
 addr: 8FAEEA
-end: 8FAF17
-size: 46
+end: 8FAEF2
+size: 9
 kind: code
 category: 🧠
 name: sub_8FAEEA

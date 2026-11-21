@@ -209,7 +209,7 @@ export const musicCodec: Codec = {
             bytes.set([transfers.length & 0xFF, transfers.length >> 8]);
             transfers.forEach((t, k) => bytes.set([t.length & 0xFF, t.length >> 8, 0, 0, 0, t.to & 0xFF, t.to >> 8], 2 + 7 * k));
             const home = ctx.base.homes.get(key), crossed = home && (home.at >> 16) !== (windowFile(WINDOW, windowPos(WINDOW, home.at) + home.length - 1) >> 16);
-            items.push({ key, file: path, bytes, rule: crossed ? { window: WINDOW, bankOffset: home!.at & 0xFFFF } : { upperHalf: true, noCrossBank: true, below: 0x400000 }, patched: true });
+            items.push({ key, file: path, bytes, rule: crossed ? { window: WINDOW, bankOffset: home!.at & 0xFFFF } : { upperHalf: true, noCrossBank: true, noBankEnd: true, below: 0x400000 }, patched: true });
         }
         for (const [n, bytes] of pieces) {
             if (!used.has(n)) { findings.warning('left-out', `${MUSIC}/${n}.bin`, '', 'no package loads it: it is left out of the ROM'); continue; }
@@ -217,9 +217,11 @@ export const musicCodec: Codec = {
             // A piece the copy reads inside a lower half stays in one bank; the rest are read on through upper halves.
             // Crossing into the next bank costs the copy cycles, and the upload is paced by the SPC handshake: a piece
             // that did not cross in vanilla, or a new one, stays in one bank's upper half; the 22 that crossed keep
-            // their offset in the bank, so they cross at the same byte.
+            // their offset in the bank, so they cross at the same byte. None ends on a bank's last byte in vanilla: one
+            // that does turns the bank after its last byte (`iny` wraps), which put the upload out of step at frame
+            // 359 (seeds 3 and 5, 2026-11-21).
             const crossed = home && upper(home.at) && (home.at >> 16) !== (windowFile(WINDOW, windowPos(WINDOW, home.at) + home.length - 1) >> 16);
-            const rule = home && !upper(home.at) ? { noCrossBank: true, below: 0x400000 } : crossed ? { window: WINDOW, bankOffset: home.at & 0xFFFF } : { upperHalf: true, noCrossBank: true, below: 0x400000 };
+            const rule = home && !upper(home.at) ? { noCrossBank: true, noBankEnd: true, below: 0x400000 } : crossed ? { window: WINDOW, bankOffset: home.at & 0xFFFF } : { upperHalf: true, noCrossBank: true, noBankEnd: true, below: 0x400000 };
             items.push({ key: `${MUSIC}/${n}`, file: `${MUSIC}/${n}.bin`, bytes, rule });
         }
         encoded.set(ctx, state);

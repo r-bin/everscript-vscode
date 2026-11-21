@@ -13,7 +13,8 @@ node $T explode rom.smc --out <dir> --force       # a given ROM and folder (insi
 node $T implode out/open-evermore                 # stable: the original, byte for byte → _build/evermore.sfc
 node $T implode out/open-evermore --random        # every resource somewhere else; the seed is printed
 node $T implode <dir> --random 42 --check-only    # … reproduce a seed; validate and place without building
-node $T prove out/open-evermore --random 42       # original vs that layout on the stored playbacks, in lockstep
+node $T implode <dir> --random 42 --strict         # … keeping every encoding as written (vanilla's script groups)
+node $T prove out/open-evermore --random 42       # original vs that layout (built --strict) on the stored playbacks, in lockstep
 ```
 
 ## Invariants

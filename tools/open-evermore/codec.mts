@@ -32,6 +32,9 @@ export interface Rule {
     bankOffset?: number;
     /** Never across a 64 KiB bank boundary. */
     noCrossBank?: boolean;
+    /** Never ending on a bank's last byte: a reader that steps on after its last byte (`iny` / `bne`) turns the bank
+     *  there, which costs cycles vanilla never spent (music: docs/open-evermore/progress.md §2). */
+    noBankEnd?: boolean;
     maxSize?: number;
     /**
      * The item lives in a window: the upper halves of file banks `from` up to (not including) `to`, read as one
@@ -59,7 +62,18 @@ export interface Item {
      * free for others (scripts that call each other across another kind's data). `bytes` holds 0 there.
      */
     holes?: Span[];
+    /** Its resource is unchanged since explode although its bytes differ: the same content in another encoding (a
+     *  script whose relative calls became absolute ones). */
+    same?: boolean;
+    /**
+     * Which bytes are which resource's, for the proof: each stretch `[dst, dst + length)` of `bytes` is the stretch from
+     * `src` of resource `key` in its encoding as written (a command written longer splits a script into stretches,
+     * and a group of scripts holds several). Absent: the whole item is resource `key` from offset 0.
+     */
+    segments?: Segment[];
 }
+
+export interface Segment { key: string; src: number; dst: number; length: number }
 
 export interface Exploded {
     files: Tree;
@@ -93,6 +107,10 @@ export interface ImplodeContext {
      * placed (a script inside a group of scripts); set before `tables`.
      */
     symbols: Map<string, number>;
+    /** A random layout is being built (implode `seed`). */
+    random: boolean;
+    /** Keep every encoding as written (`--strict`): a kind may not choose a longer form so an item can go anywhere. */
+    strict: boolean;
 }
 
 /** Records that `key` (`<kind>/<name>`) is required to be `what`. */
