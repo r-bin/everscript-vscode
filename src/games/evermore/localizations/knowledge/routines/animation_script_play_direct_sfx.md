@@ -7,11 +7,12 @@ category: 🎮
 name: animation_script_play_direct_sfx
 title: Play sound effect directly from animation script stream ($90:8921)
 confidence: confirmed
-evidence: ["disasm: validates entity range $3DE5..$4FE5; fetches 16-bit SFX ID from sound table $8C:8362,X; advances script pointer <$5D; plays sound via $8C:82DC"]
+evidence: ["disasm: validates entity range $3DE5..$4FE5; fetches 16-bit SFX ID from sound table $8C:8362,X; advances script pointer <$5D; plays sound via $8C:82DC", "reconstructed-c: 100% differential parity in G1 (25 real states, 20 fuzzed states)"]
 see: ["routines/play_sound_effect_direct.md"]
-tags: [audio, sfx, script, animation, widescreen, widescreen.audio]
+tags: [audio, sfx, script, animation, widescreen, widescreen.audio, reconstructed-c, g1-pass]
 ---
 Plays direct sound effect from animation script stream `[<$5D]`. Validates entity bounds, fetches 16-bit SFX ID from sound table `$8C:8362,X`, advances script pointer, and dispatches sound via `Play_sound_effect_A_driver_effect_does_not_load_its_package_8C82DC` (`$8C:82DC`).
+Reconstructed C binding in `reconstructed-c/90/908921_animation_script_play_direct_sfx.c` verified via G1 differential testing.
 
 ## Widescreen notes
 
