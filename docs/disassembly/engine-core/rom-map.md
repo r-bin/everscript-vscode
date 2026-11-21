@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7144,
+    "total_entries": 7146,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -115,7 +115,7 @@
         "0x90FFFF"
       ],
       "name": "Animation VM, Sprites, Projectiles & Tile Animation",
-      "routines": 503,
+      "routines": 504,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -245,7 +245,7 @@
         "0x8CFFFF"
       ],
       "name": "Script VM Dispatcher, Sound Effects & Stat Curves",
-      "routines": 475,
+      "routines": 476,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -1031,7 +1031,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$80:8757` | [`format_signed_16bit_integer_to_decimal_digits`](knowledge/routines/format_signed_16bit_integer_to_decimal_digits.md) | `code` | 116 B | math, decimal, string, format | Hardware Signed 16-Bit Integer to Decimal Digit Formatter: Signed 16-bit integer to ASCII decimal character formatter: - Tests sign bit of input integer (`CMP #$0000; BPL`). - If negative: writes ASC... |
 | `$80:87CB` | [`format_fixed_width_decimal_digits_padded`](knowledge/routines/format_fixed_width_decimal_digits_padded.md) | `code` | 86 B | math, decimal, string, format | Fixed-width padded decimal digit stream formatter: Fixed-width decimal number formatter with leading digit alignment: - Formats integer values into a fixed-width digit field. - Iteratively di... |
 | `$80:8821` | [`format_formatted_number_dispatcher`](knowledge/routines/format_formatted_number_dispatcher.md) | `code` | 23 B | math, string, dispatcher, format | Formatted decimal number printing dispatcher: Number formatting dispatcher that routes between signed decimal conversion and fixed-width padded formatting based on direct-page format par... |
-| `$80:8838` | [`joypad_button_typematic_repeat`](knowledge/routines/joypad_button_typematic_repeat.md) | `code` | 38 B | system, joypad, input, reconstructed-c, g1-pass | Joypad Button Typematic Auto-Repeat Engine: Processes joypad button input with typematic auto-repeat acceleration: - Evaluates active button mask against latched held buttons `$7E:0345`... |
+| `$80:8838` | [`joypad_button_typematic_repeat`](knowledge/routines/joypad_button_typematic_repeat.md) | `code` | 38 B | system, joypad, input, reconstructed-c, g1-pass | Joypad Button Typematic Auto-Repeat Engine: Processes joypad button input with typematic auto-repeat acceleration: - Evaluates active button mask against latched held buttons `$7E:0345... |
 | `$80:885E` | [`cop_handler`](knowledge/routines/cop_handler.md) | `code` | 1 B | system | COP handler: COP entry byte; execution stops the 65C816. |
 | `$80:885F` | [`brk_handler`](knowledge/routines/brk_handler.md) | `code` | 1 B | system | BRK handler: BRK entry byte; execution stops the 65C816. |
 | `$80:8860` | [`vram_dma_stream_rectangular_tile_matrix`](knowledge/routines/vram_dma_stream_rectangular_tile_matrix.md) | `code` | 67 B | vram, dma, graphics, reconstructed-c, g1-pass | VRAM rectangular tile pattern matrix DMA streamer ($80:8860): Streams a rectangular matrix of tile graphics into VRAM via DMA channel 0. Configures DMA writes to PPU VRAM port `$2118`, looping through `... |
@@ -5264,7 +5264,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8C — Script VM Dispatcher, Sound Effects & Stat Curves
 
-**Coverage:** 475 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 476 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5594,7 +5594,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:D7E6` | [`script_op_12_16_write_arg_byte`](knowledge/routines/script_op_12_16_write_arg_byte.md) | `code` | 25 B | script-vm | Script opcodes 0x12 and 0x16 write an argument byte: Opcodes `0x12` and `0x16` share this handler. It computes a destination at the active script slot plus `$0F` plus the one-byte operand, eval... |
 | `$8C:D7FF` | [`script_op_11_15_write_temp_byte`](knowledge/routines/script_op_11_15_write_temp_byte.md) | `code` | 5 B | script-vm | Script opcodes 0x11 and 0x15 write a temporary byte: Opcodes `0x11` and `0x15` share this handler. It fetches a 16-bit destination offset, adds it to `$2834`, evaluates an expression, stores th... |
 | `$8C:D804` | [`script_op_10_14_write_byte`](knowledge/routines/script_op_10_14_write_byte.md) | `code` | 3 B | script-vm | Script opcodes 0x10, 0x14 — write byte: The shared handler writes the low byte of an expression to `$7E:2258 + u16 offset`. Opcodes `0x10` and `0x14` use the same routine and conti... |
-| `$8C:D807` | [`sub_8CD807`](knowledge/routines/sub_8CD807.md) | `code` | 21 B | script-vm, reconstructed-c, g1-pass | sub_8CD807: Shared byte-write execution core for script opcodes 0x10, 0x11, 0x14, 0x15: Consumes 16-bit inline offset from script instruction pointer `[$82]`, adds incoming base address in A... |
+| `$8C:D807` | [`sub_8CD807`](knowledge/routines/sub_8CD807.md) | `code` | 21 B | script-vm, reconstructed-c, g1-pass | Script opcodes 0x10, 0x11, 0x14, 0x15 shared byte-write core: Shared byte-write execution core for script opcodes 0x10, 0x11, 0x14, 0x15: - Consumes 16-bit inline offset from script instruction pointer ... |
 | `$8C:D81C` | [`script_op_0e_set_local_flag`](knowledge/routines/script_op_0e_set_local_flag.md) | `code` | 18 B | script-vm | Script opcode 0x0E sets or clears an argument flag: The handler fetches a bit index, evaluates an expression, then sets the indexed argument bit for a nonzero result or clears it for zero. The... |
 | `$8C:D82E` | [`script_op_0d_set_temp_flag`](knowledge/routines/script_op_0d_set_temp_flag.md) | `code` | 16 B | script-vm | Script opcode 0x0D sets or clears a room scratch flag: The handler reads a 16-bit bit index, computes the corresponding byte in the temporary room flag area beginning at `$7E:2834`, and sets or c... |
 | `$8C:D83E` | [`script_op_0c_set_flag`](knowledge/routines/script_op_0c_set_flag.md) | `code` | 62 B | script-vm, reconstructed-c, g1-pass | Script opcode 0x0C sets or clears a save-area flag: The handler reads a 16-bit bit index, computes the corresponding byte in the save-flag area beginning at `$7E:2258`, and sets or clears the ... |
@@ -5637,7 +5637,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:DC18` | [`script_op_26_fade_in`](knowledge/routines/script_op_26_fade_in.md) | `code` | 29 B | script-vm, screen, fade, camera | Script opcode 0x26 fades in: The handler conditionally synchronizes the transition, centers the camera, resets brightness to zero, and starts a stepped fade to 15.  ## A... |
 | `$8C:DC35` | [`script_op_90_fade_to`](knowledge/routines/script_op_90_fade_to.md) | `code` | 33 B | script-vm, screen, fade, camera | Script opcode 0x90 — fade to: Handler of script opcode 0x90. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DC56` | [`script_op_91_set_brightness`](knowledge/routines/script_op_91_set_brightness.md) | `code` | 30 B | script-vm, screen, brightness, camera | Script opcode 0x91 — set brightness: Handler of script opcode 0x91. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:DC74` | [`script_op_59_music_fade_out`](knowledge/routines/script_op_59_music_fade_out.md) | `code` | 19 B | script-vm, audio, fade, reconstructed-c, g1-pass | Script opcode 0x59: fade the music out: Handler of script opcode 0x59. Sets music-volume fade step `$7E:009B` to `$F0` (signed `-16`), cal... |
+| `$8C:DC74` | [`script_op_59_music_fade_out`](knowledge/routines/script_op_59_music_fade_out.md) | `code` | 19 B | script-vm, audio, fade, reconstructed-c, g1-pass | Script opcode 0x59: fade the music out: Handler of script opcode 0x59. Sets music-volume fade step `$7E:009B` to `$F0` (signed `-16`), set... |
 | `$8C:DC87` | [`script_op_58_music_fade_in`](knowledge/routines/script_op_58_music_fade_in.md) | `code` | 19 B | script-vm, graphics, fade | Script opcode 0x58: fade the music in: Handler of script opcode 0x58. Sets music-volume fade step `$7E:009B` to `$10`, calls `$8C:8619`, ... |
 | `$8C:DC9A` | [`script_op_a2_spawn_at`](knowledge/routines/script_op_a2_spawn_at.md) | `code` | 41 B | script-vm | Script opcode 0xa2 — spawn at: Handler of script opcode 0xA2. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:DCC3` | [`script_op_c2_spawn_spawner`](knowledge/routines/script_op_c2_spawn_spawner.md) | `code` | 22 B | script-vm | Script opcode 0xc2 — spawn spawner: Handler of script opcode 0xC2. What it does, why it exists and how scripts use it: the opcode entr... |
@@ -5694,7 +5694,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:E209` | [`enable_cutscene_pause_guard`](knowledge/routines/enable_cutscene_pause_guard.md) | `code` | 6 B | script-vm | Enable the cutscene pause guard: Handler of script opcode 0x81. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:E20F` | [`restore_color_math_snapshot`](knowledge/routines/restore_color_math_snapshot.md) | `code` | 56 B | script-vm | Restore color math from the room snapshot: Handler of script opcode 0x82. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:E247` | [`apply_color_math_settings`](knowledge/routines/apply_color_math_settings.md) | `code` | 52 B | script-vm, widescreen, widescreen.window, widescreen.fade, reconstructed-c, g1-pass | Apply color math settings: Handler of script opcode 0x83. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:E27B` | [`script_op_86_music_volume`](knowledge/routines/script_op_86_music_volume.md) | `code` | 26 B | script-vm, audio, spc700, reconstructed-c, g1-pass | Script opcode 0x86: set the music volume: Handler of script opcode 0x86. What it does, why it exists and how scripts use it: the opcode entr... |
+| `$8C:E27B` | [`script_op_86_music_volume`](knowledge/routines/script_op_86_music_volume.md) | `code` | 26 B | script-vm, audio, spc700, reconstructed-c, g1-pass | Script opcode 0x86: set the music volume: Handler of script opcode 0x86. Evaluates an inline script expression through `$8C:EA43`, clamps th... |
 | `$8C:E295` | [`script_op_87_music_tempo`](knowledge/routines/script_op_87_music_tempo.md) | `code` | 21 B | script-vm | Script opcode 0x87: set the music tempo: Handler of script opcode 0x87. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:E2AA` | [`reset_catalog_parameter_state`](knowledge/routines/reset_catalog_parameter_state.md) | `code` | 11 B | script-vm | Reset catalog parameter state: Handler of script opcode 0x88. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:E2B5` | [`configure_catalog_parameters`](knowledge/routines/configure_catalog_parameters.md) | `code` | 92 B | script-vm | Configure catalog parameter state: Handler of script opcode 0x89. What it does, why it exists and how scripts use it: the opcode entr... |
@@ -6599,7 +6599,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $90 — Animation VM, Sprites, Projectiles & Tile Animation
 
-**Coverage:** 503 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 504 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -7038,7 +7038,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$90:CFF0` | [`dim_cgram_palette_buffer_by_half`](knowledge/routines/dim_cgram_palette_buffer_by_half.md) | `code` | 48 B | palette, cgram, color-math, menu | CGRAM 15-bit color buffer 50% brightness dimmer ($90:CFF0): Reduces the brightness of 112 colors in palette staging buffer `$7E:61A9` by 50% for menu transitions. Operates on 15-bit BGR555 words via l... |
 | `$90:D020` | [`load_up_to_7_tile_families_from_map_palette`](knowledge/routines/load_up_to_7_tile_families_from_map_palette.md) | `code` | 132 B | maps, palettes, graphics | Load up to 7 tile families from `MAP_PALETTE`: Loads up to 7 tile families (32 bytes each: 16 colors × 2 bytes) from master palette table `$9C:C322` into WRAM `$7E:61A7` via SNES DMA Chan... |
 | `$90:D0A4` | [`palette_color_math_and_lighting_transition_suite`](knowledge/routines/palette_color_math_and_lighting_transition_suite.md) | `code` | 514 B | palette, cgram, color-math, graphics, lighting | CGRAM palette color math, subtractive blending, and cross-fade lighting routines: Suite of PPU CGRAM palette color math and cross-fade transition routines: - Performs bitwise 15-bit BGR555 channel decomposition (5 bits Red... |
-| `$90:D2A6` | [`graphics_color_555_linear_blend_lerp`](knowledge/routines/graphics_color_555_linear_blend_lerp.md) | `code` | 156 B | palettes, graphics, math | Linearly interpolates two 15-bit BGR555 colors using hardware multiplier ($90:D2A6): Linearly interpolates between two 15-bit BGR555 colors in `DP $16` and `DP $18` according to blend factor `DP $12` (`$12 & $FF == 0` returns... |
+| `$90:D2A6` | [`graphics_color_555_linear_blend_lerp`](knowledge/routines/graphics_color_555_linear_blend_lerp.md) | `code` | 120 B | palettes, graphics, math | Linearly interpolates two 15-bit BGR555 colors using hardware multiplier ($90:D2A6): Linearly interpolates between two 15-bit BGR555 colors in `DP $16` and `DP $18` according to blend factor `DP $12` (`$12 & $FF == 0` returns... |
+| `$90:D31E` | [`sub_90D31E`](knowledge/routines/sub_90D31E.md) | `code` | 36 B | palette, graphics, hardware-multiplier, lerp, reconstructed-c, g1-pass | Green color channel linear interpolation and palette packing: Palette processing routine for green channel interpolation and packing. Linearly interpolates between green channel values in DP `$1A` and D... |
 | `$90:D342` | [`sub_90D342`](knowledge/routines/sub_90D342.md) | `code` | 10 B | code, subroutine, palette, graphics | Palette entry packing and direct page $1C bitwise OR: Palette processing routine widening registers to 16-bit, shifting bits 3..7 left by 2 (`<< 2`), ORing DP register `$1C`, and returning via R... |
 | `$90:D34C` | [`memory_block_copy_indirect_words`](knowledge/routines/memory_block_copy_indirect_words.md) | `code` | 188 B | palette, crossfade, dma, hardware-multiplier | 15-bit BGR555 palette color crossfader and direct word block transfer: Palette color crossfader and block transfer primitive.  Interpolates between two 15-bit BGR555 color palettes using the SNES hardware multip... |
 | `$90:D408` | [`fog_particle_emitter_config`](knowledge/routines/fog_particle_emitter_config.md) | `code` | 57 B | fog, weather, particles | Fog/weather particle emitter parameter and coordinate buffer setup ($90:D408): Configures a fog or weather particle emitter descriptor in WRAM. Populates an 8-entry coordinate array at `$7E:65D1` with X/Y pairs from dir... |
@@ -7374,7 +7375,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$91:CB6A` | [`alchemy_formula_script_branch_on_boss_flag`](knowledge/routines/alchemy_formula_script_branch_on_boss_flag.md) | `code` | 32 B | alchemy, boss, cutscene, script | Check boss battle flag and branch or enqueue cutscene script ($91:CB6A): Checks boss/cutscene flag `$0EB4`. If non-negative, advances script pointer `+$14,Y` by 2 and returns `SEC`. If negative, enqueues cutscene ... |
 | `$91:CB8A` | [`BANK91_PAD_CB8A`](knowledge/routines/BANK91_PAD_CB8A.md) | `padding` | 16 B | unused, padding | Bank $91 alignment padding ($CB8A): 16 B alignment padding and unmapped ROM space in Bank $91 ($91:CB8A..$91:CB99). |
 | `$91:CB9A` | [`render_alchemy_particle_spray_to_oam`](knowledge/routines/render_alchemy_particle_spray_to_oam.md) | `code` | 23 B | alchemy, particles, sprites, oam | Alchemy particle spray generator and OAM committer ($91:CB9A): Generates and renders active alchemy particle spray sprites into the OAM buffer. Sets particle descriptors in `$2E` and `$30`, repeatedly in... |
-| `$91:CBB1` | [`spell_projectile_polar_to_cartesian_trajectory_calc`](knowledge/routines/spell_projectile_polar_to_cartesian_trajectory_calc.md) | `code` | 100 B | projectile, trajectory, math, reconstructed-c, g1-pass | Calculates trajectory step vector and updates projectile coordinates $46/$48 ($91:CBB1): Computes target vector dx and dy, calls math_vector_2d_angle_and_distance_calc, checks distance >= 12, samples RNG, adds jitter, and updates coordinates. |
+| `$91:CBB1` | [`spell_projectile_polar_to_cartesian_trajectory_calc`](knowledge/routines/spell_projectile_polar_to_cartesian_trajectory_calc.md) | `code` | 100 B | projectile, trajectory, math, reconstructed-c, g1-pass | Calculates trajectory step vector and updates projectile coordinates $46/$48: Trajectory step vector and coordinate update routine for projectiles.  Calculates directional vector between target coordinates (DP `$3E`/`$... |
 | `$91:CC15` | [`alchemy_inventory_slots_clear`](knowledge/routines/alchemy_inventory_slots_clear.md) | `code` | 16 B | alchemy, inventory, init, reconstructed-c, g1-pass | Clear alchemy ingredient inventory slots ($91:CC15): Resets the 9 active alchemy formula ingredient slots `$0AD2..$0ADA` to `$FF` (empty/unassigned). Called during engine initialization and rin... |
 | `$91:CC25` | [`BANK91_PAD_CC25`](knowledge/routines/BANK91_PAD_CC25.md) | `padding` | 107 B | unused, padding | Bank $91 alignment padding ($CC25): 107 B alignment padding and unmapped ROM space in Bank $91 ($91:CC25..$91:CC8F). |
 | `$91:CC90` | [`alchemy_inventory_push_ingredient_slot`](knowledge/routines/alchemy_inventory_push_ingredient_slot.md) | `code` | 27 B | alchemy, inventory, ingredient, push | Push acquired ingredient item into first empty inventory slot ($91:CC90): Searches the 9 alchemy ingredient slots `$0AD2..$0ADA` for the first empty slot (marked with bit 7 set / `$FF`). Stores new ingredient ID in... |

@@ -674,3 +674,19 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - 320/320 fuzzed states match ROM (100% parity).
   - Mutation caught: yes.
 - Rated and audited: 305 clean, 0 stale/unrated. Total bound routines: **305**.
+
+### Routine #306: `sub_90D31E` ($90:D31E)
+- Bound in `reconstructed-c/90/90D31E_sub_90D31E.c`:
+  - Implements the green color channel linear interpolation and palette packing routine:
+    - Masks the accumulator with `#$7C` and stores to DP `$1D`.
+    - Computes absolute difference between green channel components in DP `$1B` and DP `$1A`.
+    - Dispatches multiplication of the delta by writing to hardware multiplier register `$4203`.
+    - Adds (or subtracts) the scaled product high byte from `$4217` to interpolate the green channel.
+    - Widens accumulator and index registers to 16-bit (`REP #$30`).
+    - Packs the green channel bits `(A & $00F8) << 2` and bitwise ORs with the red/blue component word from DP `$1C`.
+    - Updates processor condition flags and returns via `RTL`.
+- Verified under Gate G1:
+  - 44/44 real states match ROM (100% parity).
+  - Mutation caught: yes.
+- Rated and audited: 306 clean, 0 stale/unrated. Total bound routines: **306**.
+

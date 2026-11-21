@@ -1,7 +1,7 @@
 ---
 addr: 8CD804
-size: 24
-end: 8CD81B
+size: 3
+end: 8CD806
 kind: code
 category: 🧠
 name: script_op_10_14_write_byte
