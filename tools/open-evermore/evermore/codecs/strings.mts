@@ -30,7 +30,8 @@ const require = createRequire(import.meta.url);
 const { romFileOffset } = require('../../../../dist/games/evermore/maps');
 
 export const KIND = 'strings';
-const DIR = KIND, VANILLA = 3002, LIMIT = 0x10000 / 3 | 0, META = '_strings.json', TABLE = `${DIR}/_table`;
+export const STRING_COUNT = 3002;
+const DIR = KIND, VANILLA = STRING_COUNT, LIMIT = 0x10000 / 3 | 0, META = '_strings.json', TABLE = `${DIR}/_table`;
 /** `lda #$0091 : sta $28 : ldy #$D000` in both readers: the bank immediate at +1, the offset at +6. */
 const SITES = [0x0CCCF7, 0x0CCD35], SITE = [0xA9, -1, 0x00, 0x85, 0x28, 0xA0, -1, -1];
 

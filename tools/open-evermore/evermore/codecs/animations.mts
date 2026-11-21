@@ -22,7 +22,8 @@ const require = createRequire(import.meta.url);
 const ENUMS: Record<string, { name: string; value: string }[]> = require('../../../../src/games/evermore/language/data/index.json').enums;
 
 export const KIND = 'animations';
-const DIR = KIND, TABLE = `${DIR}/_table`, VANILLA = 212, LIMIT = 2048, RECORD_BANK = 0xC4;
+export const ANIMATION_COUNT = 212;
+const DIR = KIND, TABLE = `${DIR}/_table`, VANILLA = ANIMATION_COUNT, LIMIT = 2048, RECORD_BANK = 0xC4;
 const READERS: Reader[] = [{ at: 0x0CE13D, add: 0 }];
 
 /** Our compiler's name for each id (its enums hold 2·id), first come first served, prefixed by whose it is. */

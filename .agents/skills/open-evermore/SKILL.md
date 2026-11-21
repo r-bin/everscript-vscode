@@ -34,6 +34,11 @@ before touching its codec. This skill is how to work on it and what bit us.
    with every kind;
 5. `progress.md` (row, §2, log) and `resources.md` say so, with the seeds.
 
+**Test what the change can break, no more (owner: an hour for a small change is too long).** A change to how
+files *name* things (bytes identical) is proven by implode `--strict` = vanilla sha1 and two `--random` round trips
+(seconds), then `g0.test.mts`; `prove` adds nothing (same bytes, same layout) beyond one smoke seed. `prove` on several
+seeds only when placement, rules or bytes change.
+
 Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` (emulator), unit
 `implode.test.mts`, `enum-layout.test.mts`, `formats.test.mts`. `prove` is on demand, ~1 min a seed.
 
@@ -73,8 +78,9 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
 - **A resource `_base/` reads by address stays home** (projectile records: animation scripts throw them by
   address): an item only its home fits (`above`/`below`/`bankOffset`), the home found by id when renamed.
   `allocate` places such items first without a random draw: a draw would reshuffle every other kind's layout.
-- **A value written by name in a script line** (an entity, a projectile) stands for one byte; parse, canonical and
-  explode all go through `script-lines.mts` (`valueByte`, `namedOperands`), and the hex byte stays valid.
+- **Script lines are operands, not bytes** (`op a, b, c`): `operands.mts` per token and parameter type, expressions
+  in `expressions.mts`. Explode keeps a readable operand only if it reads back to the same bytes, else `[hex]`; the
+  round trip compares bytes. `<`/`>` are operators except in `<0x…>` cells (`splitTop`).
 - **The 3 MiB image has no free byte for implode**: the pool is exactly vanilla's resources (padding stays
   in `_base/`), so anything longer grows the image to 4 MiB (the fast forms: ~10 KB).
 - `--random` starts at 4 MiB on purpose (half the items leave their bank); it is not growth.

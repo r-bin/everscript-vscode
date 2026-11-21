@@ -7,6 +7,8 @@ import { createRequire } from 'node:module';
 import { deflateSync } from 'node:zlib';
 import { json, readText } from '../../tools/open-evermore/tree.mts';
 import { fromText, toText } from '../../tools/open-evermore/evermore/codecs/strings.mts';
+import { exprBytes, exprText } from '../../tools/open-evermore/evermore/codecs/expressions.mts';
+import type { ExprNames } from '../../tools/open-evermore/evermore/codecs/expressions.mts';
 
 const require = createRequire(import.meta.url);
 const { decodePng, encodePng, encodeIndexedPng } = require('../../dist/platform/png');
@@ -142,6 +144,30 @@ test('cuttable grass: cut → into, the source count derived unless it differs',
     const odd = parseGrass(list, 5, 16, 6);
     assert.deepStrictEqual(grassText(odd, 16, 6, 3), { list, sources: 5 });
     assert.deepStrictEqual(Array.from(parseGrass([], undefined, 16, 6)), [0]);
+});
+
+test('script expressions: infix text with names, read back to the same bytes', () => {
+    const names: ExprNames = {
+        entity: op => op === 0x51 ? 'dog' : undefined, entityOf: n => n === 'dog' ? 0x51 : undefined,
+        memory: a => a === 0x24AF ? 'GOLD' : '', memoryOf: n => n === 'GOLD' ? 0x24AF : undefined,
+        flag: (a, m) => a === 0x22DC && m === 0x08 ? 'MET_FIRE_EYES' : '', flagOf: n => n === 'MET_FIRE_EYES' ? { addr: 0x22DC, mask: 0x08 } : undefined,
+        field: o => o === 0x2A ? 'hp' : '', fieldOf: n => n === 'hp' ? 0x2A : undefined,
+    };
+    const cases: [number[], string][] = [
+        [[0x08, 0x57, 0x02, 0x29, 0x33, 0x9B], 'signed GOLD - 3'],       // a signed save-area word minus a small constant
+        [[0x85, 0x23, 0x04], 'MET_FIRE_EYES'],                           // a save flag: bit $423
+        [[0x51, 0x29, 0x02, 0x2A, 0x1A, 0xD5], 'dog.hp'],                // deref(dog + $2A)
+        [[0x82, 0x05], '5:byte'],                                        // a constant not in its shortest form
+        [[0x0E, 0x03, 0x00, 0x29, 0x31, 0x29, 0x32, 0x1A, 0x9B], 'temp[3] - (1 + 2)'],
+        [[0x3A, 0x96], '-(10)'],                                         // negation, not the constant -10
+        [[0xC6], '-10'],
+    ];
+    for (const [bytes, text] of cases) {
+        assert.strictEqual(exprText(bytes, names), text);
+        assert.deepStrictEqual(exprBytes(text, names), bytes, text);
+    }
+    assert.strictEqual(exprText([0x29, 0x31, 0x9A], names), null, 'a push with nothing before it is no plain postfix');
+    assert.throws(() => exprBytes('cat + 1', names), /no entity, flag or WRAM cell/);
 });
 
 console.log(`  ${passed} passed`);

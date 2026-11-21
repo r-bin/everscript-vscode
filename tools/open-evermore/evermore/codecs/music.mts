@@ -32,7 +32,8 @@ const sounds = require('../../../../dist/games/evermore/localizations/sounds');
 
 export const MUSIC = 'music', SOUNDS = 'sounds';
 const COUNT_AT = 0x019900, POINTERS = 0x019903, MUSIC_IDS = 0x0C8442, MUSIC_ID_COUNT = 73, PACKAGE_OF_MUSIC = 0x0199D8;
-const SFX_PACKAGES = 0x019A1E, SFX_COUNT = 90, SOUND_TABLE = 0x0C8362, SOUND_COUNT = 112;
+export const SOUND_COUNT = 112;
+const SFX_PACKAGES = 0x019A1E, SFX_COUNT = 90, SOUND_TABLE = 0x0C8362;
 const PACKAGE = 'package.json';
 /** Upper halves of the first 4 MiB, read as one space. */
 const WINDOW: Window = { from: 0x00, to: 0x40 };

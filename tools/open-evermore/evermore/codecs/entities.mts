@@ -27,12 +27,10 @@ const ENTITIES: [number, string, string][] = [
     [0x52, 'active', 'the character the player controls, the one the camera follows ($0F42)'],
     [0x53, 'inactive', 'the other character: $0F42 with the Boy and the Dog swapped, 0 when none'],
 ];
-const SUB_OPS = new Set(ENTITIES.map(e => e[0]));
+export const ENTITY_SUB_OPS = ENTITIES.map(e => e[0]);
+const SUB_OPS = new Set(ENTITY_SUB_OPS);
 const HANDLERS = routines(BANK);
 const hex = (v: number) => v.toString(16).padStart(2, '0');
-
-/** True for an expression byte that is a lone entity: an entity sub-op with the last-byte bit. */
-export const isEntityByte = (b: number): boolean => (b & 0x80) !== 0 && SUB_OPS.has(b & 0x7F);
 
 export const entitiesCodec: Codec = {
     kind: KIND, version: 1, path: DIR, folder: `scripts/${DIR}`,

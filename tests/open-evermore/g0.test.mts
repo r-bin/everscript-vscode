@@ -81,15 +81,17 @@ if (!path || !existsSync(path)) {
     let hex = 0;
     for (const [p, b] of renamed) {
         if (!p.endsWith('.txt') || p.startsWith('strings/')) continue;
-        const was = text(b), now = was.replace(/(?<= )projectile_13(?= |$)/gm, 'hit_marker').replace(/(?<= )dog(?= |$)/gm, () => hex++ % 2 ? 'the_dog' : 'd1');
+        // A whole operand `dog` alternates with its byte `[d1]`; inside an expression it is renamed.
+        const was = text(b), now = was.replace(/(?<=[ ,])projectile_13(?=,|$)/gm, 'hit_marker')
+            .replace(/^[^(\n]*$/gm, l => l.replace(/(?<=^\S+ |, )dog(?=,|$)/g, () => hex++ % 2 ? 'the_dog' : '[d1]')).replace(/(?<=[ (!)])dog(?=[ ,).]|$)/gm, 'the_dog');
         if (now !== was) renamed.set(p, bytes(now));
     }
     assert.ok(hex > 100, `only ${hex} lone dogs in the scripts`);
     const same = implode(renamed, GAME, KINDS, { strict: true });
     assert.deepStrictEqual(same.findings.list.filter(f => f.severity === 'error'), []);
     assert.strictEqual(same.sha1, sha1(rom));
-    const line = [...tree.keys()].find(p => p.endsWith('.txt') && !p.startsWith('strings/') && / dog( |$)/m.test(text(tree.get(p)!)))!;
-    assert.deepStrictEqual(rules(t => { t.set(line, bytes(text(t.get(line)!).replace(/ dog( |$)/m, ' cat$1'))); }).filter(r => r.startsWith('unknown-reference')), [`unknown-reference ${line}#/${text(tree.get(line)!).split('\n').findIndex(l => / dog( |$)/.test(l)) + 1}`]);
+    const line = [...tree.keys()].find(p => p.endsWith('.txt') && !p.startsWith('strings/') && / dog(,|$)/m.test(text(tree.get(p)!)))!;
+    assert.deepStrictEqual(rules(t => { t.set(line, bytes(text(t.get(line)!).replace(/ dog(,|$)/m, ' cat$1'))); }).filter(r => r.startsWith('unknown-reference')), [`unknown-reference ${line}#/${text(tree.get(line)!).split('\n').findIndex(l => / dog(,|$)/.test(l)) + 1}`]);
     assert.deepStrictEqual(rules(t => { t.set('characters/projectiles/new_shot.json', t.get('characters/projectiles/projectile_00.json')!); }).sort(), ['id-over-limit characters/projectiles/_enum.json#/names', 'no-room characters/projectiles/new_shot.json#']);
     console.log(`  ✓ entities and projectiles by name: renamed (and ${Math.ceil(hex / 2)} dogs as d1) the same ROM; an unknown name and a new projectile are errors`);
 
@@ -159,7 +161,7 @@ if (!path || !existsSync(path)) {
     assert.ok(r1.length && r1.every(r => r.startsWith(`out-of-range ${relative}#`) || r.startsWith('left-out')), r1.join());
     const globalCall = [...tree.keys()].flatMap(p => isScript(p) && !p.startsWith('maps/') ? lines(p).filter(l => /^call_global @[a-z0-9_]+$/.test(l)) : [])[0];
     assert.ok(globalCall, 'global calls name their script');
-    const sc = implode((() => { const t = new Map(tree); setLines(t, enter, l => ['a3 36', 'call_global 36', globalCall.replace('@', '@/'), ...l]); return t; })(), GAME, KINDS);
+    const sc = implode((() => { const t = new Map(tree); setLines(t, enter, l => ['a3 0x36', 'call_global 0x36', globalCall.replace('@', '@/'), ...l]); return t; })(), GAME, KINDS);
     assert.deepStrictEqual(sc.findings.list.filter(f => f.severity === 'error'), []);
     // A global call names a script with a global id.
     assert.deepStrictEqual(rules(t => setLines(t, enter, l => [`call_global @${enter.split('/')[2]}/enter`, ...l])).map(r => r.split(' ')[0]), ['unknown-reference']);

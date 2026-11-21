@@ -301,20 +301,39 @@ scripts/global/<script>.txt      globals, the boot script and what they call
 maps/rooms/<map>/scripts/<name>.txt     the room's scripts (2,700 of 3,288); full name `<map>/<name>` (the enum, other rooms)
 ```
 
-A line is one command: the opcode by its name in `opcodes/` (a hex byte works too), then its operand bytes in hex;
-another script as `@name` (`@b_1` this room's, `@global_x` one in `scripts/`, `@<map>/b_1` another room's, `@/name`
-the one in `scripts/` when this room has one of that name too); a jump's target as a label; `label_<n>:` where a jump
-lands; `skip <n>`:
+A line is one command (format 2, v0.452.0): the opcode by its name in `opcodes/` (a hex byte works too), then its
+operands separated by commas, one per operand token of the opcode (`script-vm/spec.ts`); another script as `@name`
+(`@b_1` this room's, `@global_x` one in `scripts/`, `@<map>/b_1` another room's, `@/name` the one in `scripts/` when this
+room has one of that name too); a jump's target as a label; `label_<n>:` where a jump lands; `skip <n>`:
 
 ```
-call_global @global_fade_in call a global by name (its id is generated)
-call @enter_sub_1           call (absolute: the packed pointer is generated)
-call_back @enter_sub_2      call back (relative, vanilla's form: see Groups)
-label_1:                    a jump lands here
-jump_if_false 05 9d 04 94 label_1     the condition's bytes, then the label: the offset is generated
-load_map 17 28 15 00        load_map(0x15, 0x17, 40): ends the script
-skip 7                      7 bytes no command reaches: not this script's
+call_global @global_fade_in              call a global by name (its id is generated)
+call @enter_sub_1                        call (absolute: the packed pointer is generated)
+label_1:                                 a jump lands here
+jump_if_false !IN_ANIMATION, label_1     an expression, then the label: the offset is generated
+write_word ENEMY_SPAWNER_QUANTITY, 1     a save-area cell by its WRAM name, then the value
+write_byte STORY_STATE, signed (Byte)STORY_STATE + 1
+damage dog, 10                           an entity (entities/), then an expression
+text string_0afb                         a string (strings/), sound, animation, enemy, projectile by name too
+animate dog, dog_act2_leap, ONCE         an animation (characters/animations/), a mode of ANIMATION_MODE
+add_shop_item WATER, 30                  an item of the compiler's SHOP_ITEM enum
+load_map 23, 40, 21                      numbers in decimal (0x… for ids and cells)
+skip 7                                   7 bytes no command reaches: not this script's
 ```
+
+- **Operands** (`operands.mts`). An expression in infix (`expressions.mts`, the Scripts tab's notation): a save-area
+  cell by its WRAM name or `<0x2391>`, the temp area `temp[n]`, the slot's bytes `arg[n]`, a flag by its name or
+  `<0x2260, 0x10>` / `temp_flag[n, 0x10]` / `arg_flag[n, 0x10]`, `(Byte)` a byte read, `signed` a sign-extended one,
+  `boy.hp` an entity's field (`deref(boy + 42)`), entities by their `entities/` names, functions (`random_below(3)`,
+  `camera_on_dog()`). Exact by construction: a constant not in its shortest form says so (`5:byte`, `5:word`), a cell
+  read from the other area says so (`save:` / `temp:`), negation is `-(x)`. A command's own cell or flag (write_word's
+  cell, set_flag's bit) is written as an expression would name it. Values that name something are names: another kind's
+  resource where the parameter's type says so (`parameters.json` `types`: `kind`, `scale`), an enum's constant (`enum`;
+  flag enums stay numbers). `[85 23 04]` is an operand's bytes as they are, always valid. Explode writes the readable
+  form only when it reads back to the same bytes: in vanilla every operand does (no `[…]`); 1,710 lines still show a
+  cell without a WRAM name (`<0x22e5, 0x01>`). WRAM names are the Scripts tab's (names.json, the compiler's MEMORY and
+  FLAG enums, knowledge entries); a name that means two things is not used.
+- **Round trip** compares each command as its bytes (the operands read back), so a name and its number compare equal.
 
 - **Names.** A table entry: the room trigger that uses it (`<map>_step_<n>`, `<map>_b_<n>`), a global's name
   (`global_<name>`, `script-model/names.ts`), else `script_<id>`. An enter script `<map>_enter`, the boot script
@@ -323,13 +342,7 @@ skip 7                      7 bytes no command reaches: not this script's
   trip, implode tells explode where each named script landed and which folder held it.
 - **References.** `@name` replaces the operand of `07`, `29`, `af`, `b4` (a packed pointer, any script), of
   `a5`, `b2` (one byte back), `a6`, `b3` (a word back), and the id of `a3`, `b0` (a global: id − header word +8 / 3)
-  and `a4`, `b1` (a trigger: 3·id); a hex id still works. Still numbers: string keys, map ids, enemy ids, animate
-  ids, inside commands' operands.
-- **Named operands** (2026-11-21). An operand that is one expression byte naming a resource is written by its name,
-  where the opcode's parameter is that type (`script-vm/parameters.json`): an entity (`damage dog ba` for `92 d1 ba`,
-  37 parameters of 35 opcodes, `entities/`) and a constant projectile kind (`projectile projectile_13 boy …`,
-  `projectiles/`). An entity computed (`deref(boy + $1a)`) or a kind from a variable stays hex; the hex byte still
-  works, and both compare equal.
+  and `a4`, `b1` (a trigger: 3·id); a number still works. Still numbers: map ids, object indices, window slots.
 - **Jumps** (`04`, `05`, `08`–`0b`, `8e`, `8f`) name a label of their own script: a line may change length and the
   offsets follow. `goto_back` (`05`, one byte back) takes `goto`'s form when its label is out of its reach.
 - **Groups.** Vanilla ties 141 groups of scripts (the largest 20 KB) by relative calls, which only reach backwards
@@ -358,7 +371,7 @@ skip 7                      7 bytes no command reaches: not this script's
   stretch where a command took a longer form (`Item.segments`).
   In game (G2): the opening's enter script rewritten to `load_map(0x7F)`, and a new map's own enter script
   (`tests/open-evermore/in-game.test.mts`).
-- **Next.** Map, string and enemy ids by name inside operands; everscript text once the compiler writes relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7).
+- **Next.** Map ids and object indices by name; WRAM names for the remaining cells (knowledge entries); everscript text once the compiler writes relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7).
 
 ## opcodes *(built, 2026-11-20)*
 

@@ -39,10 +39,15 @@ import { json, NAME_RE, readText, sha1, text } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { locate as locateMaps, roomBlobs } from './maps.mts';
 import { DEFAULT_OPCODE, KIND as OPCODES } from './opcodes.mts';
-import { KIND as ENTITIES } from './entities.mts';
+import { ANIMATION_COUNT, KIND as ANIMATIONS } from './animations.mts';
+import { CHARACTERS, characterNames } from './characters.mts';
+import { ENTITY_SUB_OPS, KIND as ENTITIES } from './entities.mts';
+import { SOUND_COUNT, SOUNDS } from './music.mts';
+import type { Refs } from './operands.mts';
 import { KIND as PROJECTILES, PROJECTILE_COUNT } from './projectiles.mts';
-import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, parse, REF, SCRIPTS, scriptText, SKIP, valueByte, WINDOW } from './script-lines.mts';
-import type { Member, Patch, Script, ValueNames } from './script-lines.mts';
+import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, parse, REF, SCRIPTS, scriptText, SKIP, WINDOW } from './script-lines.mts';
+import type { Member, Patch, Script } from './script-lines.mts';
+import { KIND as STRINGS, STRING_COUNT } from './strings.mts';
 
 export { WINDOW };
 
@@ -80,7 +85,7 @@ export function scriptOf(path: string): string | null {
     const m = PATH_RE.exec(path);
     return m ? (m[1] !== undefined ? m[1] : `${m[2]}/${m[3]}`) : null;
 }
-const FORMAT = 'open-evermore/scripts', VERSION = 1;
+const FORMAT = 'open-evermore/scripts', VERSION = 2;
 const HEADER = 0x128000, BOOT = 0x12800C, MAP_COUNT = 127;
 const READERS = [{ at: 0x0CCE64, add: 0 }, { at: 0x0CCE6A, add: 2 }, { at: 0x0CD3B6, add: 0 }, { at: 0x0CD3BC, add: 2 }];
 const u16 = (rom: Uint8Array, at: number) => rom[at] | (rom[at + 1] << 8);
@@ -206,21 +211,22 @@ export const scriptsCodec: Codec = {
         // end) belongs to its group, not to it. An entity or a projectile compares as the byte it stands for.
         const self = scriptOf(path)!, names = ctx?.names.get(KIND), ids = ctx?.ids.get(KIND);
         const byId = new Map([...(ids ?? [])].map(([n, id]) => [id, n])), globalsFrom = ctx ? u16(ctx.base.image, HEADER + 8) / 3 : 0;
-        const lines = readText(bytes).split('\n').map(l => l.trim().split(/\s+/).filter(Boolean)).filter(t => t.length && !t[0].startsWith('#'));
-        while (lines.length && lines[lines.length - 1][0] === SKIP) lines.pop();
-        return [path, text(lines.map(t => {
-            if (t[0] === SKIP || LABEL_RE.test(t[0])) return t.join(' ');
-            const b = DEFAULT_OPCODE.get(t[0]) ?? (/^[0-9a-fA-F]{2}$/.test(t[0]) ? parseInt(t[0], 16) : NaN);
-            const id = BY_ID[b], rest = t.slice(1);
-            if (id && ctx && rest.length >= id.size && rest.slice(-id.size).every(x => /^[0-9a-fA-F]{2}$/.test(x))) {
-                const v = rest.slice(-id.size).reduce((n, x, k) => n | (parseInt(x, 16) << (8 * k)), 0), n = byId.get(id.form === 'global' ? globalsFrom + v : v / 3);
-                if (n !== undefined) rest.splice(-id.size, id.size, '@/' + n);
+        const raw = readText(bytes).split('\n');
+        while (raw.length && (!raw[raw.length - 1].trim() || raw[raw.length - 1].trim().startsWith(SKIP + ' '))) raw.pop();
+        // Each command as its bytes: the operands read back (names, expressions), the opcode in the form it compares as.
+        const quiet = ctx && { ...ctx, findings: { error() {}, warning() {}, info() {} } as unknown as ImplodeContext['findings'] };
+        const entries = quiet ? parse(path, raw.join('\n'), quiet) : null;
+        if (!entries) return [path, text(raw.map(l => l.trim()).filter(l => l && !l.startsWith('#')).join('\n') + '\n')];
+        return [path, text(entries.map(e => {
+            if (e.kind === 'label') return `${e.name}:`;
+            if (e.kind === 'skip') return `${SKIP} ${e.size}`;
+            let tail = e.ref !== undefined && names ? '@' + resolveName(e.ref, self, x => names.has(x)) : e.jump ?? '';
+            const body = [...e.body], id = BY_ID[e.op];
+            if (id && e.ref === undefined && body.length >= id.size) {
+                const v = body.slice(-id.size).reduce((n, x, k) => n | (x << (8 * k)), 0), n = byId.get(id.form === 'global' ? globalsFrom + v : v / 3);
+                if (n !== undefined) { body.splice(-id.size, id.size); tail = '@' + n; }
             }
-            const last = rest[rest.length - 1];
-            if (last?.startsWith('@') && names) rest[rest.length - 1] = '@' + resolveName(last.slice(1), self, x => names.has(x));
-            const op = Number.isNaN(b) ? t[0].toLowerCase() : hex2(FASTEST[b] ?? LONGER[b] ?? b);
-            const value = (x: string) => { const v = ctx && !/^[0-9a-fA-F]{2}$/.test(x) ? valueByte(x, ctx) : undefined; return v === undefined ? x.toLowerCase() : hex2(v); };
-            return [op, ...rest.map(x => x.startsWith('@') ? x : value(x))].join(' ');
+            return [hex2(FASTEST[e.op] ?? LONGER[e.op] ?? e.op), ...body.map(hex2), tail].filter(Boolean).join(' ');
         }).join('\n') + '\n')];
     },
 
@@ -230,14 +236,25 @@ export const scriptsCodec: Codec = {
         const nameOf = (at: number) => L.byAt.get(at)!.name, opName = (op: number) => name(OPCODES, op);
         const byId = (form: 'global' | 'trigger', v: number) => form === 'global' ? L.ids[L.globalsFrom + v] : v % 3 === 0 ? L.ids[v / 3] : undefined;
         const all = new Set(L.scripts.map(s => s.name)), exists = (n: string) => all.has(n);
-        const projectiles = count(PROJECTILES) ?? PROJECTILE_COUNT;
-        const values: ValueNames = { entity: op => name(ENTITIES, op), projectile: id => id < projectiles ? name(PROJECTILES, id) : undefined };
+        // Other kinds' resources by name, as their own explode names them; ids they do not have stay numbers.
+        const lists = new Map<string, (string | null | undefined)[]>([
+            [STRINGS, Array.from({ length: count(STRINGS) ?? STRING_COUNT }, (_, i) => name(STRINGS, i))],
+            [SOUNDS, Array.from({ length: count(SOUNDS) ?? SOUND_COUNT }, (_, i) => name(SOUNDS, i))],
+            [ANIMATIONS, Array.from({ length: count(ANIMATIONS) ?? ANIMATION_COUNT }, (_, i) => name(ANIMATIONS, i))],
+            [PROJECTILES, Array.from({ length: count(PROJECTILES) ?? PROJECTILE_COUNT }, (_, i) => name(PROJECTILES, i))],
+            [CHARACTERS, characterNames(rom, name, count, nameAt).enemies],
+        ]);
+        const entities: (string | undefined)[] = [];
+        for (const op of ENTITY_SUB_OPS) entities[op] = name(ENTITIES, op);
+        lists.set(ENTITIES, entities);
+        const back = new Map([...lists].map(([k, l]) => [k, new Map(l.flatMap((n, i) => n ? [[n, i] as [string, number]] : []))]));
+        const refs: Refs = { name: (k, id) => lists.get(k)?.[id] ?? undefined, id: (k, n) => back.get(k)?.get(n) };
         for (const group of L.groups) {
             const next = (s: Script, i: number) => i + 1 < group.length ? group[i + 1].at : s.end;
             const { start, bytes } = groupBytes(rom, group, next);
             const holes: Span[] = [];
             group.forEach((s, i) => {
-                const t = scriptText(rom, s, windowPos(WINDOW, next(s, i)), at => '@' + relativeName(nameOf(at), s.name, exists), opName, byId, values);
+                const t = scriptText(rom, s, windowPos(WINDOW, next(s, i)), at => '@' + relativeName(nameOf(at), s.name, exists), opName, byId, refs);
                 files.set(scriptPath(s.name), text(t.text));
                 holes.push(...t.holes.map(h => ({ start: h.start - start, end: h.end - start })));
             });

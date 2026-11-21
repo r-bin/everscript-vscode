@@ -23,7 +23,7 @@
 //             `a | b`, null for none (docs/entities/entities-reference.md §+0x10 bits, character-properties.md §+$07)
 // Names: our compiler's ENEMY names (language/data/index.json; D4); `boy`, `dog` for ids 0 and 1.
 import { createRequire } from 'node:module';
-import type { Codec, ImplodeContext, Item, Span, Write } from '../../codec.mts';
+import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
@@ -154,6 +154,19 @@ function freshNames(rom: Uint8Array): { records: string[]; enemies: (string | nu
     return { records: records.map((n, k) => n ?? claim(`character_${k.toString(16).padStart(2, '0')}`)), enemies, spawn };
 }
 
+/** The records' names in block order, the ENEMY ids' (null: no record) and the ids that spawn from WRAM: afresh, or
+ *  on a round trip the tree's (the records' order from where implode put each one, ENEMY ids from the enum). Scripts
+ *  name spawned enemies by these. */
+export function characterNames(rom: Uint8Array, name: NameOf, countOf: CountOf, nameAt: NameAt): { records: string[]; enemies: (string | null)[]; spawn: Map<string, number> } {
+    if (countOf(CHARACTERS) === undefined) return freshNames(rom);
+    const at = recordsAt(rom), records: string[] = [], spawn = new Map<string, number>();
+    for (let k = 0; nameAt(RECORD, at + STRIDE * k) !== undefined; k++) records.push(nameAt(RECORD, at + STRIDE * k)!);
+    const entries = enemyEntries(rom, countOf(CHARACTERS)!, records.length);
+    const enemies = entries.map((e, id) => 'record' in e ? records[e.record!] : e.address ? name(CHARACTERS, id) : null);
+    entries.forEach((e, id) => { if (!('record' in e) && e.address) spawn.set(name(CHARACTERS, id), e.address); });
+    return { records, enemies, spawn };
+}
+
 export const charactersCodec: Codec = {
     kind: CHARACTERS, version: 2, path: DIR, folder: `${DIR}/records`, listedIdsOnly: true,
 
@@ -167,20 +180,7 @@ export const charactersCodec: Codec = {
     },
 
     explode(rom, name, _options, countOf, nameAt) {
-        const at = recordsAt(rom);
-        // On a round trip the tree's names: the records' order from where implode put each one (symbols), ENEMY ids
-        // from the enum.
-        const round = countOf(CHARACTERS) !== undefined;
-        let records: string[], enemies: (string | null)[], spawn = new Map<string, number>();
-        if (!round) ({ records, enemies, spawn } = freshNames(rom));
-        else {
-            const count = countOf(CHARACTERS)!;
-            records = [];
-            for (let k = 0; nameAt(RECORD, at + STRIDE * k) !== undefined; k++) records.push(nameAt(RECORD, at + STRIDE * k)!);
-            const entries = enemyEntries(rom, count, records.length);
-            enemies = entries.map((e, id) => 'record' in e ? records[e.record!] : e.address ? name(CHARACTERS, id) : null);
-            entries.forEach((e, id) => { if (!('record' in e) && e.address) spawn.set(name(CHARACTERS, id), e.address); });
-        }
+        const at = recordsAt(rom), { records, enemies, spawn } = characterNames(rom, name, countOf, nameAt);
         const files: Tree = new Map();
         records.forEach((n, k) => {
             const b = rom.subarray(at + STRIDE * k, at + STRIDE * (k + 1)), c: Record<string, unknown> = {};

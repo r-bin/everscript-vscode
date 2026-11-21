@@ -39,7 +39,7 @@ const MAP_TABLE = 0x1FFDE7, INTRO = 0x12E0CA, ROOM_ID = 0x7E0ADB;
  *  0x36, rom-export.md row 4); the reference gets the same bytes at $BF:F000, in the 4th MB, as a packed pointer:
  *  bank $92 + (p >> 15), $8000 | p. */
 const FADE_IN = [0xA3, 0x36, 0x00], FADE_AT = 0x3FF000, FADE_PACKED = ((0xBF - 0x92) << 15) | (FADE_AT & 0x7FFF);
-const FADE_FILE = 'call_global 36\nend\n', INTRO_SCRIPT = `maps/rooms/${OPENING}/scripts/enter.txt`;
+const FADE_FILE = 'call_global 0x36\nend\n', INTRO_SCRIPT = `maps/rooms/${OPENING}/scripts/enter.txt`;
 const ENTER_TABLE = 0x12801B;
 /** Brian's entrance in 8 px units (tools/table-hack/evs/string-3003.evs: entrance(0x17, 0d40)). */
 const ENTRANCE = [0x17, 40];
@@ -91,7 +91,7 @@ function build(tree: Tree, what: string, allowed: string[] = []): Uint8Array {
  *  the script (a byte after it would never run: explode gives it back as `skip 1`). */
 const enterByScript = (tree: Tree, id: number): Tree => {
     const t = new Map(tree);
-    t.set(INTRO_SCRIPT, new TextEncoder().encode(`22 ${[ENTRANCE[0], ENTRANCE[1], id & 0xFF, id >> 8].map(b => b.toString(16).padStart(2, '0')).join(' ')}\n`));
+    t.set(INTRO_SCRIPT, new TextEncoder().encode(`22 ${ENTRANCE[0]}, ${ENTRANCE[1]}, ${id}\n`));
     return t;
 };
 
@@ -170,7 +170,7 @@ if (!path || !existsSync(path)) {
     const key = se.names.length * 3;
     se.names.push('test_new_string');
     said.set('strings/_enum.json', new TextEncoder().encode(JSON.stringify(se)));
-    const show = (t: Tree, k: number): Tree => { const o = new Map(t); o.set(INTRO_SCRIPT, new TextEncoder().encode(`51 ${(k & 0xFF).toString(16).padStart(2, '0')} ${(k >> 8).toString(16).padStart(2, '0')}\n00\n`)); return o; };
+    const show = (t: Tree, k: number): Tree => { const o = new Map(t); o.set(INTRO_SCRIPT, new TextEncoder().encode(`51 ${k}\n00\n`)); return o; };
     const told = implode(show(said, key), GAME, KINDS);
     assert.deepStrictEqual(told.findings.list.filter(f => f.severity === 'error').map(f => `${f.rule} ${f.file}`), []);
     assert.ok(told.placed.some(p => p.key === 'strings/_table' && p.at !== p.home), 'the grown key table moves');
