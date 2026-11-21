@@ -8,6 +8,8 @@ import { tilesCodec } from './codecs/tiles.mts';
 import { stringsCodec } from './codecs/strings.mts';
 import { scriptsCodec, WINDOW as SCRIPT_WINDOW } from './codecs/scripts.mts';
 import { opcodesCodec } from './codecs/opcodes.mts';
+import { entitiesCodec } from './codecs/entities.mts';
+import { projectilesCodec } from './codecs/projectiles.mts';
 import { animationsCodec } from './codecs/animations.mts';
 import { attackProcsCodec, behavioursCodec } from './codecs/handler-tables.mts';
 import { charactersCodec } from './codecs/characters.mts';
@@ -26,5 +28,5 @@ export const PAST_END = [{ start: 0x30E293, end: 0x30E293 + 0x780 + 0x40 }];
  *  WRAM ($26-$28 when it starts a script). The proof translates them like long pointers. */
 export const POINTER_WINDOWS = [SCRIPT_WINDOW];
 
-export const KINDS: Codec[] = [mapsCodec, tileFamiliesCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec,
-    animationsCodec, attackProcsCodec, behavioursCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, musicCodec, soundsCodec];
+export const KINDS: Codec[] = [mapsCodec, tileFamiliesCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
+    animationsCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, musicCodec, soundsCodec];

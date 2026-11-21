@@ -325,6 +325,11 @@ skip 7                      7 bytes no command reaches: not this script's
   `a5`, `b2` (one byte back), `a6`, `b3` (a word back), and the id of `a3`, `b0` (a global: id − header word +8 / 3)
   and `a4`, `b1` (a trigger: 3·id); a hex id still works. Still numbers: string keys, map ids, enemy ids, animate
   ids, inside commands' operands.
+- **Named operands** (2026-11-21). An operand that is one expression byte naming a resource is written by its name,
+  where the opcode's parameter is that type (`script-vm/parameters.json`): an entity (`damage dog ba` for `92 d1 ba`,
+  37 parameters of 35 opcodes, `entities/`) and a constant projectile kind (`projectile projectile_13 boy …`,
+  `projectiles/`). An entity computed (`deref(boy + $1a)`) or a kind from a variable stays hex; the hex byte still
+  works, and both compare equal.
 - **Jumps** (`04`, `05`, `08`–`0b`, `8e`, `8f`) name a label of their own script: a line may change length and the
   offsets follow. `goto_back` (`05`, one byte back) takes `goto`'s form when its label is out of its reach.
 - **Groups.** Vanilla ties 141 groups of scripts (the largest 20 KB) by relative calls, which only reach backwards
@@ -380,6 +385,16 @@ colour, first, count from `$8C:E4B1`; `mode7_scene` from, to, heading; `projecti
   live in bank `$8C` and the table cannot grow (opcodes `$C3` and up index past it into code): 195.
 - **Scripts** write each command's opcode by these names; renaming an opcode here renames it in every script.
 
+## entities *(built, 2026-11-21)*
+
+`scripts/entities/<name>.json`, one per expression sub-op that stands for an entity: `last_entity` (`$2D`, the one at
+`$0341`), `script_owner` (`$2E`, the script slot's `+$0D`), `boy` (`$50`, `$0F3E`), `dog` (`$51`, `$0F40`), `active`
+(`$52`, `$0F42`, the one the player controls) and `inactive` (`$53`, the other one). A file is `{ "handler", "what" }`;
+`_enum.json` names[sub-op], null for the sub-ops that are constants, reads and operators (they stay in `_base/`).
+Scripts write a lone entity byte (sub-op | `$80`) by these names. Implode writes the six words of the sub-op table
+`$8C:F041` (`JMP ($F041,x)` at `$8C:EA5D`) in place; a new name gets no sub-op (an error: the others are not
+entities). Handlers got their entries (`expression_boy` …).
+
 ## attack_procs, behaviours *(built, 2026-11-21)*
 
 Two jump tables a character record picks by an even id: `attack_procs/<name>.json` (record `+$30`, the contact
@@ -388,6 +403,23 @@ idle-tick table `$8F:CBE0`, `JMP ($CBE0,x)`). A file is `{ "handler": <routine n
 names[id], the record holds 2·id. Names are ours from what each does (`melee`, `melee_poison_1_in_4`,
 `damage_without_roll`; `chase`, `wander`, the `IDLE_BEHAVIOR` names). Implode writes each table in place: 15 entries,
 code right after (`handler-tables.mts`). Id `$10`'s handler got its entry (`attack_proc_melee_no_knockback`).
+
+## projectiles *(built, 2026-11-21)*
+
+`characters/projectiles/<name>.json`, one per entry of the table script opcode `0xB5` launches from (`$90:D986`, 16
+record addresses in bank `$90`, read only by `lda.l $90D986,x` at `$8C:E851`, X = the kind = 2·id). A file is the
+24-byte record by field: `animation`, `palette`, `unknown_04`, `unknown_06` (hex words), `routine` (`+$08`, setup when an
+animation throws it), `script_routine` (`+$0A`, setup when a script launches it), `behaviour` (`+$0C`, the tick) by
+routine name (the table `$90:D967`, 2·k, k ≤ 14; a selector outside it as hex), `speed`, `lifetime`, `z_speed`,
+`attack_proc` by its `attack_procs/` name, `power` (0: the thrower's attack by its stamina). Decoder:
+`maps/projectiles.ts`. Names: `projectile_<id>` (no names known yet; vanilla scripts launch 13-15 as constants).
+
+- **Implode generates** the table, in place (the records follow it: 16 ids, no gap).
+- **Records stay home.** Animation command `0x4C` throws records by their address, from animation scripts in
+  `_base/`, so each record is an item only its home fits; a renamed projectile keeps its id's home (vanilla lists them
+  in address order). A new one is an error (`no-room`: bank `$90` has no free byte). The five records the table does
+  not list (`$D9EE`, `$DB0E`, `$DB26`, `$DB56`, `$DB6E`) stay in `_base/`.
+- **Next.** Records that move once animation scripts name them; names from what each projectile is.
 
 ## characters, animations, sprite blocks *(built, 2026-11-20)*
 

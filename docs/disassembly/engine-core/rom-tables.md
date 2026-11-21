@@ -28,7 +28,7 @@ All entries list their SNES bus address, ROM file offset (HiROM mapping), elemen
 | `$90:8000` | `0x080000` | `tbl_animation_vm_jump_table` | 2 bytes | 103 | 206 B | Sprite animation engine bytecode execution vector table |
 | `$90:D5CF` | `0x0855CF` | `tbl_anim_tile_channel_bases` | 2 bytes | 4 | 8 B | VRAM destination pattern words for 4 animated tile channels |
 | `$90:D9A6` | `0x08D9A6` | `tbl_projectile_records` | 24 bytes | 21 | 504 B | Projectile archetype definitions (anim, palette, routine, speed, power) |
-| `$90:DF44` | `0x085F44` | `tbl_boomerang_orbit` | 4 bytes | 256 | 1,024 B | Elliptical orbital vector coordinates $(X, Y)$ in $1/16$ px |
+| `$90:DF44` | `0x085F44` | `projectile_orbit_tick` | — | — | — | code, not a table (corrected v0.451.0): one tick on an ellipse, from the tables at `$80:8923` / `$80:88A3` |
 | `$91:80A6` | `0x0880A6` | `tbl_alchemy_spell_blocks` | 2 bytes | 48 | 96 B | Pointers to spell bytecode blocks in Bank `$91` |
 | `$91:F32E` | `0x09732E` | `tbl_dialogue_dte_pairs` | 2 bytes | 64 | 128 B | Dual Tile Encoding (DTE) 2-character English digraph pairs |
 | `$91:F3EC` | `0x0973EC` | `tbl_dialogue_word_pointers` | 2 bytes | 63 | 126 B | Secondary MTE vocabulary word offset lookup table |

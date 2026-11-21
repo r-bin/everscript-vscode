@@ -160,8 +160,13 @@ export function allocate(items: Item[], pool: Span[], extra: Span[], homes: Map<
     const at = new Map<string, number>();
     const failed: Item[] = [];
     const place = (item: Item, where: number) => { if (where >= 0 && free.take(piecesOf(item, where))) { at.set(item.key, where); return true; } return false; };
-    const homed = items.filter(i => homes.has(i.key)).sort((a, b) => homes.get(a.key)!.at - homes.get(b.key)!.at);
-    const rest: Item[] = items.filter(i => !homes.has(i.key));
+    // An item only one place fits (a record `_base/` reads by address) takes it first and draws no random number, so
+    // it changes no other item's place in a random layout.
+    const pinned = items.filter(i => i.rule.above !== undefined && i.rule.below === i.rule.above + i.bytes.length);
+    for (const item of pinned) if (!place(item, item.rule.above!)) failed.push(item);
+    const unpinned = items.filter(i => !pinned.includes(i));
+    const homed = unpinned.filter(i => homes.has(i.key)).sort((a, b) => homes.get(a.key)!.at - homes.get(b.key)!.at);
+    const rest: Item[] = unpinned.filter(i => !homes.has(i.key));
 
     if (seed === undefined) {
         for (const item of homed) {

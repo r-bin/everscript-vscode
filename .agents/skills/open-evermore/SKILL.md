@@ -15,7 +15,7 @@ before touching its codec. This skill is how to work on it and what bit us.
   only through what implode generates (tables, pointers, ids); a kind is exploded only when that holds.
 - **Names, never addresses.** Every reference between resources is a name: scripts by `@name` (calls by
   id too), handlers by routine name (`readers.mts` `routines(bank)`), fields by the name of the entry they
-  pick, flag words as `a | b` (null when 0). No name yet: create the knowledge entry first
+  pick, flag words as `a | b` (null when 0), operands that are one entity or projectile byte by its name. No name yet: create the knowledge entry first
   (`game-knowledge` skill), then use it.
 - **One tool, no npm commands**; `<kind>/_enum.json` is the one ordered file of a kind.
 - **Untangled by default, vanilla with `--strict`.** Without `--strict` every relative call into another
@@ -50,7 +50,8 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
 ## Proving and debugging
 
 - Prove kinds apart: `explode --kinds a,b --out <scratch>`, then `implode`/`prove` on that tree.
-  Maps, scripts, tiles and tile families need each other.
+  Maps, scripts, tiles and tile families need each other; scripts need entities and projectiles, which
+  need attack procs.
 - **Removing a kind reshuffles every other** (the RNG sequence changes), so a bisect by kind tests
   layouts, not kinds. Compare like with like: pin chosen items at home in one layout (a throwaway
   hack in `allocate`), or census the failing layout directly.
@@ -69,6 +70,11 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   - an image grown to ExHiROM puts data in slow banks: the allocator places tight rules, then the
     largest items first, so a random build fits 4 MiB;
   - an absolute script call is faster than a relative one: `prove` builds `--strict`.
+- **A resource `_base/` reads by address stays home** (projectile records: animation scripts throw them by
+  address): an item only its home fits (`above`/`below`/`bankOffset`), the home found by id when renamed.
+  `allocate` places such items first without a random draw: a draw would reshuffle every other kind's layout.
+- **A value written by name in a script line** (an entity, a projectile) stands for one byte; parse, canonical and
+  explode all go through `script-lines.mts` (`valueByte`, `namedOperands`), and the hex byte stays valid.
 - **The 3 MiB image has no free byte for implode**: the pool is exactly vanilla's resources (padding stays
   in `_base/`), so anything longer grows the image to 4 MiB (the fast forms: ~10 KB).
 - `--random` starts at 4 MiB on purpose (half the items leave their bank); it is not growth.

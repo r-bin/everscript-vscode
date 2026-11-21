@@ -19,7 +19,7 @@ const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 /** Where a kind lives in the tree when not at the top (folders.mts). */
-const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts/global', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8' };
+const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts/global', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -68,6 +68,30 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(rules(t => editJson(t, meta, m => { m.list[0].collision += ' sticky'; })), [`invalid-value ${meta}#/list/0/collision`]);
     assert.deepStrictEqual(rules(t => { t.set(grid, new TextEncoder().encode('000 001\n000\n')); }), [`invalid-value ${grid}#/1`]);
     console.log('  ✓ an unknown collision flag and a ragged grid.txt are errors');
+
+    // Entities and projectiles by name in script lines (`damage dog ba`): renamed everywhere, or written as the hex
+    // byte, the ROM is the same; a name for nothing is an error, and a new projectile has no record to go to.
+    const text = (b: Uint8Array) => Buffer.from(b).toString(), bytes = (s: string) => new Uint8Array(Buffer.from(s));
+    const renamed = new Map(tree);
+    const move = (from: string, to: string) => { renamed.set(to, renamed.get(from)!); renamed.delete(from); };
+    move('scripts/entities/dog.json', 'scripts/entities/the_dog.json');
+    move('characters/projectiles/projectile_13.json', 'characters/projectiles/hit_marker.json');
+    editJson(renamed, 'scripts/entities/_enum.json', e => { e.names[0x51] = 'the_dog'; });
+    editJson(renamed, 'characters/projectiles/_enum.json', e => { e.names[13] = 'hit_marker'; });
+    let hex = 0;
+    for (const [p, b] of renamed) {
+        if (!p.endsWith('.txt') || p.startsWith('strings/')) continue;
+        const was = text(b), now = was.replace(/(?<= )projectile_13(?= |$)/gm, 'hit_marker').replace(/(?<= )dog(?= |$)/gm, () => hex++ % 2 ? 'the_dog' : 'd1');
+        if (now !== was) renamed.set(p, bytes(now));
+    }
+    assert.ok(hex > 100, `only ${hex} lone dogs in the scripts`);
+    const same = implode(renamed, GAME, KINDS, { strict: true });
+    assert.deepStrictEqual(same.findings.list.filter(f => f.severity === 'error'), []);
+    assert.strictEqual(same.sha1, sha1(rom));
+    const line = [...tree.keys()].find(p => p.endsWith('.txt') && !p.startsWith('strings/') && / dog( |$)/m.test(text(tree.get(p)!)))!;
+    assert.deepStrictEqual(rules(t => { t.set(line, bytes(text(t.get(line)!).replace(/ dog( |$)/m, ' cat$1'))); }).filter(r => r.startsWith('unknown-reference')), [`unknown-reference ${line}#/${text(tree.get(line)!).split('\n').findIndex(l => / dog( |$)/.test(l)) + 1}`]);
+    assert.deepStrictEqual(rules(t => { t.set('characters/projectiles/new_shot.json', t.get('characters/projectiles/projectile_00.json')!); }).sort(), ['id-over-limit characters/projectiles/_enum.json#/names', 'no-room characters/projectiles/new_shot.json#']);
+    console.log(`  ✓ entities and projectiles by name: renamed (and ${Math.ceil(hex / 2)} dogs as d1) the same ROM; an unknown name and a new projectile are errors`);
 
     // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
     const edited = new Map(tree);
@@ -128,7 +152,7 @@ if (!path || !existsSync(path)) {
     // (the script it no longer names is left out: a warning)
     assert.deepStrictEqual(rules(t => setLines(t, caller, l => l.map(x => x.replace(/^call @\S+/, 'call @no_such_script')))).filter(r => !r.startsWith('left-out')), [`unknown-reference ${caller}#/${lines(caller).findIndex(l => /^call @/.test(l)) + 1}`]);
     assert.deepStrictEqual(rules(t => setLines(t, enter, l => ['no_such_opcode', ...l])), [`unknown-reference ${enter}#/1`]);
-    assert.deepStrictEqual(rules(t => setLines(t, enter, l => ['end zz', ...l])), [`invalid-value ${enter}#/1`]);
+    assert.deepStrictEqual(rules(t => setLines(t, enter, l => ['end 1z', ...l])), [`invalid-value ${enter}#/1`]);
     const farCall = (t: typeof tree) => setLines(t, relative, l => l.map(x => x.replace(/^call_back @\S+/, 'call_back @boot')));
     assert.deepStrictEqual(rules(farCall).filter(r => !r.startsWith('left-out')), []);
     const r1 = rules(farCall, true).filter(r => !r.startsWith('left-out'));
@@ -164,7 +188,7 @@ if (!path || !existsSync(path)) {
     const g = implode(grown, GAME, KINDS);
     assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
-    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
+    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
     console.log('  ✓ a new tile, string and table script: each table grows and moves, the round trip holds; limits at the engine\'s');
 
     // The table kinds of the table hack: a new animation, character (a record and an ENEMY id) and sprite blocks grow

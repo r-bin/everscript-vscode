@@ -23,8 +23,13 @@ export interface ProjectileRecord {
     animRecord: number;
     /** +0x02: palette in bank $90 (`$90CD80`); 0 keeps the thrower's palette (`$90DC57`). */
     palette: number;
+    /** +0x04, +0x06: not read by the spawn routines. */
+    field04: number;
+    field06: number;
     /** +0x08: index into the movement-routine table at `$90D967`. */
     routine: number;
+    /** +0x0A: the same, when script opcode 0xB5 launches it (`$90DCDD`). */
+    scriptRoutine: number;
     /** +0x0C: copied to entity +0x26. */
     field0c: number;
     /** +0x0E: speed — routines 2 and 4 put it into the velocity, signed by facing. */
@@ -45,7 +50,10 @@ export function projectileRecord(rom: Uint8Array, id: number): ProjectileRecord 
         id,
         animRecord: word(rom, b),
         palette: word(rom, b + 0x02),
+        field04: word(rom, b + 0x04),
+        field06: word(rom, b + 0x06),
         routine: word(rom, b + 0x08),
+        scriptRoutine: word(rom, b + 0x0a),
         field0c: word(rom, b + 0x0c),
         speed: word(rom, b + 0x0e),
         field10: word(rom, b + 0x10),

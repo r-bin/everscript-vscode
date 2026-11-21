@@ -39,8 +39,10 @@ import { json, NAME_RE, readText, sha1, text } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { locate as locateMaps, roomBlobs } from './maps.mts';
 import { DEFAULT_OPCODE, KIND as OPCODES } from './opcodes.mts';
-import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, parse, REF, SCRIPTS, scriptText, SKIP, WINDOW } from './script-lines.mts';
-import type { Member, Patch, Script } from './script-lines.mts';
+import { KIND as ENTITIES } from './entities.mts';
+import { KIND as PROJECTILES, PROJECTILE_COUNT } from './projectiles.mts';
+import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, parse, REF, SCRIPTS, scriptText, SKIP, valueByte, WINDOW } from './script-lines.mts';
+import type { Member, Patch, Script, ValueNames } from './script-lines.mts';
 
 export { WINDOW };
 
@@ -201,7 +203,7 @@ export const scriptsCodec: Codec = {
         // An opcode may be written by its name or as a hex byte, and a command in a longer or faster form (a relative or
         // id call written as the absolute one): all compare as that form's byte (default names). A script is named by
         // its full name, a call by id with the script the enum gives it. The room a script keeps after it (`skip` at its
-        // end) belongs to its group, not to it.
+        // end) belongs to its group, not to it. An entity or a projectile compares as the byte it stands for.
         const self = scriptOf(path)!, names = ctx?.names.get(KIND), ids = ctx?.ids.get(KIND);
         const byId = new Map([...(ids ?? [])].map(([n, id]) => [id, n])), globalsFrom = ctx ? u16(ctx.base.image, HEADER + 8) / 3 : 0;
         const lines = readText(bytes).split('\n').map(l => l.trim().split(/\s+/).filter(Boolean)).filter(t => t.length && !t[0].startsWith('#'));
@@ -217,7 +219,8 @@ export const scriptsCodec: Codec = {
             const last = rest[rest.length - 1];
             if (last?.startsWith('@') && names) rest[rest.length - 1] = '@' + resolveName(last.slice(1), self, x => names.has(x));
             const op = Number.isNaN(b) ? t[0].toLowerCase() : hex2(FASTEST[b] ?? LONGER[b] ?? b);
-            return [op, ...rest.map(x => x.startsWith('@') ? x : x.toLowerCase())].join(' ');
+            const value = (x: string) => { const v = ctx && !/^[0-9a-fA-F]{2}$/.test(x) ? valueByte(x, ctx) : undefined; return v === undefined ? x.toLowerCase() : hex2(v); };
+            return [op, ...rest.map(x => x.startsWith('@') ? x : value(x))].join(' ');
         }).join('\n') + '\n')];
     },
 
@@ -227,12 +230,14 @@ export const scriptsCodec: Codec = {
         const nameOf = (at: number) => L.byAt.get(at)!.name, opName = (op: number) => name(OPCODES, op);
         const byId = (form: 'global' | 'trigger', v: number) => form === 'global' ? L.ids[L.globalsFrom + v] : v % 3 === 0 ? L.ids[v / 3] : undefined;
         const all = new Set(L.scripts.map(s => s.name)), exists = (n: string) => all.has(n);
+        const projectiles = count(PROJECTILES) ?? PROJECTILE_COUNT;
+        const values: ValueNames = { entity: op => name(ENTITIES, op), projectile: id => id < projectiles ? name(PROJECTILES, id) : undefined };
         for (const group of L.groups) {
             const next = (s: Script, i: number) => i + 1 < group.length ? group[i + 1].at : s.end;
             const { start, bytes } = groupBytes(rom, group, next);
             const holes: Span[] = [];
             group.forEach((s, i) => {
-                const t = scriptText(rom, s, windowPos(WINDOW, next(s, i)), at => '@' + relativeName(nameOf(at), s.name, exists), opName, byId);
+                const t = scriptText(rom, s, windowPos(WINDOW, next(s, i)), at => '@' + relativeName(nameOf(at), s.name, exists), opName, byId, values);
                 files.set(scriptPath(s.name), text(t.text));
                 holes.push(...t.holes.map(h => ({ start: h.start - start, end: h.end - start })));
             });

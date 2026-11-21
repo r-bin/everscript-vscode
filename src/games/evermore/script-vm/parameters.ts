@@ -10,7 +10,7 @@ import table from './parameters.json';
 
 export type BaseType = 'u8' | 'u16' | 's16' | 'bool' | 'entity' | 'jump' | 'script' | 'args' | 'list' | 'skip' | 'flag' | 'percentage';
 /** A base type, or one of parameters.json's `types` that inherits from one (`object_index` is a u8). */
-export type ParameterType = BaseType | 'object_index' | 'weapon_index';
+export type ParameterType = BaseType | 'object_index' | 'weapon_index' | 'projectile_kind';
 
 export interface Parameter {
     name: string;

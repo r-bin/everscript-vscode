@@ -2,11 +2,20 @@
 // in opcodes/ (a hex byte works too), its operand bytes in hex, then `@script` for a call or a label for a jump;
 // `label_<n>:` where a jump lands, `skip <n>` for bytes that are not the script's. `scriptText` writes a script from
 // the ROM; `parse` reads a file and `assemble` builds a group of scripts into one item, working out jumps, relative
-// calls and ids, and taking a longer form where a shorter one does not reach. Facts: scripts.mts.
+// calls and ids, and taking a longer form where a shorter one does not reach. An operand that is one expression byte
+// naming a resource is written by its name: an entity (`damage dog b5`: entities/) and a projectile's kind
+// (`projectile projectile_13 …`: projectiles/), where the opcode's parameter is one (script-vm/parameters.json).
+// Facts: scripts.mts.
+import { createRequire } from 'node:module';
 import type { ImplodeContext, Segment, Span } from '../../codec.mts';
 import { ENUM } from '../../enum.mts';
 import { windowFile, windowPos } from '../../layout.mts';
+import { isEntityByte, KIND as ENTITIES } from './entities.mts';
 import { KIND as OPCODES } from './opcodes.mts';
+import { KIND as PROJECTILES } from './projectiles.mts';
+
+const require = createRequire(import.meta.url);
+const PARAMETERS: Record<string, { params?: { type: string }[] }> = require('../../../../src/games/evermore/script-vm/parameters.json');
 
 export const SCRIPTS = 'scripts', META = '_scripts.json';
 /** File banks $92-$BF: their upper halves are the script window (4 MiB HiROM at most). */
@@ -34,6 +43,41 @@ export const SKIP = 'skip';
 export const LABEL_RE = /^([a-z_][a-z0-9_]*):$/, LABEL_NAME_RE = /^[a-z_][a-z0-9_]*$/;
 
 const hex2 = (b: number) => b.toString(16).padStart(2, '0');
+const HEX_RE = /^[0-9a-fA-F]{2}$/;
+
+/** A small constant as one expression byte ($30-$3F: 0-15, $60-$6F: 16-31, bit 7: the last), and back. */
+const constByte = (v: number): number | undefined => v >= 0 && v < 16 ? 0xB0 | v : v >= 16 && v < 32 ? 0xE0 | (v - 16) : undefined;
+const constOf = (b: number): number | undefined => (b & 0xF0) === 0xB0 ? b & 0x0F : (b & 0xF0) === 0xE0 ? (b & 0x0F) + 16 : undefined;
+
+/** The names explode writes operands with: an entity by its sub-op, a projectile by its id (undefined: none). */
+export interface ValueNames { entity(subOp: number): string; projectile(id: number): string | undefined }
+
+/** The byte a name stands for in a line: an entity's sub-op as a lone expression, a projectile's kind 2·id as a small
+ *  constant (the table holds 16, so it always fits one byte). Undefined when it names neither. */
+export function valueByte(token: string, ctx: ImplodeContext): number | undefined {
+    const e = ctx.ids.get(ENTITIES)?.get(token);
+    if (e !== undefined) return 0x80 | e;
+    const p = ctx.ids.get(PROJECTILES)?.get(token);
+    return p === undefined ? undefined : constByte(2 * p);
+}
+
+/** Operand bytes of a command written by name: their offsets in the command → the name. */
+function namedOperands(rom: Uint8Array, i: any, at: (k: number) => number, values: ValueNames): Map<number, string> {
+    const out = new Map<number, string>(), tokens: string[] = i.spec.operands, params = PARAMETERS['0x' + hex2(i.opcode)]?.params ?? [];
+    if (params.length !== tokens.length) return out;
+    let p = 1;
+    i.operands.forEach((o: any, k: number) => {
+        const size = o.k === 'E' ? o.expr.size : o.k === 'A' ? 1 + o.args.reduce((n: number, e: any) => n + e.size, 0) : o.k === 'Z' ? o.list.reduce((n: number, e: any) => n + e.size, 0)
+            : o.k === 'u16' || o.k === 'r16' || o.k === 'c16' ? 2 : o.k === 'u24' ? 3 : 1;
+        if (o.k === 'E' && size === 1) {
+            const b = rom[at(p)], type = params[k].type, v = constOf(b);
+            if (type === 'entity' && isEntityByte(b)) out.set(p, values.entity(b & 0x7F));
+            else if (type === 'projectile_kind' && v !== undefined && v % 2 === 0) { const n = values.projectile(v / 2); if (n !== undefined) out.set(p, n); }
+        }
+        p += size;
+    });
+    return out;
+}
 
 /** A script as the ROM holds it: its name, its range and its commands by file offset (V.walk). */
 export interface Script { name: string; at: number; end: number; ins: Map<number, any> }
@@ -43,7 +87,7 @@ export interface Patch { offset: number; target: string; file: string; line: num
 /** One script's file: its commands, a line each, `skip <n>` for bytes no command reaches, a `label_<n>:` line where a
  *  jump lands; its holes (positions). `refTo(at)`: `@name` for the script at a file offset, as this file writes it;
  *  `byId(form, value)`: where the script a global index or trigger offset names starts. */
-export function scriptText(rom: Uint8Array, s: Script, until: number, refTo: (at: number) => string, opName: (op: number) => string, byId: (form: 'global' | 'trigger', value: number) => number | undefined): { text: string; holes: Span[] } {
+export function scriptText(rom: Uint8Array, s: Script, until: number, refTo: (at: number) => string, opName: (op: number) => string, byId: (form: 'global' | 'trigger', value: number) => number | undefined, values: ValueNames): { text: string; holes: Span[] } {
     const lines: string[] = [], holes: Span[] = [];
     // Labels, numbered in the order they lie in.
     const labels = new Map<number, string>();
@@ -67,7 +111,8 @@ export function scriptText(rom: Uint8Array, s: Script, until: number, refTo: (at
             : named !== undefined ? [refTo(named)]
             : j && i.target !== null ? [labels.get(windowPos(WINDOW, i.target & 0x3FFFFF))!] : [];
         const cut = r ? r.size : named !== undefined ? id.size : j && i.target !== null ? (j === 'rb' ? 1 : 2) : 0;
-        lines.push([opName(bytes[0]), ...bytes.slice(1, i.size - cut).map(hex2), ...tail].join(' '));
+        const byName = namedOperands(rom, i, k => windowFile(WINDOW, p + k), values);
+        lines.push([opName(bytes[0]), ...bytes.slice(1, i.size - cut).map((b, k) => byName.get(k + 1) ?? hex2(b)), ...tail].join(' '));
         p += i.size;
     }
     flush(until);
@@ -98,16 +143,22 @@ export function parse(path: string, raw: string, ctx: ImplodeContext): Entry[] |
             if (tokens.length !== 2 || !Number.isInteger(k) || k < 1) return bad(n, 'invalid-value', '`skip <n>`: n bytes that are not this script\'s');
             out.push({ kind: 'skip', size: k }); return;
         }
-        // The opcode by its name in opcodes/ (or as a hex byte), its operands in hex, then a script (`@name`) or a label.
-        const op = /^[0-9a-fA-F]{2}$/.test(tokens[0]) ? parseInt(tokens[0], 16) : ctx.ids.get(OPCODES)?.get(tokens[0]);
+        // The opcode by its name in opcodes/ (or as a hex byte), its operands in hex (an entity or a projectile by its
+        // name), then a script (`@name`) or a label.
+        const op = HEX_RE.test(tokens[0]) ? parseInt(tokens[0], 16) : ctx.ids.get(OPCODES)?.get(tokens[0]);
         if (op === undefined) return bad(n, 'unknown-reference', `"${tokens[0]}" is no opcode in ${OPCODES}/`);
         const rest = tokens.slice(1), last = rest[rest.length - 1] ?? '';
         const ref = last.startsWith('@') ? last.slice(1) : undefined;
-        const jump = !ref && JUMP[op] && !/^[0-9a-fA-F]{2}$/.test(last) && LABEL_NAME_RE.test(last) ? last : undefined;
-        const body = ref !== undefined || jump !== undefined ? rest.slice(0, -1) : rest;
-        if (!body.every(t => /^[0-9a-fA-F]{2}$/.test(t))) return bad(n, 'invalid-value', 'a line is one command: its opcode, its operand bytes in hex, then `@script` or a jump\'s label; or `label:`, or `skip <n>`');
+        const jump = !ref && JUMP[op] && !HEX_RE.test(last) && LABEL_NAME_RE.test(last) && valueByte(last, ctx) === undefined ? last : undefined;
+        const body = (ref !== undefined || jump !== undefined ? rest.slice(0, -1) : rest).map(t => HEX_RE.test(t) ? parseInt(t, 16) : valueByte(t, ctx));
+        const unknown = body.findIndex(b => b === undefined);
+        if (unknown >= 0) {
+            const t = rest[unknown];
+            return LABEL_NAME_RE.test(t) ? bad(n, 'unknown-reference', `"${t}" is no entity in ${ENTITIES}/ and no projectile in ${PROJECTILES}/`)
+                : bad(n, 'invalid-value', 'a line is one command: its opcode, its operand bytes in hex (an entity or a projectile by name), then `@script` or a jump\'s label; or `label:`, or `skip <n>`');
+        }
         if (ref !== undefined && !REF[op] && !BY_ID[op]) return bad(n, 'invalid-value', `opcode $${hex2(op)} names no script; @${ref} needs a call: 07, 29, af, b4 (absolute), a5, a6, b2, b3 (relative), a3, b0 (global), a4, b1 (trigger)`);
-        out.push({ kind: 'cmd', line: n + 1, op, body: body.map(t => parseInt(t, 16)), ...(ref !== undefined ? { ref } : {}), ...(jump ? { jump } : {}) });
+        out.push({ kind: 'cmd', line: n + 1, op, body: body as number[], ...(ref !== undefined ? { ref } : {}), ...(jump ? { jump } : {}) });
     });
     for (const e of out) if (e.kind === 'cmd' && e.jump && !labels.has(e.jump)) bad(e.line - 1, 'unknown-reference', `no line \`${e.jump}:\` in this script: a jump stays inside its script`);
     return ok ? out : null;

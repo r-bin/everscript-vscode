@@ -30,12 +30,17 @@ const KNOWLEDGE = new URL('../../../../src/games/evermore/localizations/knowledg
 const C_TYPE: Record<string, string> = {
     u8: 'uint8_t', u16: 'uint16_t', s16: 'int16_t', bool: 'bool', entity: 'entity_t', script: 'script_t', jump: 'label_t',
     list: 'entity_t[] /* 0-terminated */', args: 'args_t', flag: 'flag_t', percentage: 'uint8_t', object_index: 'uint8_t', skip: 'uint8_t',
+    projectile_kind: 'projectile_t',
 };
 /** How each operand token is encoded in the script (spec.ts). */
 const ENCODING: Record<string, string> = {
     u8: 'byte', u16: 'word', u24: 'packed script pointer (3 bytes)', E: 'expression', A: 'argument count, then expressions',
     Z: 'expressions up to a 0', r16: 'signed word from the end of the operand', rb: 'byte back from the opcode',
     cb: 'byte back (relative call)', c16: 'word back (relative call)', skip: 'byte, skipped',
+};
+/** Parameters a script line writes by name when the operand is one expression byte (script-lines.mts). */
+const NAMED: Record<string, string> = {
+    entity: 'a lone entity by its name in scripts/entities/ (dog for d1)', projectile_kind: 'a constant kind by the projectile\'s name in characters/projectiles/',
 };
 const FLOW: Record<string, string> = {
     next: 'the next command runs in the same frame', yield: 'the thread\'s turn ends', branch: 'the next command or the jump target',
@@ -58,6 +63,7 @@ function described(op: number): Record<string, unknown> {
         name: q.name, type: typeOf(q.type), ...(q.enum ? { enum: q.enum } : {}),
         ...(params.length === spec.operands.length ? { encoding: ENCODING[spec.operands[i]] ?? spec.operands[i] } : {}),
         ...(q.unit ? { unit: q.unit } : {}),
+        ...(NAMED[q.type] ? { written: NAMED[q.type] } : {}),
     }));
     return {
         what: summary(op),

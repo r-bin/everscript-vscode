@@ -1,7 +1,7 @@
 ---
 addr: 8CEC8E
-size: 921
-end: 8CF026
+size: 646
+end: 8CEF13
 kind: code
 category: 🧠
 name: script_entity_operand

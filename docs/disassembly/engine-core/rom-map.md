@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7099,
+    "total_entries": 7112,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -115,7 +115,7 @@
         "0x90FFFF"
       ],
       "name": "Animation VM, Sprites, Projectiles & Tile Animation",
-      "routines": 494,
+      "routines": 499,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -245,7 +245,7 @@
         "0x8CFFFF"
       ],
       "name": "Script VM Dispatcher, Sound Effects & Stat Curves",
-      "routines": 459,
+      "routines": 467,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -5262,7 +5262,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8C — Script VM Dispatcher, Sound Effects & Stat Curves
 
-**Coverage:** 459 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 467 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5709,8 +5709,16 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:E8BB` | [`script_op_3e_stop`](knowledge/routines/script_op_3e_stop.md) | `code` | 1 B | script-vm | Script opcode 0x3e has no handler — STP: The one byte opcode `0x3e` dispatches to: `STP`, the CPU stops. Its own address, so a halt here names the opcode. Named so Open Evermore's o... |
 | `$8C:E8BC` | [`script_op_unused_stop`](knowledge/routines/script_op_unused_stop.md) | `code` | 1 B | script-vm | Shared STP of 20 opcodes without a handler: The last of the eight STP bytes: the twenty opcodes without a handler of their own dispatch here and the CPU stops. Named so the opcodes kin... |
 | `$8C:E8BD` | [`SCRIPT_OPCODE_HANDLER_TABLE`](knowledge/routines/SCRIPT_OPCODE_HANDLER_TABLE.md) | `table` | 390 B | script-vm, table | Script opcode handler table: One word per script opcode, `0x00`-`0xC2`: the handler's address in bank `$8C`, used by the dispatcher at `$8C:D0A6`. Unused opcodes point a... |
-| `$8C:EA43` | [`script_eval_expression`](knowledge/routines/script_eval_expression.md) | `code` | 587 B | script-vm | Script VM — evaluate one expression: Evaluates the expression at the script pointer into a 32-bit value (DP `$02` low, `$04` high) and returns the low word in A. Each byte's low... |
-| `$8C:EC8E` | [`script_entity_operand`](knowledge/routines/script_entity_operand.md) | `code` | 921 B | entity, script, script-vm, reconstructed-c, g1-pass | Script VM — read an entity operand: Evaluates one expression and keeps only its low word, in DP `$4C` and Y, as the address of an entity record. The handlers of the opcodes tha... |
+| `$8C:EA43` | [`script_eval_expression`](knowledge/routines/script_eval_expression.md) | `code` | 542 B | script-vm | Script VM — evaluate one expression: Evaluates the expression at the script pointer into a 32-bit value (DP `$02` low, `$04` high) and returns the low word in A. Each byte's low... |
+| `$8C:EC61` | [`expression_last_entity`](knowledge/routines/expression_last_entity.md) | `code` | 19 B | script-vm | Expression sub-op $2D — the last entity: The entity at `$0341`, the one a command last made or named, as the current value. On the way it sets that entity's `+$3E` to 1 when it was ... |
+| `$8C:EC74` | [`expression_hp_above_last_damage`](knowledge/routines/expression_hp_above_last_damage.md) | `code` | 26 B | script-vm | Expression sub-op $5C — 1 when the entity's HP exceed its last damage: On the entity in the current value: 1 when its HP (`+$2A`) are more than its last damage (`+$76`), else 0 (`hp_above_last_damage` in the scr... |
+| `$8C:EC8E` | [`script_entity_operand`](knowledge/routines/script_entity_operand.md) | `code` | 646 B | entity, script, script-vm, reconstructed-c, g1-pass | Script VM — read an entity operand: Evaluates one expression and keeps only its low word, in DP `$4C` and Y, as the address of an entity record. The handlers of the opcodes tha... |
+| `$8C:EF14` | [`expression_script_owner`](knowledge/routines/expression_script_owner.md) | `code` | 12 B | script-vm | Expression sub-op $2E — the script's own entity: The entity the running script belongs to (its slot's `+$0D`), as the current value. Scripts write it `script_owner`. |
+| `$8C:EF20` | [`expression_boy`](knowledge/routines/expression_boy.md) | `code` | 10 B | script-vm, boy | Expression sub-op $50 — the Boy: The Boy's entity (the word at `$0F3E`) as the current value. Scripts write it `boy`. |
+| `$8C:EF2A` | [`expression_dog`](knowledge/routines/expression_dog.md) | `code` | 10 B | script-vm, dog | Expression sub-op $51 — the Dog: The Dog's entity (the word at `$0F40`) as the current value. Scripts write it `dog`. |
+| `$8C:EF34` | [`expression_active_character`](knowledge/routines/expression_active_character.md) | `code` | 10 B | script-vm | Expression sub-op $52 — the character the player controls: The entity at `$0F42`, the character the player controls (the camera follows it), as the current value. Scripts write it `active`. |
+| `$8C:EF3E` | [`expression_inactive_character`](knowledge/routines/expression_inactive_character.md) | `code` | 18 B | script-vm | Expression sub-op $53 — the character the player does not control: The other character: `$0F42` with the Boy's entity (`$4E89`) and the Dog's (`$4F37`) swapped, 0 when `$0F42` is 0. Scripts write it `inactiv... |
+| `$8C:EF50` | [`expression_sub_ops_54_5b`](knowledge/routines/expression_sub_ops_54_5b.md) | `code` | 215 B | script-vm | Expression sub-ops $54-$5B — slot word, deref, camera, frame counter, shops: The handlers of sub-ops `$54` (the slot's word at `+$09`, `$EF50`), `$57` (camera on the Dog, `$EF5C`), `$55` / `$56` (the word / byte at th... |
 | `$8C:F027` | [`BANK8C_PAD_F027`](knowledge/routines/BANK8C_PAD_F027.md) | `padding` | 16 B | unused, padding | Bank $8C alignment padding ($F027): 16 B alignment padding and unmapped ROM space in Bank $8C ($8C:F027..$8C:F036). |
 | `$8C:F037` | [`tbl_8CF037`](knowledge/routines/tbl_8CF037.md) | `table` | 6 B | table, cdl, lookup, lookup | CDL lookup: 3 entries × 2B: CDL lookup table at $8C:F037 (6 bytes, 3 entries × 2B). Index: $7E0E6C. Read by script_entity_operand+$0365 (8C:EFF3). |
 | `$8C:F03D` | [`BANK8C_PAD_F03D`](knowledge/routines/BANK8C_PAD_F03D.md) | `padding` | 4 B | unused, padding | Bank $8C alignment padding ($F03D): 4 B alignment padding and unmapped ROM space in Bank $8C ($8C:F03D..$8C:F040). |
@@ -6561,7 +6569,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $90 — Animation VM, Sprites, Projectiles & Tile Animation
 
-**Coverage:** 494 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 499 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -7037,13 +7045,18 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$90:D7CB` | [`alchemy_projectile_slot_array_clear`](knowledge/routines/alchemy_projectile_slot_array_clear.md) | `code` | 18 B | alchemy, projectile, slot, clear, reconstructed-c, g1-pass | Clear active projectile slots and manager state ($90:D7CB): Resets projectile management word `$0F34 = 0` and clears the 4 projectile slot records at `$0ECA,X` (X=$51 down by -$1B: $51, $36, $1B, $00)... |
 | `$90:D7DD` | [`particle_emitter_timeline_step_and_palette_lerp`](knowledge/routines/particle_emitter_timeline_step_and_palette_lerp.md) | `code` | 123 B | unverified, rea-partial-read | Steps particle emission scripts and interpolates color palette fading via hardware color lerp: Low confidence — Steps particle emission scripts and interpolates color palette fading via hardware color lerp.  > Inferred from a partial r... |
 | `$90:D858` | [`combat_damage_popup_number_enqueue`](knowledge/routines/combat_damage_popup_number_enqueue.md) | `code` | 271 B | combat, damage, popup, digits, sprites, oam | Combat floating damage pop-up digit sprite enqueue: Enqueues floating damage pop-up number digit sprites whenever an entity takes physical or magical damage in combat, configuring vertical ris... |
-| `$90:D967` | [`PROJECTILE_MOVEMENT_ROUTINES`](knowledge/routines/PROJECTILE_MOVEMENT_ROUTINES.md) | `table` | 63 B | combat, entity, graphics, table | Projectile movement routines ($90:D967): Jump table of 31 projectile movement routine vectors in Bank `$90` (`$90:D967`..`$90:D9A5`, 63 bytes), indexed by word `+0x08` of the projec... |
+| `$90:D967` | [`PROJECTILE_MOVEMENT_ROUTINES`](knowledge/routines/PROJECTILE_MOVEMENT_ROUTINES.md) | `table` | 30 B | combat, entity, graphics, table | Projectile movement routines ($90:D967): Jump table of projectile routines in bank `$90`, indexed by a record's selector (2·k). Three record fields pick from it: `+$08` the setup wh... |
+| `$90:D985` | [`projectile_routine_none_stp`](knowledge/routines/projectile_routine_none_stp.md) | `code` | 1 B | combat, projectile | Projectile routine 0 — STP, the CPU stops: Selector 0 of the projectile routine table: a lone STP. A record whose routine is 0 must never be thrown by animation command `0x4C` (`$90:D... |
+| `$90:D986` | [`SCRIPT_PROJECTILE_TABLE`](knowledge/routines/SCRIPT_PROJECTILE_TABLE.md) | `table` | 32 B | combat, projectile, script-vm, table | The projectiles script opcode 0xB5 launches (16 record addresses): One 16-bit record address (bank `$90`) per projectile id; a script names id k as 2·k. 16 of the 21 records at `$90:D9A6` are listed; the oth... |
 | `$90:D9A6` | [`tbl_projectile_records`](knowledge/routines/tbl_projectile_records.md) | `table` | 504 B | table | Projectile records (21 records × 24 bytes): 21 projectile records × 24 bytes at `$90:D9A6` (504 bytes total, ending at `$90:DB9D`). Each record specifies an animation record in bank `$... |
 | `$90:DB9E` | [`entity_shadow_oam_sprite_render`](knowledge/routines/entity_shadow_oam_sprite_render.md) | `code` | 131 B | unverified, rea-partial-read | Renders dynamic ground shadow sprites beneath airborne and jumping entities, scaling with Z elevation: Low confidence — Renders dynamic ground shadow sprites beneath airborne and jumping entities, scaling with Z elevation.  > Inferred from a p... |
 | `$90:DC21` | [`projectile_entity_slot_link_init`](knowledge/routines/projectile_entity_slot_link_init.md) | `code` | 20 B | projectile, entity, init, pool, reconstructed-c, g1-pass | Initialize projectile entity slot link pool structures ($90:DC21): Initializes projectile entity slot structures `$6387..$64E7`. Sets `$0EC2 = $6387`, steps in increments of 44 bytes (`#$2C`), and clears slo... |
 | `$90:DC35` | [`projectile_entity_slot_allocate_and_init`](knowledge/routines/projectile_entity_slot_allocate_and_init.md) | `code` | 111 B | unverified, rea-partial-read | Allocates a projectile entity slot in pool $6387..$64E7 and initializes initial launch coordinates and palette: Low confidence — Allocates a projectile entity slot in pool $6387..$64E7 and initializes initial launch coordinates and palette.  > Inferred... |
 | `$90:DCA4` | [`spawn_projectile`](knowledge/routines/spawn_projectile.md) | `code` | 28 B | combat, entity, graphics | Spawn projectile: Spawn projectile. |
-| `$90:DCC0` | [`projectile_spawn_from_script_opcode_ce`](knowledge/routines/projectile_spawn_from_script_opcode_ce.md) | `code` | 152 B | projectile, script, opcode-ce, spawn, trajectory | Projectile spawner and trajectory binding for script opcode $CE ($90:DCC0): # projectile_spawn_from_script_opcode_ce  Spawns and configures a script-initiated projectile for opcode $CE. Allocates an active projectile... |
+| `$90:DCC0` | [`projectile_spawn_from_script_opcode_ce`](knowledge/routines/projectile_spawn_from_script_opcode_ce.md) | `code` | 39 B | projectile, script, opcode-ce, spawn, trajectory | Projectile spawner and trajectory binding for script opcode $CE ($90:DCC0): # projectile_spawn_from_script_opcode_ce  Spawns and configures a script-initiated projectile for opcode $CE. Allocates an active projectile... |
+| `$90:DCE7` | [`projectile_motion_straight_to_target`](knowledge/routines/projectile_motion_straight_to_target.md) | `code` | 63 B | combat, projectile | Projectile routine $0A — fly straight to the target point: Script-path setup: the projectile flies straight from its start to the target point, its speed from opcode 0xB5's last operand, and from the... |
+| `$90:DD26` | [`projectile_motion_stay`](knowledge/routines/projectile_motion_stay.md) | `code` | 7 B | combat, projectile | Projectile routine $0C — no velocity, per-tick routine $14: Script-path setup that sets no velocity: the projectile stays where opcode 0xB5 put it, run each tick by routine `$14` (`$90:DFA9`). |
+| `$90:DD2D` | [`projectile_strike_at_target`](knowledge/routines/projectile_strike_at_target.md) | `code` | 43 B | combat, projectile | Projectile routine $08 — strike at the target point at once: No flight: the projectile runs the hit test at the target point at once (DP `$44` = `$40`, likely the reach), with its own attack proc and p... |
 | `$90:DD58` | [`projectile_motion_init_with_target_speed`](knowledge/routines/projectile_motion_init_with_target_speed.md) | `code` | 9 B | projectile, trajectory, speed, physics | Initialize projectile target speed attribute and resolve trajectory ($90:DD58): Initializes projectile target speed attribute `+$28,Y` from parameter `$0A3F` and jumps to projectile velocity resolver `func_90DD61` (`$90:... |
 | `$90:DD61` | [`projectile_straight_line_velocity_solver`](knowledge/routines/projectile_straight_line_velocity_solver.md) | `code` | 39 B | projectile, physics, velocity, trajectory, subpixel | Straight-line projectile trajectory velocity solver ($90:DD61): # projectile_straight_line_velocity_solver  Resolves straight-line projectile velocity vectors along the projectile facing angle. Multiplies... |
 | `$90:DD88` | [`PROJECTILE_VELOCITY_BY_FACING`](knowledge/routines/PROJECTILE_VELOCITY_BY_FACING.md) | `table` | 32 B | combat, entity, graphics, table | Projectile velocity by facing: Projectile velocity by facing. |
@@ -7055,7 +7068,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$90:DE88` | [`projectile_linear_flight_position_and_collision_tick`](knowledge/routines/projectile_linear_flight_position_and_collision_tick.md) | `code` | 20 B | unverified, rea-partial-read | Updates linear horizontal and vertical flight coordinates for non-ballistic projectiles and tests hitboxes: Low confidence — Updates linear horizontal and vertical flight coordinates for non-ballistic projectiles and tests hitboxes.  > Inferred fro... |
 | `$90:DE9C` | [`projectile_ballistic_arc_gravity_and_ground_strike`](knowledge/routines/projectile_ballistic_arc_gravity_and_ground_strike.md) | `code` | 91 B | unverified, rea-partial-read | Applies downward gravitational acceleration to ballistic projectiles and tests ground strike contact: Low confidence — Applies downward gravitational acceleration to ballistic projectiles and tests ground strike contact.  > Inferred from a pa... |
 | `$90:DEF7` | [`projectile_trajectory_polar_to_cartesian`](knowledge/routines/projectile_trajectory_polar_to_cartesian.md) | `code` | 77 B | projectile, trajectory, trig, math | Convert projectile polar angle and position to Cartesian offsets ($90:DEF7): Converts polar velocity angle `+$1A,Y` and position `(+$14,Y, +$16,Y)` into Cartesian coordinate offsets using trigonometric tables `$80:892... |
-| `$90:DF44` | [`tbl_boomerang_orbit`](knowledge/routines/tbl_boomerang_orbit.md) | `table` | 101 B | projectiles, weapons, combat, math, table | Boomerang and curved projectile elliptical orbit displacement table: Elliptical orbital trajectory table for curved projectiles (such as the Boomerang). Holds 256 word pairs (`[int16_t x, int16_t y]`, 1,024 by... |
+| `$90:DF44` | [`projectile_orbit_tick`](knowledge/routines/projectile_orbit_tick.md) | `code` | 101 B | combat, projectile, weapons, table | Projectile routine $10 — one tick on an ellipse: Per-tick routine of an orbiting projectile (the boomerang-like ones): its lifetime counts down, its angle steps on, and it sits on an ellips... |
 | `$90:DFA9` | [`projectile_motion_and_trail_render_tick`](knowledge/routines/projectile_motion_and_trail_render_tick.md) | `code` | 54 B | projectile, vfx, trail, particle, timer | Projectile lifetime countdown and particle trail render tick ($90:DFA9): Decrements projectile lifetime timer `+$24,X`. When the timer expires, branches to cleanup handler `FUN_90de7b`. While active, converts worl... |
 | `$90:DFDF` | [`math_vector_scale_and_hardware_division`](knowledge/routines/math_vector_scale_and_hardware_division.md) | `code` | 148 B | unverified, rea-partial-read | Clamps scalar factors and computes signed vector division via SNES hardware division registers: Low confidence — Clamps scalar factors and computes signed vector division via SNES hardware division registers.  > Inferred from a partial ... |
 | `$90:E073` | [`BANK90_SLACK_E073`](knowledge/routines/BANK90_SLACK_E073.md) | `slack` | 8,077 B | unused, slack | Bank $90 unmapped ROM slack ($E073): 8,077 B unmapped ROM slack and unmapped ROM space in Bank $90 ($90:E073..$90:FFFF). |
