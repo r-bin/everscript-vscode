@@ -315,7 +315,7 @@ write_word ENEMY_SPAWNER_QUANTITY, 1     a save-area cell by its WRAM name, then
 write_byte STORY_STATE, signed (Byte)STORY_STATE + 1
 damage dog, 10                           an entity (entities/), then an expression
 text string_0afb                         a string (strings/), sound, animation, enemy, projectile by name too
-animate dog, dog_act2_leap, ONCE         an animation (characters/animations/), a mode of ANIMATION_MODE
+animate dog, dog_act2_leap, once         an animation (characters/animations/), a mode (characters/animation_modes/)
 add_shop_item WATER, 30                  an item of the compiler's SHOP_ITEM enum
 load_map 23, 40, 21                      numbers in decimal (0x… for ids and cells)
 skip 7                                   7 bytes no command reaches: not this script's
@@ -441,20 +441,42 @@ routine name (the table `$90:D967`, 2·k, k ≤ 14; a selector outside it as hex
   not list (`$D9EE`, `$DB0E`, `$DB26`, `$DB56`, `$DB6E`) stay in `_base/`.
 - **Next.** Records that move once animation scripts name them; names from what each projectile is.
 
-## fonts, hud *(built, 2026-11-21)*
+## fonts, hud *(built, 2026-11-21; sliced v0.454.0)*
 
 Graphics the engine uploads from bank `$C4` by fixed addresses; each stays at its home (an item only its home fits).
 
-- **fonts** (`graphics/fonts/<font>/`): `default` (`$C4:0000`) and `outro` (`$C4:0C82`), the two offsets of the table
-  `$8C:E6E6` that `font` (`0x9A`) indexes with 2·id. `font.json`: `height` (rows), `row_bytes` (planes a row: 2, ink and
-  shadow), 128 `widths`; `glyphs.png`: 128 glyphs (codes `$20`-`$9F`), 16 a row, 8×`height` each, one colour per plane
-  combination. Scripts write `font default`. Knowledge `font_default`, `font_outro` (the old entries had 95 × 32 bytes).
-- **hud** (`graphics/hud/`): `gauge_tiles.png` (22 2bpp tiles: digits, %, /, the level marks; `$C4:3704` → VRAM
-  `$1F48`, `$8F:8710`), `gauge_palette.json`, `gauge_palette_2.json` (4 colours each to CGRAM 8). Fixed names.
-- **Found on the way** (knowledge corrected): the menu screens run in mode 4 with an 8bpp stone background (`$C4:1F74`),
-  its palette (`$C4:2F74`) and its BG1 tilemap (`$C4:2FF4`, 32×28); those were named as corner and frame tiles.
-- **Next.** The menu screen as a kind (8bpp tiles, palette, tilemap: all verified, `$8C:B797`); the HUD's sprites
-  (portraits, HP pips); moving fonts within bank `$C4` (rewrite `$8C:E6E6` and the `ldx #0` callers).
+```
+graphics/fonts/<font>/font.json         height (12), columns (2: 16 pixels), and per code $20-$9F its width and what a
+                                        string file writes for it ("A", "[[", "…"; control: a tag byte, never drawn)
+graphics/fonts/<font>/glyphs/<code>.png one glyph, 16×12, 2 colours (paper, ink); the shadow is the rasterizer's
+graphics/hud/tiles/<name>.png           one 8×8 2bpp tile: edge, corner, side, digit_0-9, glyph_3f6/3f7, slash,
+                                        level_1-3_left/right; _enum.json is their BG3 order ($3E9 on)
+graphics/hud/hud.json                   palettes (box: CGRAM 8, gauge: CGRAM 12), box (3 rows of 10 cells:
+                                        "corner 2 h v": tile, palette, flips, `behind`), boxes.boy / .dog: column and
+                                        column_alone (editable) with `at` (derived: box, HP, gauge in BG3 cells,
+                                        portrait in pixels), portraits (derived: sprite and block)
+graphics/hud/portraits/<name>.png       preview only: the Boy's and each Dog form's portrait in its colours
+```
+
+- **fonts**: `default` (`$C4:0000`) and `outro` (`$C4:0C82`), the two offsets of the table `$8C:E6E6` that `font`
+  (`0x9A`) indexes with 2·id. A glyph is 1bpp, one byte a row, the left 8 pixels' rows then the right 8's (only
+  W, m, w and the hands `$80`/`$81` use them). Scripts write `font default`.
+- **hud**: the tiles `$C4:3704` (→ BG3 tiles `$3E9`-`$3FE`), the palettes `$C4:3864` / `$C4:386C`, the box
+  `$8F:8000` and the columns (`lda #imm` at `$8F:875E`, `$8F:8A04`, `$8F:89FC` Boy; `$8F:8764`, `$8F:89D2`,
+  `$8F:89C4` Dog). Every reader takes the column from the widget, so a column moves the box, its HP, gauge and
+  portrait; the rows are immediates in many places and stay. Facts: `docs/disassembly/ui/field-hud.md`.
+- **Portraits** are sprites in bank `$CC` naming 16×16 blocks: their pixels are
+  `characters/sprite_blocks_16/<block>.png` (one owner per byte); `hud.json` names the block, `portraits/` shows it.
+- **Next.** The menu screen as a kind (8bpp tiles, palette, tilemap: all verified, `$8C:B797`); the HUD rows (many
+  immediates); moving fonts within bank `$C4` (rewrite `$8C:E6E6` and the `ldx #0` callers).
+
+## animation modes *(built, 2026-11-21)*
+
+`characters/animation_modes/<mode>.json`: the six handlers `animate`'s mode picks (`$8C:E100`, `JMP ($E100,x)`),
+each `{ handler, what }` by routine name; `_enum.json` names[mode / 2]. Names: the compiler's `ANIMATION_MODE`
+lowercased (`once`, `once_freeze`, `loop`, `freeze`, `pause`) and `clear_script_pointers` for mode 8, which the
+compiler does not name (the skeleton ship in the Desert of Doom uses it). Scripts write the mode by these names.
+The table is written in place (code follows it).
 
 ## characters, animations, sprite blocks *(built, 2026-11-20)*
 

@@ -2,7 +2,7 @@
 // procs, behaviours): one file per entry, <kind>/<name>.json, its handler by routine name (readers.mts `routines`)
 // and what it does for the reader; <kind>/_enum.json names[id], where a record holds 2·id. Implode writes the table in
 // place: each is read by an indexed jump in its own bank and has code right after it, so it can neither move nor grow.
-// Characters reference these by name (characters.mts).
+// Characters reference attack procs and behaviours by name (characters.mts), scripts the animation modes.
 //
 // Facts used:
 //   attack procs  $8F:B6AE, JSR ($B6AE,x) in the contact handler ($8F:B57B) and the strike hit test ($8F:B6A5), X =
@@ -10,8 +10,10 @@
 //                 does: knowledge routines/g_attack_proc_table.md (decoded v0.340.1)
 //   behaviours    $8F:CBE0, JMP ($CBE0,x) at $8F:CD17, X = record +$03, read on every idle tick; 15 words
 //                 (docs/entities/ai-behaviours.md)
+//   animation modes  $8C:E100, JMP ($E100,x) at $8C:E0FD, X = animate()'s mode expression; 6 words, code from $8C:E10C
+//                 (knowledge routines/SCRIPT_ANIMATE_MODE_TARGETS.md). Scripts write the mode by name (type animation_mode)
 // Names: ours, from what each does (attack procs: the decoded table; behaviours: the IDLE_BEHAVIOR names the
-// compiler and the Data tab already use).
+// compiler and the Data tab already use; animation modes: the compiler's ANIMATION_MODE names, lowercased).
 import type { Codec, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText } from '../../tree.mts';
@@ -25,13 +27,15 @@ interface Table {
     /** [name, what it does] per id. */
     entries: [string, string][];
     why: string;
+    /** The group folder (default characters). */
+    group?: string;
 }
 
 function handlerTable(t: Table): Codec {
     const DIR = t.kind, BANK = 0x80 | (t.at >> 16), COUNT = t.entries.length, HANDLERS = routines(BANK);
     const bank = `$${BANK.toString(16).toUpperCase()}`;
     return {
-        kind: t.kind, version: 1, path: DIR, folder: `characters/${DIR}`,
+        kind: t.kind, version: 1, path: DIR, folder: `${t.group ?? 'characters'}/${DIR}`,
         defaultName: id => t.entries[id]?.[0] ?? `${t.kind}_${(2 * id).toString(16).padStart(2, '0')}`,
 
         // Only the handler is the entry; `what` is for the reader.
@@ -88,7 +92,7 @@ function handlerTable(t: Table): Codec {
     };
 }
 
-export const ATTACK_PROCS = 'attack_procs', BEHAVIOURS = 'behaviours';
+export const ATTACK_PROCS = 'attack_procs', BEHAVIOURS = 'behaviours', ANIMATION_MODES = 'animation_modes';
 
 export const attackProcsCodec = handlerTable({
     kind: ATTACK_PROCS, at: 0x0FB6AE,
@@ -131,5 +135,21 @@ export const behavioursCodec = handlerTable({
         ['pursue_player', 'pursues when charged, retreats when not'],
         ['roll', 'rolls at its target at full charge'],
         ['stationary_diagonal', 'stays put facing diagonally, strikes within reach'],
+    ],
+});
+
+/** animate()'s modes: the table's six entries. */
+export const ANIMATION_MODE_COUNT = 6;
+
+export const animationModesCodec = handlerTable({
+    kind: ANIMATION_MODES, at: 0x0CE100,
+    why: "animate()'s mode is 2·id into the table at $8C:E100 (JMP ($E100,x) at $8C:E0FD, handlers in bank $8C), 6 entries with code right after them; every handler ends in the animation start $8C:E139",
+    entries: [
+        ['once', 'plays the animation, nothing more'],
+        ['once_freeze', 'sets entity +$12 bit $0200, then plays'],
+        ['loop', 'sets entity +$12 bit $0100 (end_check restarts the script), then plays'],
+        ['freeze', 'sets entity +$10 bit $2000 (hides after a fall: gravity turns it into $0001), then plays'],
+        ['clear_script_pointers', 'clears the words at entity +$01 and +$03 (resume and restart pointers), then plays; vanilla: the skeleton ship in the Desert of Doom'],
+        ['pause', 'sets entity +$10 bit $0001 (hidden and paused), then plays'],
     ],
 });

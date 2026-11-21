@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7109,
+    "total_entries": 7110,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -245,7 +245,7 @@
         "0x8CFFFF"
       ],
       "name": "Script VM Dispatcher, Sound Effects & Stat Curves",
-      "routines": 467,
+      "routines": 470,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -275,7 +275,7 @@
         "0x8FFFFF"
       ],
       "name": "Entity AI, Physics, Collision & Combat Engine",
-      "routines": 468,
+      "routines": 466,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -5262,7 +5262,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8C — Script VM Dispatcher, Sound Effects & Stat Curves
 
-**Coverage:** 467 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 470 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5657,12 +5657,15 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:E08E` | [`write_word_to_expression_address`](knowledge/routines/write_word_to_expression_address.md) | `code` | 15 B | script-vm, memory-write | Write a word to an expression-selected data-bank address: Evaluates a destination expression followed by a value expression, stores the value as a word at the destination indexed in the current data... |
 | `$8C:E09D` | [`write_byte_to_expression_address`](knowledge/routines/write_byte_to_expression_address.md) | `code` | 19 B | script-vm, memory-write | Write a byte to an expression-selected data-bank address: Evaluates a destination expression followed by a value expression, stores the low byte at the destination indexed in the current data bank, ... |
 | `$8C:E0B0` | [`script_op_78_animate`](knowledge/routines/script_op_78_animate.md) | `code` | 80 B | script-vm | Script opcode 0x78: play an entity animation: Handler of script opcode 0x78. It evaluates the entity expression, fetches the animation word from... |
-| `$8C:E100` | [`SCRIPT_ANIMATE_MODE_TARGETS`](knowledge/routines/SCRIPT_ANIMATE_MODE_TARGETS.md) | `table` | 12 B | script-vm | Opcode 0x78 mode dispatch targets: Six little-endian code addresses selected by the mode expression in script opcode 0x78. The handler uses the expression value directly as a ... |
-| `$8C:E10C` | [`script_animate_mode_effects`](knowledge/routines/script_animate_mode_effects.md) | `code` | 45 B | script-vm | Opcode 0x78 mode effects: This code contains the direct entity-state changes for opcode 0x78 modes 2, 4, 6, and 8. The four table-targeted paths branch to the common ... |
+| `$8C:E100` | [`SCRIPT_ANIMATE_MODE_TARGETS`](knowledge/routines/SCRIPT_ANIMATE_MODE_TARGETS.md) | `table` | 12 B | script-vm, animation | Opcode 0x78 mode dispatch targets (animate's mode): The six handlers animate()'s mode picks, by mode value (a byte offset, so even values 0-10). Open Evermore writes them as `characters/animat... |
+| `$8C:E10C` | [`animate_mode_clear_script_pointers`](knowledge/routines/animate_mode_clear_script_pointers.md) | `code` | 9 B | script-vm, animation | animate() mode 8: clear the entity's resume and restart pointers: Clears the words at entity `+$01` and `+$03` (with DP 0: the high byte and bank of the resume pointer `+$00..+$02`, and the restart point `+... |
+| `$8C:E115` | [`animate_mode_once_freeze`](knowledge/routines/animate_mode_once_freeze.md) | `code` | 8 B | script-vm, animation | animate() mode 2 (ONCE_FREEZE): entity +$12 bit $0200: Sets bit `$0200` of entity `+$12`, then starts the animation. ONCE_FREEZE in the compiler. |
+| `$8C:E11D` | [`animate_mode_loop`](knowledge/routines/animate_mode_loop.md) | `code` | 8 B | script-vm, animation | animate() mode 4 (LOOP): entity +$12 bit $0100: Sets bit `$0100` of entity `+$12` (the state `end_check` restarts the script in), then starts the animation. LOOP in the compiler. |
+| `$8C:E125` | [`animate_mode_pause`](knowledge/routines/animate_mode_pause.md) | `code` | 11 B | script-vm, animation | animate() mode 10 (PAUSE): entity +$10 bit $0001: Sets bit `$0001` (hidden and paused) of entity `+$10`, which the common path had just cleared, then starts the animation. PAUSE in the compi... |
+| `$8C:E130` | [`animate_mode_freeze`](knowledge/routines/animate_mode_freeze.md) | `code` | 9 B | script-vm, animation | animate() mode 6 (FREEZE): entity +$10 bit $2000: Sets bit `$2000` of entity `+$10` (hides after a fall: gravity turns it into `$0001`), then falls into the animation start. FREEZE in the co... |
 | `$8C:E139` | [`animate_id_to_record`](knowledge/routines/animate_id_to_record.md) | `code` | 29 B | entities, animation, scripts, script-vm | animate()'s id → animation record (global id table, or a field of the character's ROM record): An id below `$8000` is looked up in the global id table at `$C4:3C92`. An id from `$8000` names a field of the character's own record, `+$32... |
 | `$8C:E156` | [`script_op_79_animate_and_wait`](knowledge/routines/script_op_79_animate_and_wait.md) | `code` | 36 B | script-vm | Script opcode 0x79: play an entity animation and wait: Handler of script opcode 0x79. Calls opcode `$8C:E0B0`, then checks entity `+$88`; if no waiter is... |
-| `$8C:E17A` | [`script_op_7f_name_entry`](knowledge/routines/script_op_7f_name_entry.md) | `code` | 1 B | script-vm, widescreen, widescreen.menu | Script opcode 0x7F: name entry screen: Handler of script opcode 0x7F. What it does, why it exists and how scripts use it: the opcode entr... |
-| `$8C:E17B` | [`script_animate_mode_10_path`](knowledge/routines/script_animate_mode_10_path.md) | `code` | 130 B | script-vm | Opcode 0x78 mode 10 path: This is the indirect dispatch target for mode value 10. It performs a series of engine calls, fetches one extra word through the script poin... |
+| `$8C:E17A` | [`script_op_7f_name_entry`](knowledge/routines/script_op_7f_name_entry.md) | `code` | 131 B | script-vm, widescreen, widescreen.menu | Script opcode 0x7F: name entry screen: Handler of script opcode 0x7F. What it does, why it exists and how scripts use it: the opcode entr... |
 | `$8C:E1FD` | [`BANK8C_PAD_E1FD`](knowledge/routines/BANK8C_PAD_E1FD.md) | `padding` | 3 B | unused, padding | Bank $8C alignment padding ($E1FD): 3 B alignment padding and unmapped ROM space in Bank $8C ($8C:E1FD..$8C:E1FF). |
 | `$8C:E200` | [`data_8CE200`](knowledge/routines/data_8CE200.md) | `data` | 2 B | data, cdl | CDL data block ($8C:E200): CDL-identified data block in ROM at $8C:E200. |
 | `$8C:E202` | [`data_8CE202`](knowledge/routines/data_8CE202.md) | `data` | 1 B | data, cdl | CDL data block ($8C:E202): CDL-identified data block in ROM at $8C:E202. |
@@ -6094,13 +6097,11 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8F — Entity AI, Physics, Collision & Combat Engine
 
-**Coverage:** 468 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 466 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
-| `$8F:8000` | [`entity_shadow_blob_chr_tiles_8f8000`](knowledge/routines/entity_shadow_blob_chr_tiles_8f8000.md) | `data` | 20 B | graphics, entity, chr, cdl | Entity ground contact shadow blob CHR tiles ($8F:8000): Entity ground contact shadow blob CHR tiles ($8F:8000). |
-| `$8F:8014` | [`entity_particle_spark_chr_tiles_8f8014`](knowledge/routines/entity_particle_spark_chr_tiles_8f8014.md) | `data` | 20 B | graphics, entity, particle, cdl | Entity impact spark particle CHR tiles ($8F:8014): Entity impact spark particle CHR tiles ($8F:8014). |
-| `$8F:8028` | [`entity_dust_cloud_chr_tiles_8f8028`](knowledge/routines/entity_dust_cloud_chr_tiles_8f8028.md) | `data` | 20 B | graphics, entity, particle, cdl | Entity movement dust puff particle CHR tiles ($8F:8028): Entity movement dust puff particle CHR tiles ($8F:8028). |
+| `$8F:8000` | [`hud_box_tilemap`](knowledge/routines/hud_box_tilemap.md) | `data` | 60 B | hud, graphics, ui | Field HUD box: 3 rows of 10 BG3 map words, drawn for the Boy and the Dog: The frame of the HUD's two boxes, one BG3 map word a cell: the top edge (the HP digits are written over its row), the sides around an empty ... |
 | `$8F:803C` | [`party_records_from_templates`](knowledge/routines/party_records_from_templates.md) | `code` | 210 B | entities, boy, dog | New game: copy the Boy's and Dog's character records into WRAM ($0A26) with one block move: The party's records start as copies of character records 0 (Boy) and 1 (Dog). From then on the game changes them in WRAM, and the enemy inde... |
 | `$8F:810E` | [`hud_portraits_init`](knowledge/routines/hud_portraits_init.md) | `code` | 24 B | hud, sprites, boy, dog | HUD setup — the Boy's and the Dog's portrait sprites ($4EF7, $4EFA): Part of the setup that runs before play: it names the sprite the HUD draws beside each character's HP. The Boy's face is `$CC37AC` (block `$... |
 | `$8F:8126` | [`dog_companion_entity_slot_init`](knowledge/routines/dog_companion_entity_slot_init.md) | `code` | 163 B | entities, dog, companion, party, init | Companion Dog active entity slot initialization and WRAM character record binding: Initializes the companion Dog's active world entity slot and combat records: - Binds party slot registers `$7E:0B09`, `$7E:0B0B`, `$7E:0B0D`... |
@@ -6132,7 +6133,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8F:86C0` | [`item_received_notification_banner`](knowledge/routines/item_received_notification_banner.md) | `code` | 59 B | item, ui, script, cutscene | Render floating item received notification banner and resume script VM: Renders the floating "Received <item>" text banner above the active character and resumes the event script by pulling the callback address f... |
 | `$8F:86FB` | [`BANK8F_PAD_86FB`](knowledge/routines/BANK8F_PAD_86FB.md) | `padding` | 9 B | unused, padding | Bank $8F alignment padding ($86FB): 9 B alignment padding and unmapped ROM space in Bank $8F ($8F:86FB..$8F:8703). |
 | `$8F:8704` | [`tbl_8F8704`](knowledge/routines/tbl_8F8704.md) | `table` | 12 B | table, cdl, lookup, increasing_curve | CDL increasing curve: 4 entries × 3B: CDL lookup table at $8F:8704 (12 bytes, 4 entries × 3B). Index: $7E2348 > and #$00FF > tax. Result: sta $7E0026. Read by award_kill_money+$5... |
-| `$8F:8710` | [`field_hud_weapon_stamina_gauge_vram_dma_upload`](knowledge/routines/field_hud_weapon_stamina_gauge_vram_dma_upload.md) | `code` | 238 B | unverified, rea-partial-read, reconstructed-c, g1-pass | DMA transfers weapon stamina gauge and attack power bar graphics from ROM into VRAM and CGRAM: Low confidence — DMA transfers weapon stamina gauge and attack power bar graphics from ROM into VRAM and CGRAM.  > Inferred from a partial r... |
+| `$8F:8710` | [`field_hud_weapon_stamina_gauge_vram_dma_upload`](knowledge/routines/field_hud_weapon_stamina_gauge_vram_dma_upload.md) | `code` | 238 B | hud, reconstructed-c, g1-pass | Field HUD setup: tiles to BG3 $3E9, two palettes, the Boy and Dog widgets (column, row, gauge): Sets up the field HUD (read 2026-11-21): uploads the 22 HUD tiles (`$C4:3704`, `$160` bytes) to VRAM word `$1F48` (BG3 tiles `$3E9`-`$3FE`) ... |
 | `$8F:87FE` | [`field_hud_meters_refresh_and_reactivate`](knowledge/routines/field_hud_meters_refresh_and_reactivate.md) | `code` | 421 B | hud, stamina, hp, field, ui | Field HUD player status bars and stamina meter reactivator: Reactivates and redraws the bottom-screen field HUD meters (player HP gauges and weapon attack power stamina gauge) upon closing any full-sc... |
 | `$8F:89A3` | [`field_cutscene_dialogue_sound_cleanup`](knowledge/routines/field_cutscene_dialogue_sound_cleanup.md) | `code` | 207 B | cutscene, audio, sound, field, dialogue | Field cutscene audio queue and sound cleanup: Flushes and cleans up dialogue speech sounds and active audio queues during cutscene transitions and major room state changes. |
 | `$8F:8A72` | [`combat_melee_weapon_attack_resolve_damage`](knowledge/routines/combat_melee_weapon_attack_resolve_damage.md) | `code` | 114 B | unverified, rea-partial-read | Resolves physical melee weapon strikes, computing damage, stamina scaling, target flinch recoil, and impact au: Low confidence — Resolves physical melee weapon strikes, computing damage, stamina scaling, target flinch recoil, and impact audio.  > Infer... |
@@ -8165,7 +8166,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
-| `$C4:0000` | [`font_default`](knowledge/routines/font_default.md) | `table` | 3,202 B | ui, font, graphics, tables, table | The default font: header, 128 glyphs, 128 widths: The font dialogue and menus write with, the one `font 0` selects: a header (12 rows a glyph, 2 bytes a row), 128 glyphs for codes `$20`-`$9F... |
+| `$C4:0000` | [`font_default`](knowledge/routines/font_default.md) | `table` | 3,202 B | ui, font, graphics, tables, table | The default font: header, 128 glyphs, 128 widths: The font dialogue and menus write with, the one `font 0` selects: a header (12 rows a glyph, 2 byte columns), 128 glyphs for codes `$20`-`$9... |
 | `$C4:0C82` | [`font_outro`](knowledge/routines/font_outro.md) | `table` | 3,202 B | ui, font, graphics, tables, table | The outro font: header, 128 glyphs, 128 widths: The second font, the one `font 2` selects (the ending): the same layout as the default font. Open Evermore: `graphics/fonts/outro/`. |
 | `$C4:1904` | [`data_C41904`](knowledge/routines/data_C41904.md) | `data` | 32 B | graphics | 16 words after the outro font, colour-shaped ($C4:1904): Sixteen 15-bit words that look like a 16-colour palette; nothing found reads them yet. |
 | `$C4:1924` | [`menu_cursor_arrow_tiles_c41924`](knowledge/routines/menu_cursor_arrow_tiles_c41924.md) | `data` | 96 B | graphics, ui, menu, cdl | Menu navigation cursor arrow tiles ($C4:1924): Menu navigation cursor arrow tiles ($C4:1924). |
@@ -8189,9 +8190,9 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$C4:2F74` | [`menu_screen_background_palette`](knowledge/routines/menu_screen_background_palette.md) | `data` | 128 B | graphics, menu, palette | Menu screen stone background palette (64 colours to CGRAM 32): The stone background's colours. Was called window corner tiles (a guess). |
 | `$C4:2FF4` | [`menu_screen_background_tilemap`](knowledge/routines/menu_screen_background_tilemap.md) | `data` | 1,792 B | graphics, menu, tilemap | Menu screen BG1 tilemap (32×28 entries): How the stone background's 8bpp tiles are laid out on the menu screens (mode 4, BG1). Was called window frame tiles (a guess). The 16 bytes ... |
 | `$C4:36F4` | [`data_C436F4`](knowledge/routines/data_C436F4.md) | `data` | 16 B | graphics | 16 bytes between the menu tilemap and the HUD gauge tiles, tile-shaped ($C4:36F4): One tile's worth of bytes no known upload reads. |
-| `$C4:3704` | [`hud_gauge_tiles`](knowledge/routines/hud_gauge_tiles.md) | `data` | 352 B | graphics, hud | Field HUD gauge tiles: digits, %, /, level marks (22 2bpp tiles): The field HUD's gauge graphics. Was called equipment slot border tiles (a guess). Open Evermore: `graphics/hud/gauge_tiles.png`. |
-| `$C4:3864` | [`hud_gauge_palette`](knowledge/routines/hud_gauge_palette.md) | `data` | 8 B | graphics, hud, palette | Field HUD gauge palette (4 colours to CGRAM 8): Four colours of the HUD gauge tiles. Was called stat arrow tiles (a guess). Open Evermore: `graphics/hud/gauge_palette.json`. |
-| `$C4:386C` | [`hud_gauge_palette_2`](knowledge/routines/hud_gauge_palette_2.md) | `data` | 8 B | graphics, hud, palette | Field HUD gauge palette, second load (4 colours to CGRAM 8): A second set of four colours for the same CGRAM slot. Open Evermore: `graphics/hud/gauge_palette_2.json`. |
+| `$C4:3704` | [`hud_gauge_tiles`](knowledge/routines/hud_gauge_tiles.md) | `data` | 352 B | graphics, hud | Field HUD tiles: box frame, digits, slash, level marks (22 2bpp tiles, BG3 $3E9-$3FE): The field HUD's tiles, BG3 tiles `$3E9`-`$3FE`: the box's edge, corner and side, the digits 0-9 (`$3EC`-`$3F5`), `$3F6` and `$3F7` (written ... |
+| `$C4:3864` | [`hud_box_palette`](knowledge/routines/hud_box_palette.md) | `data` | 8 B | graphics, hud, palette | Field HUD palette: boxes and HP digits (BG3 palette 2, CGRAM 8): Four colours of the HUD's BG3 palette 2: the boxes (hud_box_tilemap) and the HP digits. Was called stat arrow tiles (a guess). Open Evermore... |
+| `$C4:386C` | [`hud_gauge_palette`](knowledge/routines/hud_gauge_palette.md) | `data` | 8 B | graphics, hud, palette | Field HUD gauge palette (BG3 palette 3, CGRAM 12): Four colours of BG3 palette 3, the one the charge gauge's tiles are shown in. Open Evermore: `graphics/hud/hud.json` `palettes.gauge`. |
 | `$C4:3874` | [`weapon_entries`](knowledge/routines/weapon_entries.md) | `table` | 40 B | weapons, tables, table | Weapon index → 36-byte weapon entry (and the Bazooka's by ammo at $C4:388E): Entry layout, as `$8F:81C9` copies it: `+$04` palette (bank `$90`), `+$06` range, `+$08`-`+$18` nine animation ids (stand, walk, run, attack... |
 | `$C4:389C` | [`BANKC4_PAD_389C`](knowledge/routines/BANKC4_PAD_389C.md) | `padding` | 74 B | unused, padding | Bank $C4 alignment padding ($389C): 74 B alignment padding and unmapped ROM space in Bank $C4 ($C4:389C..$C4:38E5). |
 | `$C4:38E6` | [`BOY_WEAPON_TABLE`](knowledge/routines/BOY_WEAPON_TABLE.md) | `table` | 540 B | table | Boy weapon table: 15 × 36 bytes: attack, walk, run, knockback per weapon. |

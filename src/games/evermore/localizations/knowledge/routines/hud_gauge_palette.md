@@ -1,14 +1,15 @@
 ---
-addr: C43864
+addr: C4386C
 size: 8
-end: C4386B
+end: C43873
 kind: data
 category: 🎨
 name: hud_gauge_palette
-title: Field HUD gauge palette (4 colours to CGRAM 8)
+title: Field HUD gauge palette (BG3 palette 3, CGRAM 12)
 confidence: confirmed
 tags: [graphics, hud, palette]
-evidence: ["disasm: $8F:8726 loads $C4:3864, 8 bytes, to CGRAM 8 through cgram_palette_dma_enqueue_or_immediate ($80:85FA)"]
-see: [routines/hud_gauge_tiles.md, routines/hud_gauge_palette_2.md]
+evidence: ["disasm: $8F:873C loads $C4:386C, 8 bytes, with $2E = $000C: CGRAM 12 through $80:85FA (2026-11-21; read as CGRAM 8 before)", "disasm: the gauge's eight map words (widget +$08, $8F:87AF) use palette 3"]
+see: [routines/hud_box_palette.md, routines/hud_gauge_tiles.md]
 ---
-Four colours of the HUD gauge tiles. Was called stat arrow tiles (a guess). Open Evermore: `graphics/hud/gauge_palette.json`.
+Four colours of BG3 palette 3, the one the charge gauge's tiles are shown in. Open Evermore: `graphics/hud/hud.json`
+`palettes.gauge`.

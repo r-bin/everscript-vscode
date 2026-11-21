@@ -19,7 +19,7 @@ const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 /** Where a kind lives in the tree when not at the top (folders.mts). */
-const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts/global', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud' };
+const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts/global', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -98,14 +98,23 @@ if (!path || !existsSync(path)) {
     // Script lines name rooms, objects, own animations, flag enums, attach scripts, fonts and cell values; a font is
     // a folder whose width edit lands in its table and round-trips.
     const all = [...tree].filter(([p]) => p.endsWith('.txt') && !p.startsWith('strings/')).map(([, b]) => text(b)).join('\n');
-    for (const want of [/^restore_object_state object_\d+, /m, /^load_map \d+, \d+, [a-z]/m, /, own\.[a-z_]+, /m, /^spawn [a-z_0-9]+, [A-Z_]+ ?\|? ?/m, /^attach_script .*, @/m, /^font default$/m, /^write_word PRIZE, [A-Z]/m])
+    for (const want of [/^restore_object_state object_\d+, /m, /^load_map \d+, \d+, [a-z]/m, /, own\.[a-z_]+, /m, /^spawn [a-z_0-9]+, [A-Z_]+ ?\|? ?/m, /^attach_script .*, @/m, /^font default$/m, /^write_word PRIZE, [A-Z]/m, /^animate .*, loop$/m])
         assert.ok(want.test(all), `no line like ${want}`);
     const widened = new Map(tree);
-    editJson(widened, 'graphics/fonts/default/font.json', f => { f.widths[1] = 9; });
+    editJson(widened, 'graphics/fonts/default/font.json', f => { f.glyphs[1].width = 9; });
+    widened.set('graphics/fonts/default/glyphs/41.png', tree.get('graphics/fonts/default/glyphs/57.png')!);
+    // The HUD: a box's column lands at every site that stores it; a tile is its own PNG (the digit 0 as the digit 1).
+    editJson(widened, 'graphics/hud/hud.json', h => { h.boxes.dog.column = 18; });
+    widened.set('graphics/hud/tiles/digit_0.png', tree.get('graphics/hud/tiles/digit_1.png')!);
     const w = implode(widened, GAME, KINDS);
     assert.deepStrictEqual(w.findings.list.filter(f => f.severity === 'error'), []);
     assert.strictEqual(w.image![0x040002 + 128 * 24 + 1], 9, 'the width of "!" in the default font');
-    console.log('  ✓ script lines name rooms, objects, own animations, flags, attach scripts, fonts and cell values; a font width edit lands and round-trips');
+    const glyph = (code: number) => [...w.image!.subarray(0x040002 + 24 * (code - 0x20), 0x040002 + 24 * (code - 0x21 + 2))];
+    assert.deepStrictEqual(glyph(0x41), glyph(0x57), '"A" drawn as the 16-pixel "W", both byte columns');
+    assert.deepStrictEqual([w.image![0x0F8765], w.image![0x0F89D3]], [18, 18], "the Dog box's column at both sites");
+    assert.deepStrictEqual([...w.image!.subarray(0x043704 + 16 * 3, 0x043704 + 16 * 4)], [...w.image!.subarray(0x043704 + 16 * 4, 0x043704 + 16 * 5)], 'digit 0 drawn as digit 1');
+    assert.deepStrictEqual(rules(t => editJson(t, 'graphics/hud/hud.json', h => { h.boxes.boy.column = 30; })), ['invalid-value graphics/hud/hud.json#/boxes/boy/column']);
+    console.log('  ✓ script lines name rooms, objects, own animations, flags, attach scripts, fonts, animation modes and cell values; a font width, a glyph, a HUD column and a HUD tile edit land and round-trip; a column off screen is an error');
 
     // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
     const edited = new Map(tree);
@@ -202,7 +211,7 @@ if (!path || !existsSync(path)) {
     const g = implode(grown, GAME, KINDS);
     assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
-    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16], ['fonts', 2], ['hud', 3]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
+    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16], ['fonts', 2], ['hud', 22], ['animation_modes', 6]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
     console.log('  ✓ a new tile, string and table script: each table grows and moves, the round trip holds; limits at the engine\'s');
 
     // The table kinds of the table hack: a new animation, character (a record and an ENEMY id) and sprite blocks grow

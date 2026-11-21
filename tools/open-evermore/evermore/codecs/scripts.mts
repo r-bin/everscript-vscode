@@ -49,6 +49,7 @@ import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, OBJECTS, objectName, 
 import type { Member, Patch, Script } from './script-lines.mts';
 import { KIND as STRINGS, STRING_COUNT } from './strings.mts';
 import { FONT_COUNT, FONTS } from './graphics.mts';
+import { ANIMATION_MODE_COUNT, ANIMATION_MODES } from './handler-tables.mts';
 
 export { WINDOW };
 
@@ -246,6 +247,7 @@ export const scriptsCodec: Codec = {
             [CHARACTERS, characterNames(rom, name, count, nameAt).enemies],
             [MAP_DIR, Array.from({ length: count(MAP_DIR) ?? MAP_COUNT }, (_, i) => name(MAP_DIR, i))],
             [FONTS, Array.from({ length: count(FONTS) ?? FONT_COUNT }, (_, i) => name(FONTS, i))],
+            [ANIMATION_MODES, Array.from({ length: ANIMATION_MODE_COUNT }, (_, i) => name(ANIMATION_MODES, i))],
         ]);
         const entities: (string | undefined)[] = [];
         for (const op of ENTITY_SUB_OPS) entities[op] = name(ENTITIES, op);

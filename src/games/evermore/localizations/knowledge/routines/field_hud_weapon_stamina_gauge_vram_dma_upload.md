@@ -5,29 +5,20 @@ size: 238
 kind: code
 category: 🧠
 name: field_hud_weapon_stamina_gauge_vram_dma_upload
-title: DMA transfers weapon stamina gauge and attack power bar graphics from ROM into VRAM and CGRAM
-confidence: verified
-tags: [unverified, rea-partial-read, reconstructed-c, g1-pass]
-evidence: "[\"disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified\"]; G1 pass (4/4 reference states, 0/0 fuzzed states, mutation caught)"
+title: Field HUD setup: tiles to BG3 $3E9, two palettes, the Boy and Dog widgets (column, row, gauge)
+confidence: confirmed
+tags: [hud, reconstructed-c, g1-pass]
+evidence: ["disasm: the whole routine read 2026-11-21 (lda #imm : sta for every widget field; $2E = $1F48, $0008, $000C)", "G1 pass (4/4 reference states, 0/0 fuzzed states, mutation caught)"]
 ---
-Low confidence — DMA transfers weapon stamina gauge and attack power bar graphics from ROM into VRAM and CGRAM.
-
-> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
-
-Refreshes the on-screen HUD weapon charge bar graphics and stamina meter tile patterns.
-The routine configures DMA channel pointers to stream HUD graphical tiles from ROM bank `$C4` (`$C4:3704`) into VRAM base address `$0160` via `$80:8650`.
-
-It also transfers accompanying HUD gauge palette entries from ROM `$C4:3864` into CGRAM via `$80:85FA`, ensuring the stamina meter reflects weapon level and elemental glow.
+Sets up the field HUD (read 2026-11-21): uploads the 22 HUD tiles (`$C4:3704`, `$160` bytes) to VRAM word `$1F48`
+(BG3 tiles `$3E9`-`$3FE`) and two palettes, `$C4:3864` to CGRAM 8 (BG3 palette 2, boxes and digits) and `$C4:386C`
+to CGRAM 12 (palette 3, the gauge); then fills the two widgets (`$051D` Boy, `$0561` Dog): `+$00` the box's BG3
+column (3, 19), `+$02` its row (25), `+$04` the popup node, `+$06` the gauge's VRAM address (`$1F00`, `$1F20`),
+`+$08` the gauge's eight map words, `+$28` the HP string's seven; sets `$0B29` = 1.
 
 ## Callers
-- `$8E:E08B` (`FUN_8ee08b`)
+- `$8E:E08B` (`field_screen_ppu_layers_and_hud_vram_init`)
 
 ## Callees
-- `$80:85FA` (`FUN_8085fa`)
-- `$80:8650` (`FUN_808650`)
-
-## Variables and memory (hypotheses)
-- `$C4:3704` (ROM base address for stamina gauge graphical tiles)
-- `$C4:3864` (ROM palette definitions for HUD gauges)
-- `$26`, `$28` (DMA source memory pointers)
-- `$2E` (Transfer size in bytes)
+- `$80:85FA` (`cgram_palette_dma_enqueue_or_immediate`)
+- `$80:8650` (`vram_dma_upload_tile_block`)

@@ -8,10 +8,10 @@ name: script_op_78_animate
 title: Script opcode 0x78: play an entity animation
 confidence: confirmed
 tags: [script-vm]
-evidence: ["disasm: opcode-table handler evaluates E, fetches u16, evaluates E, sets carry to continue (vanilla VFS disassembly)", "trace: the game ran 55 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "disasm: indirect mode dispatch at $8C:E0FD through the six-word table $E100-$E10B; shared animation start at $E139 and separate mode-10 target at $E17B (vanilla VFS disassembly)"]
+evidence: ["disasm: opcode-table handler evaluates E, fetches u16, evaluates E, sets carry to continue (vanilla VFS disassembly)", "trace: the game ran 55 distinct instructions with this opcode; each ended where the decoder says (tests/script-vm/goldens.json)", "disasm: indirect mode dispatch at $8C:E0FD through the six-word table $E100-$E10B; every target ends at the shared animation start $E139 (rom bytes, 2026-11-21)"]
 see: [docs/scripts/opcodes.md]
 ---
-Handler of script opcode [0x78](soe://rom/assets/scripts/opcodes/78.md). It evaluates the entity expression, fetches the animation word from the script pointer, then evaluates the mode expression. Its gates, state writes, table targets, and distinct mode-10 path are documented in [animate.md](../../../../../../docs/disassembly/script-vm/animate.md).
+Handler of script opcode [0x78](soe://rom/assets/scripts/opcodes/78.md). It evaluates the entity expression, fetches the animation word from the script pointer, then evaluates the mode expression. Its gates, state writes and the six mode handlers (`characters/animation_modes/` in Open Evermore) are documented in [animate.md](../../../../../../docs/disassembly/script-vm/animate.md).
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

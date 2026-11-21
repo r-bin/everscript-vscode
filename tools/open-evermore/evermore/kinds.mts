@@ -11,7 +11,7 @@ import { opcodesCodec } from './codecs/opcodes.mts';
 import { entitiesCodec } from './codecs/entities.mts';
 import { projectilesCodec } from './codecs/projectiles.mts';
 import { animationsCodec } from './codecs/animations.mts';
-import { attackProcsCodec, behavioursCodec } from './codecs/handler-tables.mts';
+import { animationModesCodec, attackProcsCodec, behavioursCodec } from './codecs/handler-tables.mts';
 import { charactersCodec } from './codecs/characters.mts';
 import { spriteBlocks16Codec, spriteBlocks8Codec } from './codecs/sprite-blocks.mts';
 import { musicCodec, soundsCodec } from './codecs/music.mts';
@@ -30,4 +30,4 @@ export const PAST_END = [{ start: 0x30E293, end: 0x30E293 + 0x780 + 0x40 }];
 export const POINTER_WINDOWS = [SCRIPT_WINDOW];
 
 export const KINDS: Codec[] = [mapsCodec, tileFamiliesCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
-    animationsCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, musicCodec, soundsCodec, fontsCodec, hudCodec];
+    animationsCodec, animationModesCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, musicCodec, soundsCodec, fontsCodec, hudCodec];

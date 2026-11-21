@@ -14,7 +14,7 @@ VRAM, CGRAM, OAM, WRAM and the PPU registers, and pictures with single layers sw
 
 | Part | Layer | Where | Palette | Notes |
 |---|---|---|---|---|
-| Boxes, HP digits, gauge | BG3 (2bpp) | map at VRAM word `$0800` (BG3SC `$08`), rows 24..27; Boy columns 3..12, Dog 19..28 | BG3 palette 2 = CGRAM 8..11 | priority bit set; BGMODE `$39` puts BG3 priority tiles over everything, sprites included |
+| Boxes, HP digits, gauge | BG3 (2bpp) | map at VRAM word `$0800` (BG3SC `$08`), rows 25..27; Boy columns 3..12, Dog 19..28 | BG3 palette 2 = CGRAM 8..11 (boxes, digits), palette 3 = CGRAM 12..15 (gauge) | priority bit set; BGMODE `$39` puts BG3 priority tiles over everything, sprites included |
 | Portraits | OBJ, 16×16 | Boy tile `$080` at (8, 201), Dog `$082` at (232, 201); OAM priority 3 | OBJ palette 6 (Boy), 7 (Dog) | always two adjacent OAM slots; which ones moves (0/1 in the field, 9/10 or 11/12 under a ring menu) |
 
 - **Screen lines.** BG3's vertical scroll is `$3FF` in every state (shadow `$0118` = `$FFFF`),
@@ -37,24 +37,38 @@ VRAM, CGRAM, OAM, WRAM and the PPU registers, and pictures with single layers sw
 
 | Offset | Boy | Dog | Meaning |
 |---|---|---|---|
-| `+$00` | `$0003` | `$0013` | widget type |
-| `+$02` | `$0019` | `$0019` | unknown (the old reading "screen column" does not fit: both boxes are at different columns) |
+| `+$00` | `$0003` | `$0013` | the box's BG3 column (11 when the other box is hidden); every reader adds it to a VRAM row address |
+| `+$02` | `$0019` | `$0019` | the box's top row, 25 (only the HP string reads it; the box rows are immediates) |
 | `+$04` | `$3A3E` | `$3A7E` | the character's popup node (`damage_popup_boy_node` / `damage_popup_dog_node`) |
 | `+$06` | `$1F00` | `$1F20` | VRAM word address of the character's four gauge glyphs |
 | `+$08` | 8 words | 8 words | the gauge strip's tilemap words |
 | `+$28` | 7 words | 7 words | the HP string's tilemap words, edge line around the digits (`$2BE9 $2BEF $2BEC $2BF8 $2BEF $2BEC $2BE9` = `30/30`) |
+
+### Placement (read from the code, 2026-11-21)
+
+| Part | Where | From |
+|---|---|---|
+| box frame | BG3 rows 25..27, columns `+$00`..`+$00`+9 | `hud_box_tilemap` (`$8F:8000`, 3 × 10 words), `$8F:87FE` adds `$0B20`/`$0B40`/`$0B60` to the column |
+| HP string | row `+$02`, column `+$00` + 2 (7 words) | `$8F:9144`: `$0800 + 32·row + column + 2` |
+| gauge | row 26, column `+$00` + 1 (8 words) | `$0B41` + column at `$8F:88AE`, `$8F:8BD3`, `$8F:90CC` (Boy) and the Dog's twins |
+| portrait | x = (column − 2)·8 Boy, (column + 10)·8 Dog; y = row·8 − BG3 scroll (`$011E`) | `$8F:C640` (`$4EF7` Boy, `$4FA5` Dog sprite, palette from the entity's `+$0C`) |
+
+The columns are `lda #imm : sta` in the code: `$8F:875E` and `$8F:8A04` (Boy 3), `$8F:89FC` (Boy alone 11, when
+`$2261` bit 0 hides the Dog's box), `$8F:8764` and `$8F:89D2` (Dog 19), `$8F:89C4` (Dog alone 11, `$2261` bit 1).
+Open Evermore writes them as `graphics/hud/hud.json` `boxes`, with the box, tiles, palettes and the portraits.
 
 ### Routines
 
 | Address | Entry | Role |
 |---|---|---|
 | `$8E:E08B` | `field_screen_ppu_layers_and_hud_vram_init` | field PPU set-up (BGMODE `$39`, maps, BG12NBA `$22`) |
-| `$8F:8710` | `field_hud_weapon_stamina_gauge_vram_dma_upload` | fills the widgets (type, `$1F00`/`$1F20`), uploads HUD graphics |
+| `$8F:8710` | `field_hud_weapon_stamina_gauge_vram_dma_upload` | uploads the HUD tiles and palettes (CGRAM 8 and 12), fills the widgets (column, row, `$1F00`/`$1F20`) |
 | `$8F:87FE` | `field_hud_meters_refresh_and_reactivate` | redraws the HUD when a ring menu, the pause menu or a script screen closes; sets `$0B29` bit 1 |
 | `$8F:8AE4` | `hud_stamina_meter_recharge_step` | charge percentage into the gauge words (`$2BE9`, `$2BF6`, `$2BF7`, `$2BFF`: palette 2 glyphs); flash timers `$0B4D`/`$0B4F` |
 | `$8F:9144` | `hud_render_entity_hp_string` | `cur/max` into the widget (`format_16bit_integer_to_decimal_digits`, `$80:870C`) |
 | `$8F:810E` | `hud_portraits_init` | portrait records: `$4EF7` = `$CC37AC` (Boy), `$4EFA` = `$CC3C8E` (Dog) |
-| `$90:8CEE`, `$90:8D2D` | `hud_render_boy_hp_gauge_sprite`, `hud_render_dog_hp_gauge_sprite` | sprites of the HUD; their entries give positions (224, 16) and (96, 162) that match none of the measured sprites: unchecked |
+| `$8F:C640` | (part of the entity draw) | draws both portraits at the positions above |
+| `$90:8CEE`, `$90:8D2D` | `hud_render_boy_hp_gauge_sprite`, `hud_render_dog_hp_gauge_sprite` | animation-script commands (they read `[$5D]`), not the HUD's: their positions (224, 16) and (96, 162) match no HUD sprite |
 
 ## Who else uses what the HUD uses
 
