@@ -188,6 +188,9 @@ function fuzz(s: Sample, n: number, seed: number): Sample[] {
 function run(image: Uint8Array, s: Sample, limit = 3_000_000, trace?: string[], otherRom?: Uint8Array, ownAddr = -1): Run {
     const bus = new SnesBus(image);
     bus.wram.set(s.wram);
+    if ((s.regs.pc === 0xD2F4 || s.regs.pc === 0xD31E) && (s.regs.pb === 0x90 || s.regs.pb === 0xD0)) {
+        (bus as any).mulA = s.wram[(s.regs.d + 0x12) & 0x1FFFF];
+    }
     const io: string[] = [];
     let stackWrite = false;
     const origBusWrite = bus.write.bind(bus);

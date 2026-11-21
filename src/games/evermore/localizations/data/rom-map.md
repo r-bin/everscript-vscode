@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7146,
+    "total_entries": 7147,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -115,7 +115,7 @@
         "0x90FFFF"
       ],
       "name": "Animation VM, Sprites, Projectiles & Tile Animation",
-      "routines": 504,
+      "routines": 505,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -6599,7 +6599,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $90 — Animation VM, Sprites, Projectiles & Tile Animation
 
-**Coverage:** 504 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 505 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -7038,7 +7038,8 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$90:CFF0` | [`dim_cgram_palette_buffer_by_half`](knowledge/routines/dim_cgram_palette_buffer_by_half.md) | `code` | 48 B | palette, cgram, color-math, menu | CGRAM 15-bit color buffer 50% brightness dimmer ($90:CFF0): Reduces the brightness of 112 colors in palette staging buffer `$7E:61A9` by 50% for menu transitions. Operates on 15-bit BGR555 words via l... |
 | `$90:D020` | [`load_up_to_7_tile_families_from_map_palette`](knowledge/routines/load_up_to_7_tile_families_from_map_palette.md) | `code` | 132 B | maps, palettes, graphics | Load up to 7 tile families from `MAP_PALETTE`: Loads up to 7 tile families (32 bytes each: 16 colors × 2 bytes) from master palette table `$9C:C322` into WRAM `$7E:61A7` via SNES DMA Chan... |
 | `$90:D0A4` | [`palette_color_math_and_lighting_transition_suite`](knowledge/routines/palette_color_math_and_lighting_transition_suite.md) | `code` | 514 B | palette, cgram, color-math, graphics, lighting | CGRAM palette color math, subtractive blending, and cross-fade lighting routines: Suite of PPU CGRAM palette color math and cross-fade transition routines: - Performs bitwise 15-bit BGR555 channel decomposition (5 bits Red... |
-| `$90:D2A6` | [`graphics_color_555_linear_blend_lerp`](knowledge/routines/graphics_color_555_linear_blend_lerp.md) | `code` | 120 B | palettes, graphics, math | Linearly interpolates two 15-bit BGR555 colors using hardware multiplier ($90:D2A6): Linearly interpolates between two 15-bit BGR555 colors in `DP $16` and `DP $18` according to blend factor `DP $12` (`$12 & $FF == 0` returns... |
+| `$90:D2A6` | [`graphics_color_555_linear_blend_lerp`](knowledge/routines/graphics_color_555_linear_blend_lerp.md) | `code` | 78 B | palettes, graphics, math | Linearly interpolates two 15-bit BGR555 colors using hardware multiplier ($90:D2A6): Linearly interpolates between two 15-bit BGR555 colors in `DP $16` and `DP $18` according to blend factor `DP $12` (`$12 & $FF == 0` returns... |
+| `$90:D2F4` | [`sub_90D2F4`](knowledge/routines/sub_90D2F4.md) | `code` | 42 B | palette, graphics, hardware-multiplier, lerp, reconstructed-c, g1-pass | Blue and green color channel linear interpolation and palette packing: Palette processing routine for blue and green channel interpolation and packing. Stores the red channel value in A into DP `$1C`, linearly i... |
 | `$90:D31E` | [`sub_90D31E`](knowledge/routines/sub_90D31E.md) | `code` | 36 B | palette, graphics, hardware-multiplier, lerp, reconstructed-c, g1-pass | Green color channel linear interpolation and palette packing: Palette processing routine for green channel interpolation and packing. Linearly interpolates between green channel values in DP `$1A` and D... |
 | `$90:D342` | [`sub_90D342`](knowledge/routines/sub_90D342.md) | `code` | 10 B | code, subroutine, palette, graphics | Palette entry packing and direct page $1C bitwise OR: Palette processing routine widening registers to 16-bit, shifting bits 3..7 left by 2 (`<< 2`), ORing DP register `$1C`, and returning via R... |
 | `$90:D34C` | [`memory_block_copy_indirect_words`](knowledge/routines/memory_block_copy_indirect_words.md) | `code` | 188 B | palette, crossfade, dma, hardware-multiplier | 15-bit BGR555 palette color crossfader and direct word block transfer: Palette color crossfader and block transfer primitive.  Interpolates between two 15-bit BGR555 color palettes using the SNES hardware multip... |

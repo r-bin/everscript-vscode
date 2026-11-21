@@ -690,3 +690,20 @@ Following completion of 100% certified C-binding coverage for Replay 01 in `v0.3
   - Mutation caught: yes.
 - Rated and audited: 306 clean, 0 stale/unrated. Total bound routines: **306**.
 
+### Routine #307: `sub_90D2F4` ($90:D2F4)
+- Bound in `reconstructed-c/90/90D2F4_sub_90D2F4.c`:
+  - Implements the blue and green color channel linear interpolation and palette packing routine:
+    - Stores the incoming red channel in A into DP `$1C`.
+    - Computes absolute difference between blue channel components in DP `$19` and DP `$17`.
+    - Dispatches multiplication of the delta using SNES hardware multiplier register `$4203`.
+    - Adds (or subtracts) the scaled product high byte from `$4217` to interpolate the blue channel and stores to DP `$1D`.
+    - Proceeds through green channel interpolation using DP `$1B` and DP `$1A` with multiplier `$4203` / `$4217`.
+    - Widens accumulator and index registers to 16-bit (`REP #$30`).
+    - Packs the green channel bits `(A & $00F8) << 2` and bitwise ORs with the red/blue component word from DP `$1C`.
+    - Updates processor condition flags and returns via `RTL`.
+- Verified under Gate G1:
+  - 44/44 real states match ROM (100% parity, 44/44 snes9x oracle agreement).
+  - Mutation caught: yes.
+- Rated and audited: 307 clean, 0 stale/unrated. Total bound routines: **307**.
+
+

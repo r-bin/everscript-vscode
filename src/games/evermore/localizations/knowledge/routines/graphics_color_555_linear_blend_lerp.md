@@ -1,7 +1,7 @@
 ---
 addr: 90D2A6
-end: 90D31D
-size: 120
+end: 90D2F3
+size: 78
 kind: code
 category: 🧠
 name: graphics_color_555_linear_blend_lerp
