@@ -11,7 +11,7 @@
 
 Secret of Evermore implements an alchemy system consisting of 35 distinct formulas. Unlike typical MP-based magic systems, spells require specific alchemical reagents from an inventory of 22 ingredient types:
 - **Ingredient Inventory (`$7E:22FF` – `$7E:2314`)**:
-  - 22 contiguous bytes in WRAM: Wax (`$22FF`), Water (`$2300`), Vinegar (`$2301`), Roots (`$2302`), Oil (`$2303`), Mushroom (`$2304`), Mud Pepper (`$2305`), Meteorite (`$2306`), Mineral (`$2307`), Limestone (`$2308`), Iron (`$2309`), Gunpowder (`$230A`), Grease (`$230B`), Feather (`$230C`), Dry Ice (`$230D`), Crystal (`$230E`), Clay (`$230F`), Brimstone (`$2310`), Bone (`$2311`), Atlas Medallion (`$2312`), Ash (`$2313`), Acorns (`$2314`).
+  - 22 contiguous bytes in WRAM: Wax (`$22FF`), Water (`$2300`), Vinegar (`$2301`), Root (`$2302`), Oil (`$2303`), Mushroom (`$2304`), Mud Pepper (`$2305`), Meteorite (`$2306`), Limestone (`$2307`), Iron (`$2308`), Gunpowder (`$2309`), Grease (`$230A`), Feather (`$230B`), Ethanol (`$230C`), Dry Ice (`$230D`), Crystal (`$230E`), Clay (`$230F`), Brimstone (`$2310`), Bone (`$2311`), Atlas Medallion (`$2312`), Ash (`$2313`), Acorn (`$2314`): `$22FF` + the ingredient id, the id indexing the name pointers `$C4:5FF3` (corrected v0.459.1: this list had a "Mineral" and no Ethanol).
   - Standard items cap at 99. Mud Pepper caps at 1.
 - **Cost Table (`$C4:601F`)**:
   - 35 entries $\times$ 4 bytes: `[Ingredient1_ID, Ingredient2_ID, Qty1, Qty2]`.

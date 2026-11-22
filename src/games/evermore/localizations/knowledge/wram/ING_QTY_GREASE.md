@@ -1,21 +1,14 @@
 ---
-addr: 7E2309
-end: 7E2314
-size: 12
-kind: table
+addr: $7E:230A
 name: ING_QTY_GREASE
-title: Ingredient counts 10-21 (part of INVENTORY_COUNTS) — not the currencies
+type: u8
+tags: [ingredient, inventory]
 lifetime: save
 confidence: confirmed
-tags: [inventory, loot]
-evidence: ["test: simulating the loot script 0x3e once per reward, ingredients 0x020A-0x0215 increment $2309-$2314 (ram/7e22ff, v0.202.0)", "disasm: the currency opcodes add, take and test 3-byte amounts at $0AC6 + the currency offset 0/3/6/9 (opcodes/7c, opcodes/0a, rom/8f8689)"]
-see: [knowledge/wram/ING_QTY_WAX.md, knowledge/wram/CURRENCY_TALONS.md, routines/award_kill_money.md]
+evidence: ["rom: ingredient id = index into the name pointers $C4:5FF3 (alchemy/ingredients in Open Evermore); $91:D800 deducts and $8E:8DC5 adds 5 at $22FF + id", "test: the loot script 0x3e, simulated once per reward, increments $22FF + (reward - 0x0200) (ING_QTY_WAX.md, v0.202.0)"]
+see: [knowledge/wram/ING_QTY_WAX.md]
 ---
-Twelve one-byte ingredient counts, inside the inventory table that starts at `$22FF` (Wax): Crystal
-(`$230E`), Clay, Brimstone, Bone, Atlas Medallion, Ash (`$2313`), Acorns (`$2314`) and the five
-before them. The full order and caps are in `knowledge/wram/ING_QTY_WAX.md`.
+Grease held (ingredient 0x0B, cap 99): one byte of the ingredient counts at `$22FF` + id.
 
-**Not the currencies.** An earlier version of this entry called `$2309`-`$2314` the four 24-bit
-currency balances. They are the purses at `$0AC6` (talons), `$0AC9` (jewels), `$0ACC` (gold coins)
-and `$0ACF` (credits): the currency opcodes `0x0A`, `0x7C`, `0x7D`, `0x7E` index them by the offset
-0/3/6/9, and so does the kill-money award `$8F:8689`.
+Corrected v0.459.1: the WRAM map had this stretch one cell off from `$2309` (it left Gunpowder out here and invented a
+23rd ingredient, "Root Extra", at `$2314`).

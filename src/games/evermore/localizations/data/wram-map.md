@@ -666,26 +666,26 @@
 | `$7E:2306` | [`ING_QTY_METEORITE`](knowledge/wram/ING_QTY_METEORITE.md) | `u8` | alchemy | Meteorite (Ingredient 0x07) |
 | `$7E:2307` | [`ING_QTY_LIMESTONE`](knowledge/wram/ING_QTY_LIMESTONE.md) | `u8` | alchemy | Limestone (Ingredient 0x08) |
 | `$7E:2308` | [`ING_QTY_IRON`](knowledge/wram/ING_QTY_IRON.md) | `u8` | alchemy | Iron (Ingredient 0x09) |
-| `$7E:2309` | [`ING_QTY_GREASE`](knowledge/wram/ING_QTY_GREASE.md) | `u8` | alchemy, item | Grease (Ingredient 0x0A) |
-| `$7E:230A` | [`ING_QTY_FEATHER`](knowledge/wram/ING_QTY_FEATHER.md) | `u8` | alchemy | Feather (Ingredient 0x0B) |
-| `$7E:230B` | [`ING_QTY_ETHANOL`](knowledge/wram/ING_QTY_ETHANOL.md) | `u8` | alchemy | Ethanol (Ingredient 0x0C) |
-| `$7E:230C` | [`ING_QTY_DRY_ICE`](knowledge/wram/ING_QTY_DRY_ICE.md) | `u8` | alchemy | Dry Ice (Ingredient 0x0D) |
-| `$7E:230D` | [`ING_QTY_CLAY`](knowledge/wram/ING_QTY_CLAY.md) | `u8` | alchemy | Clay (Ingredient 0x0E) |
-| `$7E:230E` | [`ING_QTY_CRYSTAL`](knowledge/wram/ING_QTY_CRYSTAL.md) | `u8` | alchemy | Crystal (Ingredient 0x0F) |
-| `$7E:230F` | [`ING_QTY_BRIMSTONE`](knowledge/wram/ING_QTY_BRIMSTONE.md) | `u8` | alchemy | Brimstone (Ingredient 0x10) |
-| `$7E:2310` | [`ING_QTY_BONE`](knowledge/wram/ING_QTY_BONE.md) | `u8` | alchemy | Bone (Ingredient 0x11) |
-| `$7E:2311` | [`ING_QTY_ATLAS_MEDALLION`](knowledge/wram/ING_QTY_ATLAS_MEDALLION.md) | `u8` | alchemy | Atlas Medallion (Ingredient 0x12) |
-| `$7E:2312` | [`ING_QTY_ASH`](knowledge/wram/ING_QTY_ASH.md) | `u8` | alchemy | Ash (Ingredient 0x13) |
-| `$7E:2313` | [`ING_QTY_ACORN`](knowledge/wram/ING_QTY_ACORN.md) | `u8` | alchemy | Acorn (Ingredient 0x14) |
-| `$7E:2314` | [`ING_QTY_ROOT_EXTRA`](knowledge/wram/ING_QTY_ROOT_EXTRA.md) | `u8` | alchemy | Root Extra (Ingredient 0x15) |
-| `$7E:2315` | [`ING_QTY_GUNPOWDER`](knowledge/wram/ING_QTY_GUNPOWDER.md) | `u8` | alchemy | Gunpowder (Ingredient 0x16) |
-| `$7E:2316` | [`ING_QTY_PETALS`](knowledge/wram/ING_QTY_PETALS.md) | `u8` | alchemy | Petals (Ingredient 0x17) |
-| `$7E:2317` | [`ING_SATCHEL_SLOT_2`](knowledge/wram/ING_SATCHEL_SLOT_2.md) | `u8` | alchemy | Alchemy Satchel: Active inventory satchel quick-select slot 2 quantity |
-| `$7E:2318` | [`ING_SATCHEL_SLOT_3`](knowledge/wram/ING_SATCHEL_SLOT_3.md) | `u8` | alchemy | Alchemy Satchel: Active inventory satchel quick-select slot 3 quantity |
-| `$7E:2319` | [`ING_SATCHEL_SLOT_4`](knowledge/wram/ING_SATCHEL_SLOT_4.md) | `u8` | alchemy | Alchemy Satchel: Active inventory satchel quick-select slot 4 quantity |
-| `$7E:231A` | [`ING_SATCHEL_SLOT_5`](knowledge/wram/ING_SATCHEL_SLOT_5.md) | `u8` | alchemy | Alchemy Satchel: Active inventory satchel quick-select slot 5 quantity |
-| `$7E:231B` | [`ING_SATCHEL_SLOT_6`](knowledge/wram/ING_SATCHEL_SLOT_6.md) | `u8` | alchemy | Alchemy Satchel: Active inventory satchel quick-select slot 6 quantity |
-| `$7E:231C` | [`ING_SATCHEL_SLOT_7`](knowledge/wram/ING_SATCHEL_SLOT_7.md) | `u8` | alchemy | Alchemy Satchel: Active inventory satchel quick-select slot 7 quantity |
+| `$7E:2309` | [`ING_QTY_GUNPOWDER`](knowledge/wram/ING_QTY_GUNPOWDER.md) | `u8` | alchemy | Gunpowder (Ingredient 0x0A): held count, `$22FF` + id |
+| `$7E:230A` | [`ING_QTY_GREASE`](knowledge/wram/ING_QTY_GREASE.md) | `u8` | alchemy | Grease (Ingredient 0x0B): held count, `$22FF` + id |
+| `$7E:230B` | [`ING_QTY_FEATHER`](knowledge/wram/ING_QTY_FEATHER.md) | `u8` | alchemy | Feather (Ingredient 0x0C): held count, `$22FF` + id |
+| `$7E:230C` | [`ING_QTY_ETHANOL`](knowledge/wram/ING_QTY_ETHANOL.md) | `u8` | alchemy | Ethanol (Ingredient 0x0D): held count, `$22FF` + id |
+| `$7E:230D` | [`ING_QTY_DRY_ICE`](knowledge/wram/ING_QTY_DRY_ICE.md) | `u8` | alchemy | Dry Ice (Ingredient 0x0E): held count, `$22FF` + id |
+| `$7E:230E` | [`ING_QTY_CRYSTAL`](knowledge/wram/ING_QTY_CRYSTAL.md) | `u8` | alchemy | Crystal (Ingredient 0x0F): held count, `$22FF` + id |
+| `$7E:230F` | [`ING_QTY_CLAY`](knowledge/wram/ING_QTY_CLAY.md) | `u8` | alchemy | Clay (Ingredient 0x10): held count, `$22FF` + id |
+| `$7E:2310` | [`ING_QTY_BRIMSTONE`](knowledge/wram/ING_QTY_BRIMSTONE.md) | `u8` | alchemy | Brimstone (Ingredient 0x11): held count, `$22FF` + id |
+| `$7E:2311` | [`ING_QTY_BONE`](knowledge/wram/ING_QTY_BONE.md) | `u8` | alchemy | Bone (Ingredient 0x12): held count, `$22FF` + id |
+| `$7E:2312` | [`ING_QTY_ATLAS_MEDALLION`](knowledge/wram/ING_QTY_ATLAS_MEDALLION.md) | `u8` | alchemy | Atlas Medallion (Ingredient 0x13): held count, `$22FF` + id |
+| `$7E:2313` | [`ING_QTY_ASH`](knowledge/wram/ING_QTY_ASH.md) | `u8` | alchemy | Ash (Ingredient 0x14): held count, `$22FF` + id |
+| `$7E:2314` | [`ING_QTY_ACORN`](knowledge/wram/ING_QTY_ACORN.md) | `u8` | alchemy | Acorn (Ingredient 0x15): held count, `$22FF` + id |
+| `$7E:2315` | [`ITEM_QTY_PETALS`](knowledge/wram/ITEM_QTY_PETALS.md) | `u8` | item | Petals (consumable 0): held count, `$2315` + index (`$8E:9298`, `$8E:9140`) |
+| `$7E:2316` | [`ITEM_QTY_NECTAR`](knowledge/wram/ITEM_QTY_NECTAR.md) | `u8` | item | Nectar (consumable 1): held count, `$2315` + index (`$8E:9298`, `$8E:9140`) |
+| `$7E:2317` | [`ITEM_QTY_HONEY`](knowledge/wram/ITEM_QTY_HONEY.md) | `u8` | item | Honey (consumable 2): held count, `$2315` + index (`$8E:9298`, `$8E:9140`) |
+| `$7E:2318` | [`ITEM_QTY_DOG_BISCUIT`](knowledge/wram/ITEM_QTY_DOG_BISCUIT.md) | `u8` | item | Dog Biscuit (consumable 3): held count, `$2315` + index (`$8E:9298`, `$8E:9140`) |
+| `$7E:2319` | [`ITEM_QTY_WINGS`](knowledge/wram/ITEM_QTY_WINGS.md) | `u8` | item | Wings (consumable 4): held count, `$2315` + index (`$8E:9298`, `$8E:9140`) |
+| `$7E:231A` | [`ITEM_QTY_ESSENCE`](knowledge/wram/ITEM_QTY_ESSENCE.md) | `u8` | item | Essence (consumable 5): held count, `$2315` + index (`$8E:9298`, `$8E:9140`) |
+| `$7E:231B` | [`ITEM_QTY_PIXIE_DUST`](knowledge/wram/ITEM_QTY_PIXIE_DUST.md) | `u8` | item | Pixie Dust (consumable 6): held count, `$2315` + index (`$8E:9298`, `$8E:9140`) |
+| `$7E:231C` | [`ITEM_QTY_CALL_BEADS`](knowledge/wram/ITEM_QTY_CALL_BEADS.md) | `u8` | item | Call Beads (consumable 7): held count, `$2315` + index (`$8E:9298`, `$8E:9140`) |
 | `$7E:231D` | [`ARMOR_QTY_GRASS_VEST`](knowledge/wram/ARMOR_QTY_GRASS_VEST.md) | `u8` | armor | Owned count for GRASS VEST |
 | `$7E:231E` | [`ARMOR_QTY_SHELL_ARMOR`](knowledge/wram/ARMOR_QTY_SHELL_ARMOR.md) | `u8` | armor | Owned count for SHELL ARMOR |
 | `$7E:231F` | [`ARMOR_QTY_DINO_SKIN`](knowledge/wram/ARMOR_QTY_DINO_SKIN.md) | `u8` | armor | Owned count for DINO SKIN |

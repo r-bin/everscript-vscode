@@ -3078,105 +3078,105 @@
 #define ING_QTY_IRON_SIZE 1
 #define ING_QTY_IRON RAM8(ING_QTY_IRON_ADDR)
 
-/* ING_QTY_GREASE ($7E2309, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_GREASE_ADDR 0x2309u
+/* ING_QTY_GUNPOWDER ($7E2309, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_GUNPOWDER_ADDR 0x2309u
+#define ING_QTY_GUNPOWDER_SIZE 1
+#define ING_QTY_GUNPOWDER RAM8(ING_QTY_GUNPOWDER_ADDR)
+
+/* ING_QTY_GREASE ($7E230A, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_GREASE_ADDR 0x230Au
 #define ING_QTY_GREASE_SIZE 1
 #define ING_QTY_GREASE RAM8(ING_QTY_GREASE_ADDR)
 
-/* ING_QTY_FEATHER ($7E230A, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_FEATHER_ADDR 0x230Au
+/* ING_QTY_FEATHER ($7E230B, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_FEATHER_ADDR 0x230Bu
 #define ING_QTY_FEATHER_SIZE 1
 #define ING_QTY_FEATHER RAM8(ING_QTY_FEATHER_ADDR)
 
-/* ING_QTY_ETHANOL ($7E230B, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_ETHANOL_ADDR 0x230Bu
+/* ING_QTY_ETHANOL ($7E230C, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_ETHANOL_ADDR 0x230Cu
 #define ING_QTY_ETHANOL_SIZE 1
 #define ING_QTY_ETHANOL RAM8(ING_QTY_ETHANOL_ADDR)
 
-/* ING_QTY_DRY_ICE ($7E230C, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_DRY_ICE_ADDR 0x230Cu
+/* ING_QTY_DRY_ICE ($7E230D, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_DRY_ICE_ADDR 0x230Du
 #define ING_QTY_DRY_ICE_SIZE 1
 #define ING_QTY_DRY_ICE RAM8(ING_QTY_DRY_ICE_ADDR)
-
-/* ING_QTY_CLAY ($7E230D, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_CLAY_ADDR 0x230Du
-#define ING_QTY_CLAY_SIZE 1
-#define ING_QTY_CLAY RAM8(ING_QTY_CLAY_ADDR)
 
 /* ING_QTY_CRYSTAL ($7E230E, ram): src/games/evermore/localizations/data/wram-map.md */
 #define ING_QTY_CRYSTAL_ADDR 0x230Eu
 #define ING_QTY_CRYSTAL_SIZE 1
 #define ING_QTY_CRYSTAL RAM8(ING_QTY_CRYSTAL_ADDR)
 
-/* ING_QTY_BRIMSTONE ($7E230F, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_BRIMSTONE_ADDR 0x230Fu
+/* ING_QTY_CLAY ($7E230F, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_CLAY_ADDR 0x230Fu
+#define ING_QTY_CLAY_SIZE 1
+#define ING_QTY_CLAY RAM8(ING_QTY_CLAY_ADDR)
+
+/* ING_QTY_BRIMSTONE ($7E2310, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_BRIMSTONE_ADDR 0x2310u
 #define ING_QTY_BRIMSTONE_SIZE 1
 #define ING_QTY_BRIMSTONE RAM8(ING_QTY_BRIMSTONE_ADDR)
 
-/* ING_QTY_BONE ($7E2310, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_BONE_ADDR 0x2310u
+/* ING_QTY_BONE ($7E2311, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_BONE_ADDR 0x2311u
 #define ING_QTY_BONE_SIZE 1
 #define ING_QTY_BONE RAM8(ING_QTY_BONE_ADDR)
 
-/* ING_QTY_ATLAS_MEDALLION ($7E2311, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_ATLAS_MEDALLION_ADDR 0x2311u
+/* ING_QTY_ATLAS_MEDALLION ($7E2312, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_ATLAS_MEDALLION_ADDR 0x2312u
 #define ING_QTY_ATLAS_MEDALLION_SIZE 1
 #define ING_QTY_ATLAS_MEDALLION RAM8(ING_QTY_ATLAS_MEDALLION_ADDR)
 
-/* ING_QTY_ASH ($7E2312, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_ASH_ADDR 0x2312u
+/* ING_QTY_ASH ($7E2313, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_ASH_ADDR 0x2313u
 #define ING_QTY_ASH_SIZE 1
 #define ING_QTY_ASH RAM8(ING_QTY_ASH_ADDR)
 
-/* ING_QTY_ACORN ($7E2313, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_ACORN_ADDR 0x2313u
+/* ING_QTY_ACORN ($7E2314, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ING_QTY_ACORN_ADDR 0x2314u
 #define ING_QTY_ACORN_SIZE 1
 #define ING_QTY_ACORN RAM8(ING_QTY_ACORN_ADDR)
 
-/* ING_QTY_ROOT_EXTRA ($7E2314, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_ROOT_EXTRA_ADDR 0x2314u
-#define ING_QTY_ROOT_EXTRA_SIZE 1
-#define ING_QTY_ROOT_EXTRA RAM8(ING_QTY_ROOT_EXTRA_ADDR)
+/* ITEM_QTY_PETALS ($7E2315, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ITEM_QTY_PETALS_ADDR 0x2315u
+#define ITEM_QTY_PETALS_SIZE 1
+#define ITEM_QTY_PETALS RAM8(ITEM_QTY_PETALS_ADDR)
 
-/* ING_QTY_GUNPOWDER ($7E2315, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_GUNPOWDER_ADDR 0x2315u
-#define ING_QTY_GUNPOWDER_SIZE 1
-#define ING_QTY_GUNPOWDER RAM8(ING_QTY_GUNPOWDER_ADDR)
+/* ITEM_QTY_NECTAR ($7E2316, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ITEM_QTY_NECTAR_ADDR 0x2316u
+#define ITEM_QTY_NECTAR_SIZE 1
+#define ITEM_QTY_NECTAR RAM8(ITEM_QTY_NECTAR_ADDR)
 
-/* ING_QTY_PETALS ($7E2316, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_QTY_PETALS_ADDR 0x2316u
-#define ING_QTY_PETALS_SIZE 1
-#define ING_QTY_PETALS RAM8(ING_QTY_PETALS_ADDR)
+/* ITEM_QTY_HONEY ($7E2317, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ITEM_QTY_HONEY_ADDR 0x2317u
+#define ITEM_QTY_HONEY_SIZE 1
+#define ITEM_QTY_HONEY RAM8(ITEM_QTY_HONEY_ADDR)
 
-/* ING_SATCHEL_SLOT_2 ($7E2317, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_SATCHEL_SLOT_2_ADDR 0x2317u
-#define ING_SATCHEL_SLOT_2_SIZE 1
-#define ING_SATCHEL_SLOT_2 RAM8(ING_SATCHEL_SLOT_2_ADDR)
+/* ITEM_QTY_DOG_BISCUIT ($7E2318, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ITEM_QTY_DOG_BISCUIT_ADDR 0x2318u
+#define ITEM_QTY_DOG_BISCUIT_SIZE 1
+#define ITEM_QTY_DOG_BISCUIT RAM8(ITEM_QTY_DOG_BISCUIT_ADDR)
 
-/* ING_SATCHEL_SLOT_3 ($7E2318, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_SATCHEL_SLOT_3_ADDR 0x2318u
-#define ING_SATCHEL_SLOT_3_SIZE 1
-#define ING_SATCHEL_SLOT_3 RAM8(ING_SATCHEL_SLOT_3_ADDR)
+/* ITEM_QTY_WINGS ($7E2319, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ITEM_QTY_WINGS_ADDR 0x2319u
+#define ITEM_QTY_WINGS_SIZE 1
+#define ITEM_QTY_WINGS RAM8(ITEM_QTY_WINGS_ADDR)
 
-/* ING_SATCHEL_SLOT_4 ($7E2319, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_SATCHEL_SLOT_4_ADDR 0x2319u
-#define ING_SATCHEL_SLOT_4_SIZE 1
-#define ING_SATCHEL_SLOT_4 RAM8(ING_SATCHEL_SLOT_4_ADDR)
+/* ITEM_QTY_ESSENCE ($7E231A, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ITEM_QTY_ESSENCE_ADDR 0x231Au
+#define ITEM_QTY_ESSENCE_SIZE 1
+#define ITEM_QTY_ESSENCE RAM8(ITEM_QTY_ESSENCE_ADDR)
 
-/* ING_SATCHEL_SLOT_5 ($7E231A, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_SATCHEL_SLOT_5_ADDR 0x231Au
-#define ING_SATCHEL_SLOT_5_SIZE 1
-#define ING_SATCHEL_SLOT_5 RAM8(ING_SATCHEL_SLOT_5_ADDR)
+/* ITEM_QTY_PIXIE_DUST ($7E231B, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ITEM_QTY_PIXIE_DUST_ADDR 0x231Bu
+#define ITEM_QTY_PIXIE_DUST_SIZE 1
+#define ITEM_QTY_PIXIE_DUST RAM8(ITEM_QTY_PIXIE_DUST_ADDR)
 
-/* ING_SATCHEL_SLOT_6 ($7E231B, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_SATCHEL_SLOT_6_ADDR 0x231Bu
-#define ING_SATCHEL_SLOT_6_SIZE 1
-#define ING_SATCHEL_SLOT_6 RAM8(ING_SATCHEL_SLOT_6_ADDR)
-
-/* ING_SATCHEL_SLOT_7 ($7E231C, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ING_SATCHEL_SLOT_7_ADDR 0x231Cu
-#define ING_SATCHEL_SLOT_7_SIZE 1
-#define ING_SATCHEL_SLOT_7 RAM8(ING_SATCHEL_SLOT_7_ADDR)
+/* ITEM_QTY_CALL_BEADS ($7E231C, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ITEM_QTY_CALL_BEADS_ADDR 0x231Cu
+#define ITEM_QTY_CALL_BEADS_SIZE 1
+#define ITEM_QTY_CALL_BEADS RAM8(ITEM_QTY_CALL_BEADS_ADDR)
 
 /* ARMOR_QTY_GRASS_VEST ($7E231D, ram): src/games/evermore/localizations/data/wram-map.md */
 #define ARMOR_QTY_GRASS_VEST_ADDR 0x231Du

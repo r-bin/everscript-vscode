@@ -10,7 +10,7 @@
   - `consumable_pixie_dust_revive`: `$8E:9370` – `$8E:9380`
 - **CPU State**: 16-bit A/X (`REP #$30`), Data Bank `$7E` / `$8E`
 - **WRAM Core Addresses**:
-  - `$7E:2315` – `$7E:231B`: Consumable satchel quantities (Petal, Nectar, Honey, Biscuit, Wings, Essence, Pixie Dust).
+  - `$7E:2315` – `$7E:231C`: Consumable counts (`ITEM_QTY_*`: Petals, Nectar, Honey, Dog Biscuit, Wings, Essence, Pixie Dust, Call Beads), `$2315` + index.
   - `$7E:0A35`: Party Max HP (999 cap).
   - `$7E:4EB3`: Boy current HP.
   - `$7E:4F93`: Dog current HP.

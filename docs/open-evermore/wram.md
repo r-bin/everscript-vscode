@@ -35,6 +35,7 @@ cell is `in` it at offset 0 (`LEVEL_HIGH_ACID_RAIN` in `FORMULA_COMBAT_POWER_ARR
 two names that differ only in case are one (`PALETTE_BG_4`). A name the sources give two addresses is left out (both stay `$7E:xxxx`). The scripts' files did not change; the
 records' WRAM fields read better (Cure's cells were `FORMULA_XP_ACID_RAIN+12`, now `LEVEL_LOW_CURE`): before, the tools
 read the knowledge `wram` space, whose `$7E:xxxx` addresses do not parse (254 of 1,560 entries seen; tracker, knowledge to fix).
+The sources still differ at 251 addresses; making the WRAM map the one source is W1b (tracker, current state).
 
 ## 1. Until WRAM can be allocated: `temp[]` as a placeholder
 
