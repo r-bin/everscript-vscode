@@ -61,3 +61,4 @@ node tools/msu1/render-pcm.mts my_song.wav Secret_of_Evermore-1.pcm 176400
   - **Mesen** (Developer recommended, most accurate)
   - **bsnes** / **higan**
   - **snes9x** (v1.55 or newer)
+

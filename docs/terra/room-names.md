@@ -35,3 +35,4 @@ The piece structure is computed from the ROM. The proper town names come from th
 third-party map editor's room list was looked at only to learn which names and naming style (area, then place,
 then "room N") exist, nothing was copied from it, and every assignment above was checked against our own render
 and exit graph.
+

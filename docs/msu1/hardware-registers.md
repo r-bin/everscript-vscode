@@ -101,3 +101,4 @@ In the Evermore patch:
 - Looping background themes write `$03` (`PLAY | REPEAT`).
 - Fanfares, stingers, and Game Over write `$01` (`PLAY`).
 - Muting or stopping music writes `$00` (`STOP`).
+

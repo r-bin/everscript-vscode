@@ -188,3 +188,4 @@ SA-1 earns its keep when a hack wants things ExHiROM physically cannot do:
    Keep HiROM 4 MiB → ExHiROM 8 MiB as the default, enforce FastROM placement for hot resources, emit `slow-hot` warnings, and add event-based proof comparison so ExHiROM/promoted builds can be validated cleanly.
 6. **Add `rename`, BPS patch export, and sync the docs.**
    `rename` makes cleaning up `tile_xxxx` / `string_xxxx` names painless; BPS export completes the modder sharing loop; updating the stale status headers in `docs/open-evermore/` keeps the project's docs as trustworthy as its tests.
+

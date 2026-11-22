@@ -196,3 +196,4 @@ When a sequence byte $\ge \text{\$D2}$ is read, the driver subtracts `$D2` and d
 | **Duration Quantization**| Standard 15-entry duration table (48 ticks/beat) | Explicit raw timer countdown ticks per event |
 | **Branching / Loops** | Subroutines (`$FB`/`$FC`), loops (`$F9`), jumps (`$FA`) | 10-byte repeat record (`$F6`), opcode table mostly custom |
 | **Audio Stalls** | Smooth transitions; only missing samples uploaded | Stalls game execution while streaming full sample package |
+

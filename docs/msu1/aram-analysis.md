@@ -61,3 +61,4 @@ When background music is streamed via MSU-1:
    $$\text{Total Base Space Required} = 20,912\text{ Bytes (out of } 65,536\text{ B)}$$
    With over **44 KB of free space remaining**, every sound effect in the entire game can be uploaded once at boot time into ARAM.
 3. **Soundbank Swapping Can Be Completely Eliminated:** Room transitions become instantaneous, with zero CPU/APU transfer stalls.
+

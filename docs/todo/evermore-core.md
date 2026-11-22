@@ -208,3 +208,4 @@ Each phase leaves every existing repo green and deployable — no big-bang rewri
 2. **Does `reconstructed-c/` belong in `evermore-core`?** Both `everscript-vscode` (`code-tab`, `c-to-rom`) and `SecretOfEvermoreRecomp` consume it, so `evermore-core` is the natural shared home — confirm?
 3. **Consumption style:** Git submodule everywhere, or npm package for TS repos + git submodule for Python/C++/ASM repos?
 4. **Labs & `open-evermore`:** Keep `tools/open-evermore` and romhack tools in `everscript-vscode` until Phase 4, or split `open-evermore` right after `evermore-core`?
+
