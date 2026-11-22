@@ -1,14 +1,17 @@
 ---
 addr: 8CBC1A
-end: 8CBC3D
-size: 36
+end: 8CBC41
+size: 40
 kind: table
 category: 📋
 name: tbl_8CBC1A
-title: CDL increasing curve: 9 entries × 4B
+title: Named items (charms, key items) — each one's name
 confidence: confirmed
-tags: ["table","cdl","lookup","increasing_curve"]
-evidence: ["CDL recorded table: 9 entries × 4B (out/recomp/asar/tables/tables.json)"]
+tags: ["table","menu","charm","item","text"]
+evidence: ["disasm: $8C:C11E lda.l $8CBC1A,x / sta $22, lda #$00C4 / sta $24, jsl $8C:9E03 (print), X = 2·entry up to $26 (2026-11-23)", "rom: the 20 words point at the names $C4:7257-$72DD in list order"]
+see: [docs/todo/growable-items.md]
 ---
+20 words, entry `k` at `2·k`: named item `k`'s name, a 16-bit pointer into bank `$C4` (the printing loop sets the bank
+itself, `$8C:C124`). See `tbl_8CBBB0` for the list.
 
-CDL lookup table at $8C:BC1A (36 bytes, 9 entries × 4B). Index: memory > tax. Result: sta $7E0022. Read by pause_menu_sound_and_options_window+$021D (8C:C11E).
+Previously believed: 9 entries of 4 bytes (36 bytes), with `$8C:BC3E`-`$BC41` padding; those 4 bytes are entries 18 and 19.

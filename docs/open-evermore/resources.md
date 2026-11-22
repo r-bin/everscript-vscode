@@ -573,6 +573,8 @@ menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (o
   game (`10-11_08-20-51` recording, Y at frame 17200 opens the Boy's options ring, B confirms): every name in capitals
   shows on the ring; "Player Status" with `action: control_prefs` opens Control Prefs; `window_edit` in the first
   options slot shows there.
+- **Growing** consumables and the named items list (charms and key items, `$8C:BBB0`/`$BBD8`/`$BC1A`, the sub-menu of
+  `$8C:C0E9`): [../todo/growable-items.md](../todo/growable-items.md).
 - **Next.** The `$C4` tables that turn inventory into ring items (consumables `$C4:5AAE`, armour `$C4:5ABE`, formulas
   `$C4:5BAF`, ingredients `$C4:5B10`, weapon records +`$1E`) as references by name; moving names (needs every reader
   of a name string); `when` conditions as data (code today); shop rings named from `$0E6C`.
@@ -690,6 +692,8 @@ alchemy/alchemy_levels/level_<n>.json  { experience_per_cast (0-8), power_factor
 - **target** stays hex (the bits are only partly understood: knowledge `ALCHEMY_TARGET`).
 - **Proven** (v0.456.0): G0 alone and with every kind, seeds 1 and 2026 round-trip; Laser's block, power and a shorter
   description land in place; a longer text, a power past 255 and an unknown block are errors (`g0.test.mts`).
+- **To add an ingredient** (open): every reader that holds the list at 22 (counts `$22FF + id`, names `$C4:5FF3`, the
+  cast check in `$91`, the alchemy screen's loop, shops, the loot scripts) and the steps: [../todo/growable-items.md](../todo/growable-items.md).
 - **To add a formula** (open): the nine tables touch each other (moving them is possible: every reader is a long
   operand), the ring item ids for formulas are a fixed range (`$48`-`$8C`), the alchemy action table has 36 entries
   with code after it, and WRAM holds 35 of everything, packed: learned bits `$2258`-`$225C` (5 bits free), experience

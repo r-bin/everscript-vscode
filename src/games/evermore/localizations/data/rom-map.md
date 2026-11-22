@@ -3,7 +3,7 @@
 ```json
 {
   "summary": {
-    "total_entries": 7173,
+    "total_entries": 7172,
     "total_documented_bytes": 3237090,
     "banks_covered": 97,
     "architecture": "3 MB (24 Mbit) HiROM ($00 vectors/header mirror, $80..$AF FastROM, $C0..$EF Data)"
@@ -245,7 +245,7 @@
         "0x8CFFFF"
       ],
       "name": "Script VM Dispatcher, Sound Effects & Stat Curves",
-      "routines": 494,
+      "routines": 493,
       "bytes": 32768,
       "slack_bytes": 0
     },
@@ -5264,7 +5264,7 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 
 ## Bank $8C — Script VM Dispatcher, Sound Effects & Stat Curves
 
-**Coverage:** 494 entries | **Documented bytes:** 32,768 B (32.0 KB)
+**Coverage:** 493 entries | **Documented bytes:** 32,768 B (32.0 KB)
 
 | Address | Identifier | Type | Size | Tag | Summary |
 |---|---|---|---|---|---|
@@ -5453,12 +5453,11 @@ Secret of Evermore is mapped as a **3 MB (24 Mbit) HiROM** cartridge across fast
 | `$8C:BA48` | [`ui_window_aspect_ratio_scaled_box_draw`](knowledge/routines/ui_window_aspect_ratio_scaled_box_draw.md) | `code` | 99 B | unverified, rea-partial-read | Calculates scaled UI window aspect ratio bounds and coordinates using hardware math registers: Low confidence — Calculates scaled UI window aspect ratio bounds and coordinates using hardware math registers.  > Inferred from a partial r... |
 | `$8C:BAAB` | [`dialogue_window_border_tilemap_clear`](knowledge/routines/dialogue_window_border_tilemap_clear.md) | `code` | 199 B | unverified, rea-partial-read | Clears dialogue window interior tiles and draws ornamental border and corner tiles in the UI tilemap buffer: Low confidence — Clears dialogue window interior tiles and draws ornamental border and corner tiles in the UI tilemap buffer.  > Inferred fr... |
 | `$8C:BB72` | [`screen_mosaic_pixelate_transition`](knowledge/routines/screen_mosaic_pixelate_transition.md) | `code` | 62 B | ppu, mosaic, transitions, widescreen, widescreen.fade | Synchronous screen mosaic pixelation swell transition ($8C:BB72): Executes a synchronous full-screen mosaic pixelation swell transition. Writes to SNES PPU register `$2106` (`MOSAIC`) with BG enable bits se... |
-| `$8C:BBB0` | [`tbl_8CBBB0`](knowledge/routines/tbl_8CBBB0.md) | `table` | 40 B | table, cdl, lookup, lookup | CDL lookup: 20 entries × 2B: CDL lookup table at $8C:BBB0 (40 bytes, 20 entries × 2B). Index: $7E243D. Result: tay > ?. Read by equipment_weapon_equip_and_buff_sync+$05 ... |
-| `$8C:BBD8` | [`tbl_8CBBD8`](knowledge/routines/tbl_8CBBD8.md) | `table` | 40 B | table, cdl, lookup, lookup | CDL lookup: 20 entries × 2B: CDL lookup table at $8C:BBD8 (40 bytes, 20 entries × 2B). Index: $7E243D. Result: ora $7E2261..$7E2263 (3). Read by equipment_weapon_equip_a... |
+| `$8C:BBB0` | [`tbl_8CBBB0`](knowledge/routines/tbl_8CBBB0.md) | `table` | 40 B | table, menu, charm, item | Named items (charms, key items) — the WRAM word of each one's flag: 20 words, entry `k` at `2·k`: the WRAM word that holds named item `k`'s flag (`$2261`-`$2264`). With the masks (`tbl_8CBBD8`) and the names ... |
+| `$8C:BBD8` | [`tbl_8CBBD8`](knowledge/routines/tbl_8CBBD8.md) | `table` | 40 B | table, menu, charm, item | Named items (charms, key items) — each one's flag bit mask: 20 words, entry `k` at `2·k`: the bit mask of named item `k`'s flag in the word `tbl_8CBBB0` names (Armor Polish `$2261 & $20` … Wizard's Co... |
 | `$8C:BC00` | [`tbl_8CBC00`](knowledge/routines/tbl_8CBC00.md) | `table` | 20 B | table, cdl, lookup, increasing_curve | CDL increasing curve: 10 entries × 2B: CDL lookup table at $8C:BC00 (20 bytes, 10 entries × 2B). Index: memory > tax. Result: sta $7E0022. Read by pause_menu_window_init+$0199 (8C... |
 | `$8C:BC14` | [`BANK8C_PAD_BC14`](knowledge/routines/BANK8C_PAD_BC14.md) | `padding` | 6 B | unused, padding | Bank $8C alignment padding ($BC14): 6 B alignment padding and unmapped ROM space in Bank $8C ($8C:BC14..$8C:BC19). |
-| `$8C:BC1A` | [`tbl_8CBC1A`](knowledge/routines/tbl_8CBC1A.md) | `table` | 36 B | table, cdl, lookup, increasing_curve | CDL increasing curve: 9 entries × 4B: CDL lookup table at $8C:BC1A (36 bytes, 9 entries × 4B). Index: memory > tax. Result: sta $7E0022. Read by pause_menu_sound_and_options_wind... |
-| `$8C:BC3E` | [`BANK8C_PAD_BC3E`](knowledge/routines/BANK8C_PAD_BC3E.md) | `padding` | 4 B | unused, padding | Bank $8C alignment padding ($BC3E): 4 B alignment padding and unmapped ROM space in Bank $8C ($8C:BC3E..$8C:BC41). |
+| `$8C:BC1A` | [`tbl_8CBC1A`](knowledge/routines/tbl_8CBC1A.md) | `table` | 40 B | table, menu, charm, item, text | Named items (charms, key items) — each one's name: 20 words, entry `k` at `2·k`: named item `k`'s name, a 16-bit pointer into bank `$C4` (the printing loop sets the bank itself, `$8C:C124`). ... |
 | `$8C:BC42` | [`pause_menu_window_init`](knowledge/routines/pause_menu_window_init.md) | `code` | 475 B | pause, menu, window, ui, cgram | Pause menu window and layout buffer initializer: Initializes the pause screen graphical environment, uploading UI palettes to CGRAM, establishing the main menu window frame, and preparing t... |
 | `$8C:BE1D` | [`BANK8C_PAD_BE1D`](knowledge/routines/BANK8C_PAD_BE1D.md) | `padding` | 11 B | unused, padding | Bank $8C alignment padding ($BE1D): 11 B alignment padding and unmapped ROM space in Bank $8C ($8C:BE1D..$8C:BE27). |
 | `$8C:BE28` | [`pause_menu_loop`](knowledge/routines/pause_menu_loop.md) | `code` | 115 B | pause, menu, joypad, ppu | In-game pause menu loop: Handles the in-game pause menu display, icon rendering, and joypad unpause listening loop. |

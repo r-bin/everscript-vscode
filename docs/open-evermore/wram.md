@@ -81,7 +81,7 @@ base, pointers, scripts). The 42 capped PCs (generic copy and pointer routines) 
 
 ## 3. Toward allocated WRAM *(proposal; tracker: [../todo/wram-allocation.md](../todo/wram-allocation.md))*
 
-The `wram` kind (§0) with lifetimes (room/save), and implode places its variables like ROM items: saved state inside the save block (`$2258`-`$2833`, copied to SRAM), room state
+The `wram` kind (§0) with lifetimes (room/save), and implode places its variables like ROM items: saved state inside the six saved blocks (`$0ABA`, `$2F52`, `$2258`, `$22FF`, `$2361`, `$2513`: [../todo/growable-items.md](../todo/growable-items.md); `$2258`-`$2833` is not saved as a whole), room state
 anywhere, the Boy's struct and the pointer to it (`$0F3E`) as one item. What implode then generates, per variable: every
 operand the CDL ties to it, the data that holds its address (the formulas' `learned/flags`, a weapon's `owned/flags`, a
 ring's `buffer`: already names in their files), script operands (already names). Before that holds, every blocker class

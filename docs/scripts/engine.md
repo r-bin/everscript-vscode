@@ -75,7 +75,7 @@ variable areas:
 
 | area | where | lifetime | written in |
 |---|---|---|---|
-| save flags and bytes | `$7E:2258..$7E:2833`, copied to SRAM | the save file | [unnamed-memory-audit.md](unnamed-memory-audit.md) |
+| save flags and bytes | `$7E:2258..$7E:2833`; only `$2258-$22E9`, `$22FF-$235A`, `$2361-$238C`, `$2513-$2532` are copied to SRAM ([growable-items.md](../todo/growable-items.md)) | the save file (the rest: until a reload) | [unnamed-memory-audit.md](unnamed-memory-audit.md) |
 | temp (compiler `TEMP`) | `$7E:2834..$7E:28FB` | cleared on room load | [TEMP_COMPILER_ARENA](../../src/games/evermore/localizations/knowledge/wram/TEMP_COMPILER_ARENA.md) |
 | thread-local | slot `+$0F..` | the thread | arguments are staged at `$7E:0E80 + 2i` ([VM_SCRIPT_CALL_ARG_0](../../src/games/evermore/localizations/knowledge/wram/VM_SCRIPT_CALL_ARG_0.md)) |
 

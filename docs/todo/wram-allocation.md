@@ -29,7 +29,7 @@ of concept: [../open-evermore/wram.md](../open-evermore/wram.md). This page is t
 | W5 | Structs and arrays as one variable each, their fields `in` them: the Boy's and Dog's records (`$4E89`, `$4F37`) and the pointer to the Boy's (`$0F3E`); the 8 alchemy effect slots (`$7E:3364`, 64 B each) | 🔴 |
 | W6 | Implode generates every data word that holds a WRAM address (formulas' `learned/flags`, weapons' `owned/flags`, ring `buffer`s: names already) | 🔴 |
 | W7 | Flags (the save area's named bits, scripts' `flag` names) as part of the `wram` kind | 🔴 |
-| W8 | The save block (`$2258`-`$2833`) as part of the manifest: a save from one layout does not load in another | 🔴 |
+| W8 | The save blocks (six DMA blocks, `$331` bytes a slot: [growable-items.md](growable-items.md)) as part of the manifest: a save from one layout does not load in another | 🔴 |
 | W9 | Until then: new ids of a grown kind take `temp[]` cells from the top (wiped on every room load); one kind tried in game | 🟡 rule written (open-evermore skill), not used yet |
 | W10 | Grow on that WRAM: formulas to 36+, weapons to 15+, more than 8 alchemy effect slots (tables move by their long operands; loop bounds, slot counts and id ranges as generated immediates) | 🔴 |
 

@@ -41,7 +41,7 @@ So, for the “is the whole byte only used by the system?” question: no, not f
 
 ## Scratch Memory Misallocated to Save RAM (Candidate `<0x2834>` Registers)
 
-In the Secret of Evermore engine, `$7E:2258`–`$7E:2833` forms the persistent save RAM block copied to/from SRAM (`$70:0000`). In contrast, `$7E:2834`–`$7E:28FB` (200 bytes) forms `COMPILER_TEMP` (`temp[0]`..`temp[99]`), which is wiped on every room load and serves as volatile thread scratchpad memory.
+In the Secret of Evermore engine, `$7E:2258`–`$7E:2833` is called the save area, but only four stretches of it are copied to/from SRAM (`$30:6002 + slot·$331`): `$2258`-`$22E9`, `$22FF`-`$235A`, `$2361`-`$238C` and `$2513`-`$2532` ([growable-items.md](../todo/growable-items.md), the save blocks; corrected 2026-11-23). Cells outside them survive room loads but not a reload. In contrast, `$7E:2834`–`$7E:28FB` (200 bytes) forms `COMPILER_TEMP` (`temp[0]`..`temp[99]`), which is wiped on every room load and serves as volatile thread scratchpad memory.
 
 During vanilla game development, script authors routinely placed temporary calculations, waypoint staging buffers, projectile/fall trajectory state, dialogue string parameter staging, and minigame loop counters into cells across `$7E:23xx`–`$7E:2551`. None of these cells carry any meaningful progression state across game saves or room changes. Writing them into persistent memory brings **no benefit**; it needlessly wastes space in the SRAM save area. In modern decompiled Everscript and room authoring, all of these should be allocated from `temp[]` (`<0x2834>`).
 

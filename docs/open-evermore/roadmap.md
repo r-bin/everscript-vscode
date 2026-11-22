@@ -103,4 +103,4 @@ The Rooms tab already draws a tree's rooms from their files (`src/games/evermore
 | 5 | S7d animation records, scripts, sprite infos; `animations.json` dumps removed | R2, R4 for characters; new animations |
 | 6 | WRAM names for every remaining `$7E:` field ([wram.md](wram.md)) | R2 everywhere |
 | 7 | Editor §5.1–5.3 | one look, one click |
-| 8 | Growable in-place tables (ring items, item actions, weapons, formulas) | adding, not repurposing (review §4) |
+| 8 | Growable in-place tables (ring items, item actions, weapons, formulas); ingredients, consumables, named items first: [../todo/growable-items.md](../todo/growable-items.md) | adding, not repurposing (review §4) |

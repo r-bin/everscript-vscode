@@ -9,3 +9,5 @@ evidence: ["cdl: 0 hits in vanilla attract/gameplay traces", "disasm: alignment 
 731-byte unreferenced memory buffer ($7E:2559..$7E:2833) preceding compiler scratch arena (unused to our knowledge).
 
 > **Note**: Unused (to our knowledge: never addressed or written by any instruction in the ROM). Serves as structural alignment padding or reserved space in the SNES WRAM layout.
+>
+> **Not saved** (2026-11-23): the save DMA's last block ends at `$2532` (`$8D:B444`, `ldy #$0020` from `$2513`), so a value kept here survives room loads but not a reload (docs/todo/growable-items.md).
