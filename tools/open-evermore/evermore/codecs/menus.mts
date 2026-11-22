@@ -25,11 +25,11 @@ import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { handlerTable } from './handler-tables.mts';
 import { hexText, parseHex, routines } from './readers.mts';
+import { wramAddress, wramName } from './wram.mts';
 
 const require = createRequire(import.meta.url);
 const { encodePng } = require('../../../../dist/platform/png');
 const { renderItemIcon } = require('../../../../dist/games/evermore/maps/item-icons');
-const KNOWLEDGE = require('../../../../dist/games/evermore/localizations/knowledge');
 
 const word = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
 const GROUP = 'menus';
@@ -260,11 +260,10 @@ export const RINGS = 'rings';
 const BUFFERS = 0x0E9920, LOOPS = 0x0E9944, FLAGS = 0x0E9968, RING_COUNT = 18, LOOP_ROUTINES = routines(0x8E);
 const RING_NAMES = ['boy_options', 'boy_alchemy', 'boy_weapons', 'debug', 'boy_items', 'dog_options', 'shop_0c', 'shop_0e', 'shop_10',
     'shop_12', 'call_bead_spells', 'call_bead_callers', 'armour_body', 'armour_helm', 'armour_gloves', 'armour_collar', 'shop_20', 'bazooka_ammo'];
-const WRAM: { name: string; addr: number }[] = KNOWLEDGE.entries('wram');
-const wramName = (at: number) => WRAM.find(e => e.addr === (0x7E0000 | at))?.name ?? hexText(at, 4, 0x7E);
+const wramText = (at: number) => wramName(0x7E0000 | at) || hexText(at, 4, 0x7E);
 const wramAt = (text: unknown): number | null => {
-    const e = WRAM.find(x => x.name === text);
-    const at = e ? (e.addr >> 16 === 0x7E ? e.addr & 0xFFFF : null) : parseHex(text, 0xFFFF, 0x7E);
+    const named = typeof text === 'string' ? wramAddress(text) : undefined;
+    const at = named !== undefined ? (named >> 16 === 0x7E ? named & 0xFFFF : null) : parseHex(text, 0xFFFF, 0x7E);
     return at !== null && at < 0x2000 ? at : null;
 };
 
@@ -345,7 +344,7 @@ export const ringsCodec: Codec = {
         for (let id = 0; id < RING_COUNT; id++) {
             const n = name(RINGS, id), ring = RING_NAMES[id];
             names.push(n);
-            const v: Record<string, unknown> = { buffer: wramName(word(rom, BUFFERS + 2 * id)), loop: LOOP_ROUTINES.name(word(rom, LOOPS + 2 * id)), flags: hexText(word(rom, FLAGS + 2 * id), 4) };
+            const v: Record<string, unknown> = { buffer: wramText(word(rom, BUFFERS + 2 * id)), loop: LOOP_ROUTINES.name(word(rom, LOOPS + 2 * id)), flags: hexText(word(rom, FLAGS + 2 * id), 4) };
             const sites = ITEM_SITES[ring];
             if (ring === 'call_bead_spells') {
                 const by: Record<string, unknown[]> = {};

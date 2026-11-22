@@ -30,8 +30,10 @@ before touching its codec. This skill is how to work on it and what bit us.
   (previews only with `--previews`), one concern per file.
 - **WRAM that cannot grow: `temp[]` as a placeholder.** A kind that grows past its ids' WRAM (a 36th formula's
   experience, a 15th weapon's skill word) gives the new ids `temp[]` cells (`COMPILER_TEMP` `$2834`-`$28FB`), from the
-  top down, named in its file; say that they are wiped on every room load and not saved. Real allocation is the todo
-  `docs/todo/wram-allocation.md` (`docs/open-evermore/wram.md`).
+  top down, named in its file; say that they are wiped on every room load and not saved. Real allocation is the tracker
+  `docs/todo/wram-allocation.md` (W0-W10, `docs/open-evermore/wram.md`).
+- **WRAM names come from the `wram` kind** (`codecs/wram.mts`, `KINDS[0]`): `wramAddress`/`wramName`/`wramHolding`, never
+  `KNOWLEDGE.entries('wram')` (its `$7E:xxxx` addresses parse to NaN: 1,306 entries unseen) and never a list of your own.
 
 ## A kind is done when
 

@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 import { cellText, cellValue, constBytes, exprBytes, exprText, shortConst } from './expressions.mts';
 import type { Area, ExprNames } from './expressions.mts';
 import { ANIMATION_SLOTS } from './characters.mts';
+import { vanillaWram, wramAddress, wramName } from './wram.mts';
 
 const require = createRequire(import.meta.url);
 const PARAMETERS: Record<string, any> = require('../../../../src/games/evermore/script-vm/parameters.json');
@@ -39,8 +40,8 @@ function wramOf(p: Param | undefined): { area: Area; flag: boolean } | undefined
     return t?.wram ? { area: t.wram, flag: !!t.flag } : undefined;
 }
 
-// ── names of WRAM cells, flags and fields: the Scripts tab's, kept only where a name reads back to one thing ──
-let wram: { mem: Map<number, string>; memOf: Map<string, number>; flag: Map<string, string>; flagOf: Map<string, { addr: number; mask: number }>; field: Map<number, string>; fieldOf: Map<string, number> } | null = null;
+// ── names of WRAM cells (the wram kind's), flags and fields (the Scripts tab's), kept only where a name reads back to one thing ──
+let wram: { flag: Map<string, string>; flagOf: Map<string, { addr: number; mask: number }>; field: Map<number, string>; fieldOf: Map<string, number>; both: Set<string> } | null = null;
 function wramNames() {
     if (wram) return wram;
     const d = displayNames(() => 0);
@@ -49,20 +50,22 @@ function wramNames() {
         for (const [k, v] of pairs) { if (bad.has(k)) continue; const w = out.get(k); if (w !== undefined && !same(w, v)) { out.delete(k); bad.add(k); } else out.set(k, v); }
         return out;
     };
-    const mems: [string, number][] = [], flags: [string, { addr: number; mask: number }][] = [], fields: [string, number][] = [];
-    for (let a = 0; a < 0x10000; a++) { const n = d.memory(a); if (n) mems.push([n, a]); }
+    const flags: [string, { addr: number; mask: number }][] = [], fields: [string, number][] = [];
     for (let a = 0x2258; a < 0x2258 + 0x2000; a++) for (let b = 0; b < 8; b++) { const n = d.flag(a, 1 << b); if (n) flags.push([n, { addr: a, mask: 1 << b }]); }
     for (let o = 0; o < 0x100; o++) { const n = d.field(o); if (n) fields.push([n, o]); }
-    const memOf = unique(mems, (x, y) => x === y), flagOf = unique(flags, (x, y) => x.addr === y.addr && x.mask === y.mask), fieldOf = unique(fields, (x, y) => x === y);
+    const flagOf = unique(flags, (x, y) => x.addr === y.addr && x.mask === y.mask), fieldOf = unique(fields, (x, y) => x === y);
     // A name that is both a cell and a flag reads as neither.
-    for (const n of [...memOf.keys()]) if (flagOf.has(n)) { memOf.delete(n); flagOf.delete(n); }
+    const both = new Set(vanillaWram().map(v => v.name).filter(n => flagOf.has(n)));
+    for (const n of both) flagOf.delete(n);
     wram = {
-        mem: new Map([...memOf].map(([n, a]) => [a, n])), memOf,
         flag: new Map([...flagOf].map(([n, f]) => [`${f.addr}:${f.mask}`, n])), flagOf,
-        field: new Map([...fieldOf].map(([n, o]) => [o, n])), fieldOf,
+        field: new Map([...fieldOf].map(([n, o]) => [o, n])), fieldOf, both,
     };
     return wram;
 }
+/** A cell of bank $7E by name, and back: the wram kind's variables (the tree's, once implode read them). */
+const cellName = (a: number): string => { const n = wramName(0x7E0000 | a); return n && !wramNames().both.has(n) ? n : ''; };
+const cellAt = (n: string): number | undefined => { const at = wramAddress(n); return at !== undefined && at >> 16 === 0x7E && !wramNames().both.has(n) ? at & 0xFFFF : undefined; };
 
 /** The named values of a cell (absolute address): value → name and back, kept where a name means one value. */
 const cellValueMaps = new Map<number, { name: Map<number, string>; value: Map<string, number> }>();
@@ -87,7 +90,7 @@ export function exprNames(refs: Refs, entities: string): ExprNames {
     return {
         value: (a, v) => cellValues(a).name.get(v) ?? '', valueOf: (a, n) => cellValues(a).value.get(n),
         entity: op => refs.name(entities, op), entityOf: n => refs.id(entities, n),
-        memory: a => w.mem.get(a) ?? '', memoryOf: n => w.memOf.get(n),
+        memory: cellName, memoryOf: cellAt,
         flag: (a, m) => w.flag.get(`${a}:${m}`) ?? '', flagOf: n => w.flagOf.get(n),
         field: o => w.field.get(o) ?? '', fieldOf: n => w.fieldOf.get(n),
     };

@@ -11,19 +11,16 @@
 //   text       a pointer to text in bank $C4 no ring item shows: the text itself, written where it was (at most as long);
 //              a record that shares an earlier record's text says so by name, { "same_as": <record> }
 //   ref        `scale`·id of another kind's entry (or of a fixed list `names`): its name
-//   wram       a WRAM address: the knowledge entry's name, "+n" for a byte inside it
+//   wram       a WRAM address: the wram kind's variable by name, "+n" for a byte inside it
 //   routine    a 16-bit code address in `bank`: the routine's name (readers.mts `routines`)
 // A field may apply to some ids only (`ids`); the bytes of the others stay in _base/.
-import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { hexText, parseHex, routines } from './readers.mts';
 import { RING_ITEMS, ringItemNameKey, ringItemTexts } from './menus.mts';
-
-const require = createRequire(import.meta.url);
-const KNOWLEDGE = require('../../../../dist/games/evermore/localizations/knowledge');
+import { wramAddress, wramHolding, wramName, wramSize } from './wram.mts';
 
 const TEXT_BANK = 0x040000;
 const ROUTINES = new Map<number, ReturnType<typeof routines>>();
@@ -67,23 +64,22 @@ export interface Records {
     check?: (rom: Uint8Array) => void;
 }
 
-// ── WRAM names ──
-const WRAM: { name: string; addr: number; end: number }[] = KNOWLEDGE.entries('wram').filter((e: { name: string | null; addr: number }) => e.name && e.addr >> 16 === 0x7E);
-/** `NAME`, `NAME+n` (inside a knowledge entry), or `$7E:xxxx`. */
+// ── WRAM names: the wram kind's variables ──
+/** `NAME`, `NAME+n` (inside a sized variable), or `$7E:xxxx`. */
 export function wramText(at: number): string {
-    const bus = 0x7E0000 | at, exact = WRAM.find(e => e.addr === bus);
-    if (exact) return exact.name;
-    const inside = WRAM.filter(e => e.addr < bus && bus <= e.end).sort((a, b) => (a.end - a.addr) - (b.end - b.addr))[0];
-    return inside ? `${inside.name}+${bus - inside.addr}` : hexText(at, 4, 0x7E);
+    const bus = 0x7E0000 | at, exact = wramName(bus);
+    if (exact) return exact;
+    const inside = wramHolding(bus);
+    return inside ? `${inside.name}+${inside.offset}` : hexText(at, 4, 0x7E);
 }
 export function wramAt(text: unknown): number | null {
     if (typeof text !== 'string') return null;
     const m = /^([A-Za-z_][A-Za-z0-9_]*)(?:\+(\d+))?$/.exec(text);
     if (m) {
-        const e = WRAM.find(x => x.name === m[1]);
-        if (!e) return null;
-        const at = e.addr + Number(m[2] ?? 0);
-        return at <= e.end ? at & 0xFFFF : null;
+        const at = wramAddress(m[1]), size = wramSize(m[1]);
+        if (at === undefined || at >> 16 !== 0x7E) return null;
+        const offset = Number(m[2] ?? 0);
+        return offset < (size ?? 1) ? (at + offset) & 0xFFFF : null;
     }
     return parseHex(text, 0xFFFF, 0x7E);
 }

@@ -18,13 +18,13 @@ import { homedir } from 'node:os';
 import { basename, join } from 'node:path';
 import { boot } from './play.mts';
 import { wramAt, wramText } from './evermore/codecs/records.mts';
+import { vanillaWram } from './evermore/codecs/wram.mts';
 
 const require = createRequire(import.meta.url);
 const { CdlLibrary } = require('../../dist/platform/cdl/library');
 const { OPCODES, instructionLength } = require('../../dist/platform/snes/opcodes-65816');
 const { parseMovie, groupEvents, WRAM_BASE, WRAM_SIZE } = require('../../dist/platform/tas/movie');
 const { baseRomPath } = require('../../dist/games');
-const KNOWLEDGE = require('../../dist/games/evermore/localizations/knowledge');
 
 const LIBRARY = join(homedir(), 'Library/Application Support/Code/User/globalStorage/rbin.everscript/cdl-library');
 const DEFAULT_MOVIE = join(new URL('.', import.meta.url).pathname, '../../.agents/skills/sample-playbacks/playbacks/intro-2m20.evsmv');
@@ -144,7 +144,7 @@ async function main(): Promise<void> {
     const rom = new Uint8Array(readFileSync(baseRomPath('evermore')));
     const lib = new CdlLibrary(LIBRARY, Buffer.from(rom));
     if (!lib.xrefs.size) throw new Error(`no CDL library for this ROM under ${LIBRARY}`);
-    const entries: { name: string; addr: number; end: number }[] = KNOWLEDGE.entries('wram').filter((e: { name: string | null; addr: number }) => e.name && e.addr >> 16 === 0x7E);
+    const entries = vanillaWram().filter(v => v.size && v.at >> 16 === 0x7E).map(v => ({ name: v.name, addr: v.at, end: v.at + v.size! - 1 }));
     const ix = index(rom, lib);
     if (args[0] === '--scan') {
         const rows = entries.map(e => study(rom, lib, ix, e.name, e.addr & 0xFFFF, e.end - e.addr + 1)).filter(r => r.sites.some(s => s.why === 'operand inside'));

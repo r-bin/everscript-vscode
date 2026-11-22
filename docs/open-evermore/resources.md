@@ -753,6 +753,17 @@ animations/<animation>/   animation.json (the decoded animation script)
 - **Codec.** Decoders *(repo)*; encoders: the table hack moved these tables (`tools/table-hack/` *(repo)*), the
   block encoder and new animation content are open ([../todo/table-hack.md](../todo/table-hack.md)).
 
+## wram — WRAM variables *(built, W1, v0.459.0)*
+
+**Folder**: `wram/<NAME>.json` per named variable (1,216; UPPER_CASE names, the ones scripts read cells by), `_enum.json`
+empty (no ids). A file holds `at` (`"$7E:0133"`) or `in` + `offset` (inside another variable, moving with it) and `size`
+when known. **References**: script operands (`write_word ENEMY_SPAWNER_QUANTITY, 1`), records' `wram` fields, rings'
+`buffer` use its names; implode reads it first (`KINDS[0]`) and hands the addresses on. **Implode generates**: nothing
+yet; a variable off its vanilla place is an error (`wram-moved`) until W2. **Limits**: `$7E:0000`-`$7F:FFFF`, an `in`
+variable inside its parent's size, names unique. **Codec**: `codecs/wram.mts` (names: script-model/names.ts
+`displayNames`; sizes: `localizations/wram-map.ts`). Design and steps: [wram.md](wram.md),
+[../todo/wram-allocation.md](../todo/wram-allocation.md).
+
 ## code
 
 **Folder.** `code/<routine>.asm`, one routine per file, named like `soe://rom/code/<routine>/` *(repo)*.

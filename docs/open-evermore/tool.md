@@ -165,6 +165,7 @@ three actions; `report.json` as Problems-panel diagnostics. Other kinds are seen
 |---|---|---|
 | `tests/open-evermore/enum-layout.test.mts` | unit | the enum (ids, gaps, new names, limit, bad names) and the allocator (rules, stable, random, seeds, no space) apart |
 | `tests/open-evermore/implode.test.mts` | unit | a synthetic kind on a synthetic image: G0, random + round trip, enum reorder, changed resource, every error |
+| `tests/open-evermore/wram.test.mts` | unit | the `wram` kind: explode, a fresh tree reads clean, a rename moves every name, a move (free place or another's) and broken files are errors |
 | `tests/open-evermore/formats.test.mts` | unit | the compact JSON layout; the PNG decoder (RGB, every row filter, indexed at 1/4/8 bits) |
 | `tests/memory/map-units.test.js` | unit | `decodeTile` (bit-6 forms), `encodeTile`, `lzssCompressVanilla` round trips |
 | `tests/open-evermore/in-game.test.mts` | `emulator` | G2 in the running game (~1 min), every change made as tree files: the opening's folder holding Brian's files boots into Brian's map (screen and VRAM as vanilla's Brian's room in slot `0x61`); a copy of Brian's room under a new name gets id `0x7F`, both map tables move, `load_map(0x7F)` enters it (screen and VRAM as vanilla's Brian's room), and without the map it does not (the new map has its own `fade_in` enter script; the entering script is the opening's enter script, edited); a new string past the key table, shown by a script (WRAM text as the string it copies). Screenshots in `out/open-evermore-tests/` |

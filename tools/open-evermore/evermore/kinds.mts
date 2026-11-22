@@ -20,6 +20,7 @@ import { fontsCodec, hudCodec } from './codecs/graphics.mts';
 import { MENU_KINDS } from './codecs/menus.mts';
 import { EQUIPMENT_KINDS } from './codecs/equipment.mts';
 import { ALCHEMY_KINDS } from './codecs/alchemy.mts';
+import { wramCodec } from './codecs/wram.mts';
 
 export const GAME = 'evermore';
 
@@ -33,5 +34,6 @@ export const PAST_END = [{ start: 0x30E293, end: 0x30E293 + 0x780 + 0x40 }];
  *  WRAM ($26-$28 when it starts a script). The proof translates them like long pointers. */
 export const POINTER_WINDOWS = [SCRIPT_WINDOW];
 
-export const KINDS: Codec[] = [mapsCodec, palettesCodec, collisionsCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
+// wram first: every later kind names WRAM through it.
+export const KINDS: Codec[] = [wramCodec, mapsCodec, palettesCodec, collisionsCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
     animationsCodec, animationModesCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, musicCodec, soundsCodec, fontsCodec, hudCodec, ...MENU_KINDS, ...EQUIPMENT_KINDS, ...ALCHEMY_KINDS];

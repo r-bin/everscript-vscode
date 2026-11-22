@@ -1,13 +1,40 @@
 # Open Evermore: WRAM by name
 
-Status: **proof of concept (v0.456.0)**: one variable moved by name, the stored playbacks in step. Back to
-[README.md](README.md). Labels as there.
+Status: **the `wram` kind (v0.459.0)**: every named variable a file, every other kind names WRAM through it; moving
+is the next step. **Proof of concept (v0.456.0)**: one variable moved by name, the stored playbacks in step. Tracker:
+[../todo/wram-allocation.md](../todo/wram-allocation.md) (W0-W10). Back to [README.md](README.md). Labels as there.
 
 The ROM kinds place resources anywhere because every reference to them is generated. WRAM is the same problem one level
 down: the files already name WRAM (`write_word ENEMY_SPAWNER_QUANTITY, 1` in scripts, a ring's `buffer`, a formula's
 `learned/flags`, a weapon's `owned/flags`), but the game reaches each variable through fixed operands. Growing a table
 whose per-id state lives in WRAM (a 36th formula, a 15th weapon) needs WRAM that is not there: the formulas' experience,
 level and cast words are 35 each, back to back; the weapon skill words run into the Dog's.
+
+## 0. The `wram` kind *(W1, v0.459.0)*
+
+`wram/<NAME>.json`, one file per named variable (1,216; 67 `in` another), no ids (`_enum.json` lists none):
+
+```
+{ "format": "open-evermore/wram", "version": 1, "at": "$7E:0133", "size": 2 }
+{ "format": "open-evermore/wram", "version": 1, "in": "DIRECT_PAGE_BLOCK", "offset": 38, "size": 2 }
+```
+
+`at` is where it starts; `in` + `offset` a variable inside another (a struct's field, a cell of a block), which moves with
+it; `size` in bytes when known (else the cell is as wide as each access). Implode reads the kind first (`KINDS[0]`) and
+hands its addresses to the later kinds: script operands (`write_word ENEMY_SPAWNER_QUANTITY, 1`), records' `wram` fields
+(`LEVEL_LOW_CURE`), rings' buffers. A name no file has is an error where it is used; a rename (the file and its uses)
+builds the vanilla sha1, and the round trip keeps the new name (the kind's `symbols` give each name's address).
+**Moving is refused** (`wram-moved`): a variable must sit on a vanilla variable's place, each place held once, until
+implode rewrites the code that reaches it (W2).
+
+**Names.** One per address, the ones scripts already read cells by (script-model/names.ts `displayNames`: names.json,
+then the compiler's MEMORY enum, then the WRAM map), plus the WRAM map's `$7F` entries; sizes from the WRAM map
+(`localizations/data/wram-map.md`) for a variable that starts where its entry starts; a variable inside a sized one is
+`in` it. Where a script names an array's or struct's first cell otherwise, the whole keeps the WRAM map's name and the
+cell is `in` it at offset 0 (`LEVEL_HIGH_ACID_RAIN` in `FORMULA_COMBAT_POWER_ARRAY`, with the other 34 formulas' cells);
+two names that differ only in case are one (`PALETTE_BG_4`). A name the sources give two addresses is left out (both stay `$7E:xxxx`). The scripts' files did not change; the
+records' WRAM fields read better (Cure's cells were `FORMULA_XP_ACID_RAIN+12`, now `LEVEL_LOW_CURE`): before, the tools
+read the knowledge `wram` space, whose `$7E:xxxx` addresses do not parse (254 of 1,560 entries seen; tracker, knowledge to fix).
 
 ## 1. Until WRAM can be allocated: `temp[]` as a placeholder
 
@@ -51,10 +78,9 @@ through the move (vanilla's old place = the build's new place, and back) and so 
 `--scan`: of 191 entries the play reached, 13 have no blocker; most have one to a few (arrays reached through another
 base, pointers, scripts). The 42 capped PCs (generic copy and pointer routines) cover nearly every variable.
 
-## 3. Toward allocated WRAM *(proposal; todo: [../todo/wram-allocation.md](../todo/wram-allocation.md))*
+## 3. Toward allocated WRAM *(proposal; tracker: [../todo/wram-allocation.md](../todo/wram-allocation.md))*
 
-A `wram` kind: one file per variable or struct (from the knowledge entries: name, size, lifetime room/save), and
-implode places them like ROM items: saved state inside the save block (`$2258`-`$2833`, copied to SRAM), room state
+The `wram` kind (§0) with lifetimes (room/save), and implode places its variables like ROM items: saved state inside the save block (`$2258`-`$2833`, copied to SRAM), room state
 anywhere, the Boy's struct and the pointer to it (`$0F3E`) as one item. What implode then generates, per variable: every
 operand the CDL ties to it, the data that holds its address (the formulas' `learned/flags`, a weapon's `owned/flags`, a
 ring's `buffer`: already names in their files), script operands (already names). Before that holds, every blocker class

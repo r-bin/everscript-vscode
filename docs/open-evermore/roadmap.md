@@ -34,7 +34,7 @@ and the order to fix it in. The kinds themselves: [resources.md](resources.md); 
 | string | `string_0afb` | `strings/` (dialogue) | built for dialogue; **names and UI text (`$C4`) are pointers** (§4) |
 | sprite palette | `palette_<name>` | a kind of its own | **missing**: sprite and icon palettes (`$90`, `$D0`) are addresses |
 | animation | `dog_act2_leap` | `characters/animations/` | built for ids; **records and frames are addresses** (S7d) |
-| WRAM | `FORMULA_XP_ACID_RAIN`, `temp[n]` | knowledge entries (`soe://ram/`) | built in scripts; **unnamed cells stay `$7E:xxxx`** ([wram.md](wram.md)) |
+| WRAM | `LEVEL_LOW_CURE`, `temp[n]` | `wram/` (v0.459.0, from names.json, the compiler and the WRAM map) | built: scripts, records, rings name it through `wram/`; **unnamed cells stay `$7E:xxxx`**; moving: W2 ([wram.md](wram.md)) |
 | flag | `WEAPONS_OWNED_FLAGS_0+1` and its bit | knowledge entries, compiler FLAG enum | the word by name; **the bit is a number** |
 | routine | `script_op_5c_set_object_state` | `soe://rom/code/` | built (handlers) |
 
