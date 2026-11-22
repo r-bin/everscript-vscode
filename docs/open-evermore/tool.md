@@ -136,6 +136,12 @@ offset `0xC14`) and PC are compared every 60 frames. A frame out of step starts 
 within 60 frames (`MAX_DRIFT`), and the playback must end in step. Only differing frames are examined; nothing per frame is written (spare the SSD). The original must keep
 the playback's own WRAM checks, or the proof does not count.
 
+### 4.2 WRAM proof of concept
+
+`wram-poc.mts` (a lab script beside the tool, not an action yet): the references to one WRAM variable from the CDL
+library, what blocks moving it, and a lockstep run of a stored playback with the variable moved ([wram.md](wram.md)).
+`records.mts` is the shared codec of the kinds read in place by id (equipment, alchemy).
+
 ## 5. Editors
 
 **Maps, read (2026-11-19).** The Rooms tab finds trees in the workspace (a folder, or one up to two levels below,

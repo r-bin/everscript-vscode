@@ -14,3 +14,5 @@ Base spell damage and recovery coefficients for all 35 alchemy formulas (`$C4:5E
 Utility formulas (Levitate, Escape, Barrier, Speed, Regrowth, Force Field) have base power 0.
 Defensive formulas (Defend) have base power 15.
 Offensive formulas scale from Flash (10) up to Nitro (112).
+
+Only the low byte counts (v0.456.0): `alchemy_effect_slot_set_timer` and `$91:CCE6` OR the word with the level factor << 8 and store it to `$4202` (the multiplier), so a power above 255 would change the factor. Laser holds 0.

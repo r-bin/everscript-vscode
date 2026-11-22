@@ -556,6 +556,83 @@ from data, otherwise derived and read-only) and the buttons it tests on `$0104` 
 at many sites), the HP digits' and gauge's cells and the WRAM each reads (`docs/disassembly/ui/field-hud.md`), as a
 `placement` list of `{ what, at, reads }` where code holds them as immediates.
 
+### The debug ring *(explored, v0.456.0)*
+
+Ring 3 (`menus/rings/debug.json`) sits in the Boy's flow between the weapons and the options, but nothing fills its
+buffer (`RING_DEBUG_COUNT` `$0F5A`: no access in any recorded play), so the flow always skips it, and its loop is a bare
+`rts` (`ring_debug_loop`, `$8E:A3EA`): the functions are gone. What is left are its eleven ring items (`debug_*`:
+Create a monster, Show thud balls on path, Heel, the background toggles, Select map, Mode 7 flight, Alchemist, ROM
+creation date), with text, icon and an index 0-20 (step 2) that no table reads. **To make it usable**: a loop routine
+(new code, or another ring's loop with an action table the indexes fit) and something that fills the buffer (a script
+writing `RING_DEBUG_COUNT` and `RING_DEBUG_ITEMS`, or a fill site in the Boy's ring build). Neither is tried in game.
+
+## equipment — weapons, ammo, schools, armour *(built, v0.456.0)*
+
+Records the game reads in place, by id (`records.mts`): their pointer table `$C4:3874` stays in `_base/`, and WRAM
+keeps the equipped armour's record address (`$0AC0`-`$0AC4`, saved with the game), so no record moves and counts are
+fixed. Every field is written where it was. Facts: knowledge `weapon_entries`, `BOY_WEAPON_TABLE`, `WEAPON_OWNED_BYTE`,
+`WEAPON_OWNED_BIT`, `WEAPON_SCHOOL`, `WEAPON_DESCRIPTIONS`, `tbl_armor_records`, `weapon_skill_page_*` (corrected
+v0.456.0: the pointer table is 57 words with the armour's, armour `+2` is the defence the ring shows, not magic defence).
+
+```
+equipment/weapons/<weapon>.json        { school, owned {flags, bit}, description, name, ring_item, attack, range, palette,
+                                         animations {stand … knockback}, unknown_1a, unknown_1c; skill (derived) }
+equipment/bazooka_ammo/<ammo>.json     the same record fields (the Bazooka's record is its ammo's)
+equipment/weapon_schools/<school>.json { skill_screen {draw, loop}; what (derived) }
+equipment/armour/<armour>.json         { name, ring_item, defense, defense_shown, text_2; slot (derived) }
+```
+
+- **weapons** (14, the weapon index: `fist`, 12 weapons, `bazooka`): `name` is the ring item whose text the record
+  shows (the text is the ring item's, menus); `ring_item` the item the weapons ring shows; `owned` the WRAM byte and bit
+  (`$22DA`/`$22DB`: bits `$40`, `$80` of `$22DB` are free); `animations` are the records boy_load_weapon copies into
+  the Boy's character record (`$C4:xxxx`); `description` the weapon skill page's line, written where it was. The fist
+  has only a school; the Bazooka has no record of its own (its ammo's).
+- **weapon schools** (4: `sword`, `axe`, `spear`, `bazooka`): a weapon's `school` is 2·id. What a school is, is code:
+  the weapon skill screen (options ring) jumps by the equipped weapon's school to a draw and a loop of its own page
+  (`$8E:93D8`, `$8E:9404`: the Bazooka's are the sword's), and school `sword` adds a quarter of the attack again
+  (`$8F:8491`). So a school can point at another school's page; a new school needs a page (code in `$8D`) and a slot in
+  both jump tables (code follows them).
+- **armour** (40): 12 body, 12 helm, 12 gloves, 4 collars (`slot`, derived). `text_2` is one empty string all 40 share
+  (`$C4:60AD`): the first record has it, the others say `{ "same_as": "grass_vest" }` (any text field of a record kind
+  that shares an earlier record's text in vanilla does that).
+- **Proven** (v0.456.0): G0 alone and with every kind, seeds 1 and 2026 round-trip; an attack, a school and a defence
+  land in place (`g0.test.mts`). Not yet seen in game.
+- **To add a weapon or a school** (open): every per-weapon table holds 14 words with the next table right after it, the
+  loops stop at index 13 (`cpx #$1A`), the weapon skill pages lay out four weapons each, and WRAM holds one skill word
+  per weapon (`$0ADD + 2·index`, the Dog's at `$0B07` right after): growing needs the tables moved (their readers are
+  `lda.l table,x` operands, so they can move), the loop bounds as generated immediates and WRAM for the skill. That WRAM
+  is the hard part ([wram.md](wram.md)).
+
+## alchemy — formulas, ingredients, levels *(built, v0.456.0)*
+
+Parallel tables in bank `$C4`, one word (or byte) per formula, each read by `lda.l`/`and.l`/`ora.l table,x` (X =
+2·formula); written in place, count fixed at 35. Facts: knowledge `ALCHEMY_*`, `FORMULA_RING_ITEMS`,
+`FORMULA_XP_PER_CAST`, `LEVEL_MULTIPLIER`, `ALCHEMY_BLOCK_TABLE` (corrected v0.456.0: 53 blocks, the readers of the
+block map, power is one byte).
+
+```
+alchemy/formulas/<formula>.json        { name, ring_item, description, block, power, target, learned {flags, bit},
+                                         cost [{ingredient, count} ×2]; wram (derived: experience, level, casts) }
+alchemy/ingredients/<ingredient>.json  { name; held (derived) }
+alchemy/alchemy_levels/level_<n>.json  { experience_per_cast (0-8), power_factor }
+```
+
+- **block** names the cast's effect: the entry of `$91:80A6` the formula plays (its animation records and what bank
+  `$91` does with them). Blocks 0-33 are named after the formula that has them, 34-52 after the Call Bead spell that
+  casts them (`heat_wave`, `storm`, `confound`, `plague`, `disrupt`; the rest `block_<n>`). **Laser** has power 0 and
+  Acid Rain's block in vanilla (its own description says "Halves target's HP"): `"block": "lance", "power": 60` gives it
+  Lance's effect at that power (written and round-tripped; not cast in game yet). An effect of its own needs a new
+  block, which is `$91` code and data, not a kind yet.
+- **power** is one byte: the cast ORs the word with the level factor << 8 and multiplies (`$4202`), so 0-255.
+- **target** stays hex (the bits are only partly understood: knowledge `ALCHEMY_TARGET`).
+- **Proven** (v0.456.0): G0 alone and with every kind, seeds 1 and 2026 round-trip; Laser's block, power and a shorter
+  description land in place; a longer text, a power past 255 and an unknown block are errors (`g0.test.mts`).
+- **To add a formula** (open): the nine tables touch each other (moving them is possible: every reader is a long
+  operand), the ring item ids for formulas are a fixed range (`$48`-`$8C`), the alchemy action table has 36 entries
+  with code after it, and WRAM holds 35 of everything, packed: learned bits `$2258`-`$225C` (5 bits free), experience
+  `$2F52`, level `$2F98`, casts `$2FDE` (35 words each, back to back). The WRAM is what cannot grow today:
+  [wram.md](wram.md).
+
 ## characters, animations, sprite blocks *(built, 2026-11-20)*
 
 The table hack's tables (`tools/table-hack/`, moved and proven there), now resources:

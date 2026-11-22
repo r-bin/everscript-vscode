@@ -11,3 +11,5 @@ tags: [ring-menu, boy, ui, input, animation]
 evidence: ["disasm: checks Boy ring status flags $7E:22DA bit 2; initializes ring slot coordinates; steps icon rotation animations via $90:80CE (anim_vm_tick); polls joypad input via $80:8838; on character page switch (L/R or Up/Down) jumps to Dog ring menu loop at $8D:9792 via $8D:94A7 (REA dossier 0x8d91af)"]
 ---
 Main interaction loop for the Boy character ring menu, handling item/weapon/alchemy icon rotation, animation updates via anim_vm_tick, and switching to the Dog ring menu on shoulder or vertical inputs.
+
+The weapon skill screen calls it for the sword school: it runs that page (`weapon_skill_page_loop_swords`, v0.456.0); the name above may be wrong.

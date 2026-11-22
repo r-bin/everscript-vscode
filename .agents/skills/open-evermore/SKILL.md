@@ -24,6 +24,10 @@ before touching its codec. This skill is how to work on it and what bit us.
   forms and groups: G0 (vanilla sha1) and the lockstep proof.
 - Related kinds share a group folder, every kind in a subfolder of its own (`characters/records/` beside
   `characters/behaviours/`, `maps/rooms/` beside `maps/tiles/`): `Codec.folder`.
+- **WRAM that cannot grow: `temp[]` as a placeholder.** A kind that grows past its ids' WRAM (a 36th formula's
+  experience, a 15th weapon's skill word) gives the new ids `temp[]` cells (`COMPILER_TEMP` `$2834`-`$28FB`), from the
+  top down, named in its file; say that they are wiped on every room load and not saved. Real allocation is the todo
+  `docs/todo/wram-allocation.md` (`docs/open-evermore/wram.md`).
 
 ## A kind is done when
 
@@ -78,6 +82,10 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
 - **A resource `_base/` reads by address stays home** (projectile records: animation scripts throw them by
   address): an item only its home fits (`above`/`below`/`bankOffset`), the home found by id when renamed.
   `allocate` places such items first without a random draw: a draw would reshuffle every other kind's layout.
+- **Records read in place** (`records.mts`: equipment, alchemy): a field per (table, stride, offset); text a ring item
+  shows is that ring item by name (menus owns the bytes), other text is written at its home. A codec's "another release?"
+  check must test structure (readers, pointer tables in `_base/`), never editable data: implode explodes its own edited
+  build again.
 - **Script lines are operands, not bytes** (`op a, b, c`): `operands.mts` per token and parameter type, expressions
   in `expressions.mts`. Explode keeps a readable operand only if it reads back to the same bytes, else `[hex]`; the
   round trip compares bytes. `<`/`>` are operators except in `<0x…>` cells (`splitTop`).
@@ -91,6 +99,7 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   --allowImportingTsExtensions --module nodenext --moduleResolution nodenext --target es2022 --strict
   --skipLibCheck --types node tools/open-evermore/open-evermore.mts`.
 - Shell loops over a list: zsh does not split `$VAR`; write such scripts for bash.
+- The CDL library's PCs (`xrefs.bin`, `pcstats`) are bus addresses (`$8F:A198`): `& $3FFFFF` for the HiROM offset.
 - `npm run build:ts` deletes `dist/`, which the codecs load: never while a test or proof runs.
 - `tools/generate-rom-map.mts` (needed after new knowledge entries) also rewrites sizes of entries
   around them, re-creates entries from the CDL export where no entry covers an address, and deletes and rewrites

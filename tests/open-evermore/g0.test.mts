@@ -19,7 +19,7 @@ const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 /** Where a kind lives in the tree when not at the top (folders.mts). */
-const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts/global', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions' };
+const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts/global', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -132,6 +132,26 @@ if (!path || !existsSync(path)) {
         editJson(t, 'menus/ring_flows/dog.json', v => { v.rings.push('boy_items'); });
     }).sort(), ['invalid-value menus/ring_flows/dog.json#/rings', 'invalid-value menus/ring_items/option_action.json#/action', 'invalid-value menus/rings/dog_options.json#/items', 'no-room menus/ring_items/option_targeting.json#/name']);
     console.log('  ✓ ring menus: a name in its own bytes, an action by name, an options-ring item and a flow land in place; a longer name, an unknown action, a slot less and a flow longer are errors');
+
+    // Equipment and alchemy (records written in place): Laser given Lance's block and a power, a weapon's attack and
+    // school, an armour's defence, a level's factor; a text too long, a shared text changed in one record, a power past
+    // a byte and a block that is none are errors.
+    const eq = new Map(tree);
+    editJson(eq, 'alchemy/formulas/laser.json', v => { v.power = 60; v.block = 'lance'; v.description = 'Halves HP'; });
+    editJson(eq, 'equipment/weapons/bone_crusher.json', v => { v.attack = 99; v.school = 'axe'; });
+    editJson(eq, 'equipment/armour/grass_vest.json', v => { v.defense = 50; });
+    editJson(eq, 'alchemy/alchemy_levels/level_0.json', v => { v.power_factor = 9; });
+    const eb = implode(eq, GAME, KINDS);
+    assert.deepStrictEqual(eb.findings.list.filter(f => f.severity === 'error'), []);
+    const w16 = (at: number) => eb.image![at] | (eb.image![at + 1] << 8);
+    assert.deepStrictEqual([w16(0x045E6B + 40), w16(0x045DDF + 40), w16(0x0438E6), w16(0x0459DC + 2), w16(0x043B02), eb.image![0x045BA5]], [60, 0x26, 99, 2, 50, 9], 'power, block, attack, school, defence, factor in place');
+    assert.deepStrictEqual([...eb.image!.subarray(0x040000 + w16(0x045D51 + 40), 0x040000 + w16(0x045D51 + 40) + 10)], [...Buffer.from('Halves HP'), 0], 'the shorter description where it was');
+    assert.deepStrictEqual(rules(t => {
+        editJson(t, 'alchemy/formulas/laser.json', v => { v.description = 'Halves the target enemy HP!'; });
+        editJson(t, 'equipment/armour/shell_plate.json', v => { v.text_2 = 'x'; });
+        editJson(t, 'alchemy/formulas/heal.json', v => { v.power = 300; v.block = 'no_block'; });
+    }).sort(), ['invalid-value alchemy/formulas/heal.json#/power', 'no-room alchemy/formulas/laser.json#/description', 'no-room equipment/armour/shell_plate.json#/text_2', 'unknown-reference alchemy/formulas/heal.json#/block']);
+    console.log('  ✓ equipment and alchemy: a formula\'s block, power and description, a weapon\'s attack and school, an armour\'s defence and a level\'s factor land in place; a longer text, a power past a byte and an unknown block are errors');
 
     // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
     const edited = new Map(tree);

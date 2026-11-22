@@ -6,7 +6,7 @@ kind: table
 category: ⚗️
 name: ALCHEMY_ANIM_MAP
 title: Alchemy formula → its block in bank $91
-confidence: likely
+confidence: confirmed
 tags: [alchemy]
 evidence: ["read: 35 words, all even, 0x00..0x42 (34 distinct; formulas 0 Acid Rain and 20 Laser both hold 0x02) — read from the ROM (v0.203.0)", "read: each value + $91:80A6 gives a $91 address equal to the everscript enum ALCHEMY_TYPE_ANIMATION / _PROJECTILE value of the same formula (Acid Rain $86F0, Crush $8A9C, Heal $886C, Flash $8756, Hard Ball $926C)"]
 see: [src/games/evermore/localizations/knowledge/routines/ALCHEMY_BLOCK_TABLE.md, src/games/evermore/scripts-tab/model/alchemy.ts]
@@ -20,4 +20,4 @@ animations it plays. Two formulas can share a block: Laser re-uses Acid Rain's.
 - Previously believed (tables.js, the alchemy skill): "animation id per formula" / "animation
   sequence id". It is not an animation id; it selects a `$91` block, and the block names the
   animation records.
-- Which code reads it was not traced; the meaning comes from the values matching the enum.
+- Read by `alchemy_cast_action_direct_targeting` and `alchemy_cast_action_area_targeting` (bank `$8E`): the block of the formula cast (v0.456.0). The block table `$91:80A6` has 53 words: 0-33 the formulas', 34-52 the Call Bead casts' (`$C4:5F97`), so a formula may name a cast's block. Laser (formula 20) has Acid Rain's block and power 0; its own description says "Halves target's HP". Open Evermore writes the field as `block`, by name.
