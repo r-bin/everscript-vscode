@@ -38,9 +38,9 @@ SOE_BIND(script_op_a7_sleep, 0x8CD217, RTS)
     y = DP16(r, 0x7E);
     r->y = y;
     soe_carry(r, false);
-    wake_lo = soe_adc16(r, (uint16_t)(dur - 1u), ABS16(r, WAVE_PHASE_COUNTER_ADDR));
+    wake_lo = soe_adc16(r, (uint16_t)(dur - 1u), ABS16(r, FIELD_FRAME_COUNTER_ADDR));
     ABSI16(r, 0x0005, y) = wake_lo;
-    wake_hi = soe_adc16(r, ABS16(r, CONTROLLER_PREV_INPUT_ADDR), 0x0000u);
+    wake_hi = soe_adc16(r, ABS16(r, (FIELD_FRAME_COUNTER_ADDR + 2u)), 0x0000u);
     ABSI16(r, 0x0007, y) = wake_hi;
     ABSI16(r, 0x0003, y) = 0x0004u;
 
