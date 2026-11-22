@@ -32,6 +32,7 @@ import type { Tree } from '../../tree.mts';
 const require = createRequire(import.meta.url);
 const maps = require('../../../../dist/games/evermore/maps');
 const treeMap = require('../../../../dist/games/evermore/maps/tree-map');
+const { DEFAULT_LEVEL, paletteSlots } = require('../../../../dist/games/evermore/maps/tree-map-text');
 const ROOMS: { id: number; path: string }[] = require('../../../../src/games/evermore/localizations/data/rooms.json');
 
 const { TREE_MAP } = treeMap;
@@ -140,7 +141,7 @@ function enterScripts(ctx: ImplodeContext, names: Set<string>, report: boolean):
 export const mapsCodec: Codec = {
     kind: 'maps', version: treeMap.TREE_MAP_VERSION, path: DIR, folder: `${DIR}/rooms`,
     // preview.png shows the room; nothing reads it back.
-    canonical(path, bytes) {
+    canonical(path, bytes, ctx) {
         if (path.endsWith('/' + PREVIEW)) return null;
         // A trigger's name says what it does, not the room's bytes.
         if (path.endsWith('/' + TREE_MAP.scripts)) {
@@ -159,10 +160,23 @@ export const mapsCodec: Codec = {
         }
         if (path.endsWith('/' + TREE_MAP.metatiles)) {
             const v = JSON.parse(readText(withoutKeys(path, bytes, ['packed', 'id'])));
-            const norm = (t: unknown) => typeof t === 'string' ? t.trim().split(/\s+/).sort().join(' ') : t;
-            // Fields in any order, a flag written false the same as left out.
-            v.list = (v.list ?? []).map((e: Record<string, unknown>) => Object.fromEntries(Object.entries(e).filter(([, x]) => x !== false)
-                .map(([k, x]) => [k, k === 'canopy' || k === 'terrain' ? norm(x) : x] as [string, unknown]).sort(([a], [b]) => a < b ? -1 : 1)));
+            // A layer's palette written out as the room's first is the default left out.
+            const room = ctx?.tree.get(path.slice(0, path.lastIndexOf('/') + 1) + FILE);
+            let first: string | undefined;
+            try { first = room ? paletteSlots(JSON.parse(readText(room)).palettes ?? [])[0] : undefined; } catch { /* map.json reports itself */ }
+            // Fields in any order, a flag written false the same as left out, level 1 the same as left out.
+            const tidy = (e: Record<string, unknown>) => Object.fromEntries(Object.entries(e).filter(([, x]) => x !== false).sort(([a], [b]) => a < b ? -1 : 1));
+            const layer = (l: unknown) => {
+                if (!l || typeof l !== 'object') return l;
+                const t = tidy(l as Record<string, unknown>);
+                if (t.palette !== undefined && (t.palette === first || t.palette === 'p1')) delete t.palette;
+                return t;
+            };
+            v.list = (v.list ?? []).map((e: Record<string, unknown>) => {
+                const t = tidy(e);
+                if (t.level === DEFAULT_LEVEL) delete t.level;
+                return { ...t, front: layer(t.front), back: layer(t.back) };
+            });
             return [path, json(v)];
         }
         return [path, withoutKeys(path, bytes, ['packed'])];

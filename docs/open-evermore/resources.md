@@ -211,7 +211,7 @@ maps/rooms/<map>/scripts.json              the scripts the room runs: enter, ste
 maps/rooms/<map>/animations.json           animated tiles (Section 2) and palette cycles
 maps/rooms/<map>/grass.json                cuttable grass (Section 4)
 maps/rooms/<map>/grid.txt                  the cells: one row per line, each cell its metatile id in hex
-maps/rooms/<map>/metatiles.json            what each metatile draws (canopy, terrain) and how it collides
+maps/rooms/<map>/metatiles.json            what each metatile draws (front, back) and how it collides
 maps/rooms/<map>/objects.json              each object by name: its states, where, which cells, how long each is held
 maps/rooms/<map>/preview.png               only with `explode --previews`: the room drawn, for the reader; implode ignores it
 ```
@@ -256,10 +256,10 @@ cycle: CGRAM colour, how many, frames per step, signed). `grass.json`: `{ "list"
 `grid.txt`, one row per line (`048 048 049 …`), and `metatiles.json`, one metatile per line:
 
 ```jsonc
-{ "format": "open-evermore/metatiles", "version": 3, "compression": "lzss",
+{ "format": "open-evermore/metatiles", "version": 4, "compression": "lzss",
   "list": [
-    { "id": "000", "canopy": "tile_026d palette_01c pr v", "terrain": "tile_02ac palette_020", "collision": "solid", "level": 1, "inFront": true },
-    { "id": "1a4", "canopy": "…", "terrain": "…", "alwaysWalkable": "drift_sw", "level": 1, "stepOn": true }, …
+    { "id": "000", "front": { "tile": "tile_026d", "palette": "palette_021", "over": true, "flipV": true }, "back": { "tile": "tile_02ac" }, "collision": "solid", "inFront": true },
+    { "id": "1a4", "front": { … }, "back": { … }, "alwaysWalkable": "drift_sw", "level": 2, "stepOn": true }, …
   ] }
 ```
 
@@ -283,8 +283,11 @@ move in the list, its scripts follow; one with `id` instead of a name is reached
   not 1. The source count Section 4 starts with (also the grid's first Markov counter) is the number of distinct
   `cut`s, as in all 7 vanilla rooms; `sources` overrides it. `#<4 hex>` is a word that is no metatile.
 
-- **Layer words** (`canopy` = BG1, `terrain` = BG2): `<graphic> <palette>` and the set flags `pr` (priority), `h`, `v`
-  (flips). The graphic is a name from `graphics.tiles` (`tile_10ee#2` for its second occurrence), `anim<n>` for
+- **Layers** (`front` = BG1, drawn over `back` = BG2; front holds tree tops, shadows, building details, whatever covers
+  the ground): `{ tile, palette?, over?, flipH?, flipV? }`, only `tile` required (owner 2026-11-22: no meaning packed
+  into strings). `over` is the BG priority bit (13): the layer is drawn over the sprites (a roof edge the Boy walks
+  behind); `flipH` (14), `flipV` (15); each only when set. `palette` left out is BG palette 1, the list's first. The
+  tile is a name from `graphics.tiles` (`tile_10ee#2` for its second occurrence), `anim<n>` for
   animation channel *n*'s slot, or `chr<3 hex>` for a character no slot names (82 vanilla words use `$3F0–$3FF`). The
   palette is a name from `map.json` `palettes` (BG palette *n* is entry *n*−1; `#2` for a palette listed twice in the
   first seven), or `p<n>` for one the list does not name (`p0`, the HUD's). A room with more than 7 palettes (22 rooms)
@@ -292,9 +295,9 @@ move in the list, its scripts follow; one with `id` instead of a name is reached
 - **Collision** ([../map-format/room-reference.md](../map-format/room-reference.md) §9), as the Rooms editor splits
   it: `collision`, the form (a name of `maps/collisions/`, §collisions), or `alwaysWalkable` instead when bit 13 is
   set (bits 3–0 then say how the cell moves you: `stairs_vertical`, `stairs_diagonal_l` / `_r`, `drift_n` …
-  `drift_sw`, `walkable`, `walkable_3`/`_5`/`_6`/`_7`); `level` 0–3. Then only what is set: `seeThrough` (bit 6),
+  `drift_sw`, `walkable`, `walkable_3`/`_5`/`_6`/`_7`); `level` 0–3, left out when 1 (91 % of vanilla metatiles). Then only what is set: `seeThrough` (bit 6),
   `gate` (bits 11–8: `blocks_boy_and_dog`, `blocks_dog`, `blocks_others`, `deflect` (the editor's unconfirmed
-  reading), `hides_character`, else `gate_<hex>`), `inFront` (12: drawn in front of the canopy), `stepOn` (14),
+  reading), `hides_character`, else `gate_<hex>`), `inFront` (12: the character here is drawn in front of the front layer), `stepOn` (14),
   `interact` (15: B runs a B trigger), `bit7` (never in vanilla). A flag written `false` is the same as left out.
 - `id` is the entry's position, written for the reader (`invalid-value` if it disagrees). Flags may come in any
   order and grid ids without padding: the round trip compares what they mean.

@@ -10,11 +10,12 @@ import { tileSlotChr } from './metatiles';
 export const hexN = (v: number, n: number) => v.toString(16).padStart(n, '0');
 
 // ── Layer and collision words (room-reference.md §3, §9) ──────────────────────────────────────────────────────
-// Layer word: "<graphic> <palette>[ pr][ h][ v]", the graphic being a name of the room's graphics list ("#2" for
-// its second occurrence), "anim<n>" for animation channel n's slot, or "chr<3 hex>" for a character no slot names
-// (82 vanilla words use $3F0-$3FF); the palette a name of the room's palette list, its first set (BG palette n is
-// list entry n-1; a room with more than 7 swaps sets through MAP_PALETTE), or "p<n>" for one the list does not
-// name (p0, the HUD's).
+// Layer word (front = BG1, back = BG2): { tile, palette?, over?, flipH?, flipV? }. `tile`: a name of the room's
+// graphics list ("#2" for its second occurrence), "anim<n>" for animation channel n's slot, or "chr<3 hex>" for a
+// character no slot names (82 vanilla words use $3F0-$3FF). `palette`: a name of the room's palette list, its first
+// set (BG palette n is list entry n-1; a room with more than 7 swaps sets through MAP_PALETTE), or "p<n>" for one
+// the list does not name (p0, the HUD's); left out, BG palette 1 (the list's first). `over` (bit 13, BG priority):
+// drawn over the sprites. `flipH` (14), `flipV` (15). Each only when set.
 
 /** The name each graphics slot answers to: a repeated graphic gets `#2`, `#3`, … */
 export function slotNames(tiles: string[]): string[] {
@@ -26,22 +27,35 @@ export function slotNames(tiles: string[]): string[] {
 export const PALETTE_SET = 7;
 /** The names BG palettes 1-7 answer to: the room's first set of palettes, a repeated one as `#2`. */
 export const paletteSlots = (palettes: string[]): string[] => slotNames(palettes.slice(0, PALETTE_SET));
+/** The BG palette a layer without `palette` uses. */
+const DEFAULT_PALETTE = 1;
 
-export function layerText(w: number, slots: string[], channelCount: number, palettes: string[] = []): string {
+/** A layer word's fields, in the order metatiles.json writes them. */
+export interface LayerFields { tile: string; palette?: string; over?: true; flipH?: true; flipV?: true }
+const LAYER_FLAGS: [keyof LayerFields, number][] = [['over', 0x2000], ['flipH', 0x4000], ['flipV', 0x8000]];
+/** The keys a layer takes. */
+const LAYER_KEYS = ['tile', 'palette', ...LAYER_FLAGS.map(f => f[0])];
+
+export function layerFields(w: number, slots: string[], channelCount: number, palettes: string[] = []): LayerFields {
     const chr = w & 0x3FF, slot = wordSlot(w), pal = (w >> 10) & 7;
-    let ref = `chr${hexN(chr, 3)}`;
+    let tile = `chr${hexN(chr, 3)}`;
     if (chr < 0x3F0 && tileSlotChr(slot) === chr) {
-        if (slot < slots.length) ref = slots[slot];
-        else if (slot - slots.length < channelCount) ref = `anim${slot - slots.length}`;
+        if (slot < slots.length) tile = slots[slot];
+        else if (slot - slots.length < channelCount) tile = `anim${slot - slots.length}`;
     }
-    const palette = pal >= 1 && pal <= palettes.length ? palettes[pal - 1] : `p${pal}`;
-    return [ref, palette, ...(w & 0x2000 ? ['pr'] : []), ...(w & 0x4000 ? ['h'] : []), ...(w & 0x8000 ? ['v'] : [])].join(' ');
+    const f: LayerFields = { tile };
+    if (pal !== DEFAULT_PALETTE) f.palette = pal >= 1 && pal <= palettes.length ? palettes[pal - 1] : `p${pal}`;
+    for (const [key, bit] of LAYER_FLAGS) if (w & bit) (f as any)[key] = true;
+    return f;
 }
 
-/** A layer word, or why the text is not one. */
-export function parseLayer(s: unknown, slots: string[], channelCount: number, palettes: string[] = []): number | string {
-    if (typeof s !== 'string') return 'a string: "<graphic> <palette> [pr] [h] [v]"';
-    const [ref, ...flags] = s.trim().split(/\s+/);
+/** A layer word, or why the fields are not one. */
+export function parseLayer(v: any, slots: string[], channelCount: number, palettes: string[] = []): number | string {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return 'an object: { tile, palette?, over?, flipH?, flipV? }';
+    const unknown = Object.keys(v).find(k => !LAYER_KEYS.includes(k));
+    if (unknown) return `"${unknown}": a layer takes ${LAYER_KEYS.join(', ')}`;
+    const ref = v.tile;
+    if (typeof ref !== 'string') return 'tile: a name of the room\'s graphics list, anim<n> or chr<3 hex>';
     let chr: number;
     const anim = /^anim(\d+)$/.exec(ref), raw = /^chr([0-9a-f]{3})$/.exec(ref);
     if (raw) chr = parseInt(raw[1], 16) & 0x3FF;
@@ -53,18 +67,20 @@ export function parseLayer(s: unknown, slots: string[], channelCount: number, pa
         if (slot < 0) return `"${ref}" is not in the room's graphics list`;
         chr = tileSlotChr(slot);
     }
-    let w = chr, pal = -1;
-    for (const f of flags) {
-        const p = /^p([0-7])$/.exec(f), named = palettes.indexOf(f);
-        if (f === 'pr') w |= 0x2000;
-        else if (f === 'h') w |= 0x4000;
-        else if (f === 'v') w |= 0x8000;
-        else if (p) pal = +p[1];
+    let pal = DEFAULT_PALETTE;
+    if (v.palette !== undefined) {
+        const p = /^p([0-7])$/.exec(v.palette), named = palettes.indexOf(v.palette);
+        if (p) pal = +p[1];
         else if (named >= 0) pal = named + 1;
-        else return `"${f}": a palette of the room's first ${PALETTE_SET} (${palettes.join(', ') || 'none'}) or p0-p7; pr, h, v`;
+        else return `palette "${v.palette}": one of the room's first ${PALETTE_SET} (${palettes.join(', ') || 'none'}) or p0-p7`;
     }
-    if (pal < 0) return 'no palette';
-    return w | (pal << 10);
+    let w = chr | (pal << 10);
+    for (const [key, bit] of LAYER_FLAGS) {
+        if (v[key] === undefined || v[key] === false) continue;
+        if (v[key] !== true) return `${key}: true, or leave it out`;
+        w |= bit;
+    }
+    return w;
 }
 
 // Collision word, as a metatile's fields (the Rooms editor's split: the Collision tab's form, the Level bar, the
@@ -72,7 +88,7 @@ export function parseLayer(s: unknown, slots: string[], channelCount: number, pa
 // diagonal twins "slide" or "stop" ($8FA3F8 / $8FA418: three open compass points and a slide entry, or one point and
 // none; unconfirmed in game), 0x4 and 0xB are open in both tables and in no vanilla room. `alwaysWalkable` instead
 // when bit 13 is set: bits 3-0 then say how the cell moves you (stairs, drift, nothing), and there is no form.
-// `level` (bits 5-4). Then only what is set: `seeThrough` (6), `gate` (11-8), `inFront` (12), `stepOn` (14),
+// `level` (bits 5-4), left out when 1 (91 % of vanilla metatiles). Then only what is set: `seeThrough` (6), `gate` (11-8), `inFront` (12), `stepOn` (14),
 // `interact` (15), `bit7` (never in vanilla).
 
 /** The 16 forms by code; the collisions kind (maps/collisions/) may rename them. */
@@ -85,11 +101,13 @@ const ALWAYS_WALKABLE = ['stairs_vertical', 'stairs_diagonal_r', 'stairs_diagona
 /** Gate nibbles by what they do (collision.ts entityGate, spriteHiddenOn; Deflect is the editor's unconfirmed reading). */
 const GATES: Record<number, string> = { 1: 'deflect', 3: 'blocks_others', 5: 'blocks_dog', 7: 'blocks_boy_and_dog', 8: 'hides_character' };
 const gateName = (n: number) => GATES[n] ?? `gate_${n.toString(16)}`;
+/** The level a metatile without `level` stands on. */
+export const DEFAULT_LEVEL = 1;
 const FLAGS: [string, number][] = [['seeThrough', 0x40], ['inFront', 0x1000], ['stepOn', 0x4000], ['interact', 0x8000], ['bit7', 0x80]];
 
 /** A metatile's collision fields, in the order metatiles.json writes them. */
 export interface CollisionFields {
-    collision?: string; alwaysWalkable?: string; level: number; gate?: string;
+    collision?: string; alwaysWalkable?: string; level?: number; gate?: string;
     seeThrough?: true; inFront?: true; stepOn?: true; interact?: true; bit7?: true;
 }
 /** The keys a metatile's collision takes (the round trip and the parser know them). */
@@ -97,7 +115,7 @@ export const COLLISION_KEYS = ['collision', 'alwaysWalkable', 'level', 'gate', .
 
 /** A collision word as a metatile's fields; `form`: a form's name by code (the tree's collisions kind). */
 export function collisionFields(c: number, form: (code: number) => string = k => COLLISION_FORMS[k]): CollisionFields {
-    const gate = (c >> 8) & 15, out: CollisionFields = { level: (c >> 4) & 3 };
+    const gate = (c >> 8) & 15, level = (c >> 4) & 3, out: CollisionFields = level === DEFAULT_LEVEL ? {} : { level };
     const f: CollisionFields = c & 0x2000 ? { alwaysWalkable: ALWAYS_WALKABLE[c & 15], ...out } : { collision: form(c & 15), ...out };
     if (gate) f.gate = gateName(gate);
     for (const [key, bit] of FLAGS) if (c & bit) (f as any)[key] = true;
@@ -118,8 +136,9 @@ export function collisionOfFields(v: any, form: (name: string) => number | undef
         if (k === undefined) return bad('collision', `"${v?.collision}": a form (${COLLISION_FORMS.join(', ')}), or alwaysWalkable instead`);
         c = k;
     }
-    if (!Number.isInteger(v.level) || v.level < 0 || v.level > 3) return bad('level', '0-3');
-    c |= v.level << 4;
+    const level = v.level ?? DEFAULT_LEVEL;
+    if (!Number.isInteger(level) || level < 0 || level > 3) return bad('level', '0-3, or leave it out for 1');
+    c |= level << 4;
     if (v.gate !== undefined) {
         const n = Array.from({ length: 16 }, (_, k) => k).find(k => k && (gateName(k) === v.gate || `gate_${k.toString(16)}` === v.gate));
         if (n === undefined) return bad('gate', `"${v.gate}": ${Object.values(GATES).join(', ')} or gate_<hex>`);
