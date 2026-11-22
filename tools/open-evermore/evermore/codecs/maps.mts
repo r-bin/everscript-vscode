@@ -16,8 +16,9 @@
 // four reader operands rewritten. scripts.json names the room's enter script (`enter`, and `enterWord`, the word after
 // its pointer, when not 0) and each trigger's script, in full (`<map>/door_01`); the scripts are the scripts kind's
 // files (scripts/rooms/<map>/, owner 2026-11-22: no kind inside another's folder). References to exploded kinds are
-// names (tileFamilies → tile_families/, graphics and animation frames → tiles/, triggers and enter → scripts);
-// triggers and objects are named by what they do (room-names.mts).
+// names (palettes → palettes/, graphics and animation frames → tiles/, triggers and enter → scripts, a metatile's
+// collision → collisions/, else read as its name spells it); triggers and objects are named by what they do
+// (room-names.mts).
 import { createRequire } from 'node:module';
 import { fileOfPacked, packedOf, scriptLayout } from './scripts.mts';
 import { objectNames, triggerNames } from './room-names.mts';
@@ -31,6 +32,7 @@ import type { Tree } from '../../tree.mts';
 const require = createRequire(import.meta.url);
 const maps = require('../../../../dist/games/evermore/maps');
 const treeMap = require('../../../../dist/games/evermore/maps/tree-map');
+const treeText = require('../../../../dist/games/evermore/maps/tree-map-text');
 const ROOMS: { id: number; path: string }[] = require('../../../../src/games/evermore/localizations/data/rooms.json');
 
 const { TREE_MAP } = treeMap;
@@ -50,7 +52,9 @@ const tableLength = (n: number) => n * STRIDE, enterLength = (n: number) => n * 
 /** A room's enter-script record as scripts.json writes it: `enter`, a script or null for none (packed pointer 0,
  *  Brian's room), and `enterWord`, the word after the pointer (the room loader does not read it), when not 0. */
 interface Enter { script: string | null; word: number }
-const FAMILIES = 'tile_families', TILES = 'tiles';
+const PALETTES = 'palettes', TILES = 'tiles', COLLISIONS = 'collisions';
+/** The collisions kind's pseudo kind: on a round trip, `nameAt(WORD, word)` is the tree's name for a word. */
+const WORD = 'collisions.word';
 
 /** The 24-bit operand of a reader, as the file offset of the table it reads. */
 const operand = (rom: Uint8Array, r: { at: number; add: number }) => maps.romFileOffset(rom, rom[r.at] | rom[r.at + 1] << 8 | rom[r.at + 2] << 16) - r.add;
@@ -75,15 +79,32 @@ export function mapName(id: number): string {
     return room ? room.path.replace(/[/-]/g, '_').replace(/[^a-z0-9_]/g, '') : 'map_' + id.toString(16).padStart(2, '0');
 }
 
+/** The collision files of a tree (collisions/<name>.json) as name → word; a file that does not read is left out
+ *  (the collisions kind reports it), so its name is read as it is spelled. */
+export function collisionLookup(tree: Tree): (name: string) => number | undefined {
+    const cache = new Map<string, number | undefined>();
+    return name => {
+        if (!cache.has(name)) {
+            const raw = tree.get(`${COLLISIONS}/${name}.json`);
+            let word: number | undefined;
+            try { const c = raw ? treeText.collisionOfFields(JSON.parse(readText(raw))) : undefined; word = typeof c === 'number' ? c : undefined; } catch { /* reported there */ }
+            cache.set(name, word);
+        }
+        return cache.get(name);
+    };
+}
+
 /** A room's files (all but preview.png, which explode draws); `enter` goes into scripts.json, before the triggers. */
 function toFiles(model: unknown, names: object, enter: Enter): Map<string, Uint8Array> {
     const f = treeMap.roomToTree(model, names), { format, version, ...triggers } = f.scripts;
     f.scripts = { format, version, enter: enter.script, ...(enter.word ? { enterWord: enter.word } : {}), ...triggers };
-    return new Map(PARTS.map(([key, file]) => [file, key === 'grid' ? text(f.grid) : json(f[key])]));
+    // A metatile per line: its names (tiles, palettes, its collision) run past the usual width.
+    return new Map(PARTS.map(([key, file]) => [file, key === 'grid' ? text(f.grid) : json(f[key], key === 'metatiles' ? 200 : undefined)]));
 }
 
-/** A room folder's files → blob; every problem is a finding with its file and JSON pointer (grid.txt: /row/column). */
-function fromFiles(files: Map<string, Uint8Array | undefined>, dir: string, ctx: ImplodeContext): Uint8Array | null {
+/** A room folder's files → blob; every problem is a finding with its file and JSON pointer (grid.txt: /row/column).
+ *  `collision`: a collision name's word, when not the tree's collision files (explode's own check). */
+function fromFiles(files: Map<string, Uint8Array | undefined>, dir: string, ctx: ImplodeContext, collision?: (name: string) => number | undefined): Uint8Array | null {
     const values: Record<string, unknown> = {};
     for (const [key, file] of PARTS) {
         const b = files.get(file), path = `${dir}/${file}`;
@@ -91,10 +112,11 @@ function fromFiles(files: Map<string, Uint8Array | undefined>, dir: string, ctx:
         if (key === 'grid') { values.grid = readText(b); continue; }
         try { values[key] = JSON.parse(readText(b)); } catch (e) { ctx.findings.error('parse-error', path, '', (e as Error).message); return null; }
     }
-    const families = ctx.ids.get(FAMILIES) ?? new Map<string, number>(), tiles = ctx.ids.get(TILES) ?? new Map<string, number>();
+    const palettes = ctx.ids.get(PALETTES) ?? new Map<string, number>(), tiles = ctx.ids.get(TILES) ?? new Map<string, number>();
     const scripts = ctx.ids.get(SCRIPTS) ?? new Map<string, number>();
     const refs = {
-        family: (name: string) => families.get(name),
+        palette: (name: string) => palettes.get(name),
+        collision: collision ?? (ctx.tree ? collisionLookup(ctx.tree) : undefined),
         // A trigger names its script in full; the record holds its table offset, 3·id.
         script: (name: string) => { const id = scripts.get(name); return id === undefined ? undefined : id * 3; },
         tile(name: string, dma: boolean) {
@@ -108,9 +130,9 @@ function fromFiles(files: Map<string, Uint8Array | undefined>, dir: string, ctx:
 }
 
 /** The blob a room's files implode to, ids taken from `ids`: explode's own check. */
-function lossless(files: Map<string, Uint8Array>, ids: Map<string, Map<string, number>>): Uint8Array {
+function lossless(files: Map<string, Uint8Array>, ids: Map<string, Map<string, number>>, collision: (name: string) => number | undefined): Uint8Array {
     const findings = new Findings();
-    const blob = fromFiles(files, 'explode', { ids, findings, marks: new Map() } as unknown as ImplodeContext);
+    const blob = fromFiles(files, 'explode', { ids, findings, marks: new Map() } as unknown as ImplodeContext, collision);
     if (!blob) throw new Error('explode wrote room files it cannot read: ' + findings.list.map(f => `${f.file}#${f.pointer} ${f.message}`).join('; '));
     return blob;
 }
@@ -137,7 +159,7 @@ function enterScripts(ctx: ImplodeContext, names: Set<string>, report: boolean):
 export const mapsCodec: Codec = {
     kind: 'maps', version: treeMap.TREE_MAP_VERSION, path: DIR, folder: `${DIR}/rooms`,
     // preview.png shows the room; nothing reads it back.
-    canonical(path, bytes) {
+    canonical(path, bytes, ctx) {
         if (path.endsWith('/' + PREVIEW)) return null;
         // A trigger's name says what it does, not the room's bytes.
         if (path.endsWith('/' + TREE_MAP.scripts)) {
@@ -157,7 +179,10 @@ export const mapsCodec: Codec = {
         if (path.endsWith('/' + TREE_MAP.metatiles)) {
             const v = JSON.parse(readText(withoutKeys(path, bytes, ['packed', 'id'])));
             const norm = (t: unknown) => typeof t === 'string' ? t.trim().split(/\s+/).sort().join(' ') : t;
-            for (const e of v.list ?? []) for (const k of ['canopy', 'terrain', 'collision']) e[k] = norm(e[k]);
+            // A collision by what it means: a collision file's word, else the word its name spells.
+            const known = ctx?.tree ? collisionLookup(ctx.tree) : () => undefined;
+            const word = (t: unknown) => { const w = typeof t === 'string' ? known(t) ?? treeText.parseCollision(t) : t; return typeof w === 'number' ? w : t; };
+            for (const e of v.list ?? []) { for (const k of ['canopy', 'terrain']) e[k] = norm(e[k]); e.collision = word(e.collision); }
             return [path, json(v)];
         }
         return [path, withoutKeys(path, bytes, ['packed'])];
@@ -174,9 +199,12 @@ export const mapsCodec: Codec = {
         const triggers = triggerNames(rom, countOf), objects = objectNames(rom, name, countOf, nameAt);
         const scriptName = (scriptId: number) => scriptId % 3 || L.ids[scriptId / 3] === undefined ? undefined : scriptNames.get(L.ids[scriptId / 3])!.name;
         const pool = [], homes = [];
+        // A collision word by the tree's name for it on a round trip (the collisions kind's symbols), else the name that spells it.
+        const collisionNames = new Map<string, number>();
+        const collisionName = (w: number) => { const n = nameAt(WORD, w); if (n !== undefined) collisionNames.set(n, w); return n; };
         const ids = new Map<string, Map<string, number>>();
         const by = (kind: string, count: number) => new Map(Array.from({ length: count }, (_, id) => [name(kind, id), id] as [string, number]));
-        ids.set(FAMILIES, by(FAMILIES, 1024));
+        ids.set(PALETTES, by(PALETTES, 1024));
         ids.set(TILES, by(TILES, 0x10000 / 3 | 0));
         ids.set(SCRIPTS, new Map(L.ids.map((at, id) => [scriptNames.get(at)!.name, id] as [string, number])));
         for (let id = 0; id < count; id++) {
@@ -189,10 +217,11 @@ export const mapsCodec: Codec = {
             // The last entry's word is never read (vanilla's lies on the script pointer table): only a pointer is kept.
             const record = { script: packed ? scriptNames.get(fileOfPacked(packed))!.name : null, word };
             const room = toFiles(model, {
-                family: (f: number) => name(FAMILIES, f), tile: (t: number) => name(TILES, t), script: scriptName,
+                palette: (f: number) => name(PALETTES, f), tile: (t: number) => name(TILES, t), script: scriptName,
                 trigger: (list: 'stepOn' | 'bTrigger', k: number) => triggers[id][list][k], object: (k: number) => objects[id][k],
+                collision: collisionName,
             }, record);
-            if (sha1(lossless(room, ids)) !== sha1(rom.subarray(at, end))) throw new Error(`room ${id}: its files do not give its bytes back; explode would lose data`);
+            if (sha1(lossless(room, ids, n => collisionNames.get(n))) !== sha1(rom.subarray(at, end))) throw new Error(`room ${id}: its files do not give its bytes back; explode would lose data`);
             for (const [f, bytes] of room) files.set(`${DIR}/${n}/${f}`, bytes);
             // The room drawn: for the reader only, nothing reads it back.
             if (options.previews) files.set(`${DIR}/${n}/${PREVIEW}`, new Uint8Array(maps.encodePng(maps.renderRoomComposite(rom, maps.decodeRoom(rom, id, at)))));

@@ -23,7 +23,7 @@ export interface Manifest {
     regions: Region[];
     placement: Record<string, unknown>;
     renames: { kind: string; from: string; to: string }[];
-    /** How explode wrote a kind's files, by kind (`tile_families: { format: 'png' }`); the round trip writes them so again. */
+    /** How explode wrote a kind's files, by kind (`palettes: { format: 'png' }`); the round trip writes them so again. */
     options?: Record<string, Record<string, string>>;
     /** The kinds this tree was exploded with, when not all (`explode --kinds`, to prove kinds apart); the rest is `_base/`. */
     kinds?: string[];

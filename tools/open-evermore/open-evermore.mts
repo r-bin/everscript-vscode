@@ -1,12 +1,12 @@
 // Open Evermore: one tool, the action is the first argument (docs/open-evermore/tool.md §1). Run `npm run build:ts`
 // first: the codecs call the decoders in dist/.
-//   node tools/open-evermore/open-evermore.mts explode [rom] [--out out/open-evermore] [--force] [--families json|png]
+//   node tools/open-evermore/open-evermore.mts explode [rom] [--out out/open-evermore] [--force] [--palettes json|png]
 //                                                       [--tiles png|json] [--kinds a,b] [--previews]
 //   node tools/open-evermore/open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]
 //   node tools/open-evermore/open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
 // explode: the ROM (argument, else the base ROM of the ROM library) → the tree. The tree is ROM-derived: inside the
-//          repository only under the git-ignored out/; --force replaces a tree (edits there are lost). --families png
-//          writes each tile family as a 128×8 stripe of its 16 colours instead of JSON; --tiles json writes tiles as
+//          repository only under the git-ignored out/; --force replaces a tree (edits there are lost). --palettes png
+//          writes each palette as a 128×8 stripe of its 16 colours instead of JSON; --tiles json writes tiles as
 //          rows of hex digits instead of indexed PNGs (both kept in manifest.json). --kinds explodes only those kinds
 //          (the rest stays in _base/; implode and prove use the manifest's list): to prove kinds apart. --previews
 //          also draws each room as maps/rooms/<map>/preview.png (for the reader; nothing reads it back).
@@ -31,15 +31,15 @@ import { BUILD_DIR, json, readText, readTree, sha1, writeTree } from './tree.mts
 const require = createRequire(import.meta.url);
 const REPO = resolve(dirname(new URL(import.meta.url).pathname), '..', '..');
 const TOOL_VERSION: string = JSON.parse(readFileSync(join(REPO, 'package.json'), 'utf8')).version;
-const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]';
+const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]';
 
 function runExplode(args: string[], flag: (n: string) => boolean, value: (n: string) => string | null): number {
     const force = flag('--force'), previews = flag('--previews');
     const only = value('--kinds')?.split(',');
     const unknown = only?.filter(k => !KINDS.some(c => c.kind === k));
     if (unknown?.length) { console.error(`--kinds: no kind ${unknown.join(', ')} (${KINDS.map(c => c.kind).join(', ')})`); return 2; }
-    const families = value('--families'), tiles = value('--tiles');
-    if (families && families !== 'json' && families !== 'png') { console.error('--families json | png'); return 2; }
+    const palettes = value('--palettes'), tiles = value('--tiles');
+    if (palettes && palettes !== 'json' && palettes !== 'png') { console.error('--palettes json | png'); return 2; }
     if (tiles && tiles !== 'json' && tiles !== 'png') { console.error('--tiles png | json'); return 2; }
     const out = resolve(value('--out') ?? join(REPO, 'out', 'open-evermore'));
     if (!relative(REPO, out).startsWith('..') && relative(join(REPO, 'out'), out).startsWith('..')) {
@@ -56,7 +56,7 @@ function runExplode(args: string[], flag: (n: string) => boolean, value: (n: str
     const path = baseRomOrExit(GAME, args[0]);
     const rom: Uint8Array = stripCopierHeader(new Uint8Array(readFileSync(path)));
     const options: Record<string, Record<string, string>> = {};
-    if (families && families !== 'json') options.tile_families = { format: families };
+    if (palettes && palettes !== 'json') options.palettes = { format: palettes };
     if (tiles && tiles !== 'png') options.tiles = { format: tiles };
     if (previews) options.maps = { previews: 'png' };
     const tree = explode(rom, { release: identifyRom(rom).variant, sha1: sha1(rom), explodedWith: TOOL_VERSION }, GAME, kindsOf(only), undefined, options);

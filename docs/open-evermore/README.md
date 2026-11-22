@@ -80,7 +80,8 @@ are noise. They change meaning when something is inserted, and they cannot be re
 out/open-evermore/                 GENERATED from the user's ROM; never committed (§8)
   manifest.json                    the memory map (manifest.md)
   maps/rooms/<map>/                the rooms (map.json, scripts.json, animations.json, grass.json, grid, metatiles, objects)
-  maps/tiles/, maps/tile_families/ 16×16 graphics and background palettes
+  maps/tiles/, maps/palettes/      16×16 graphics and background palettes
+  maps/collisions/                 every collision word by name (metatiles name them)
   scripts/rooms/<map>/, scripts/global/   the scripts rooms run first (named in their scripts.json), the rest
   scripts/opcodes/, scripts/entities/     the script VM's opcodes; entity operands
   strings/                         text

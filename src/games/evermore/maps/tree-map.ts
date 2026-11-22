@@ -1,5 +1,5 @@
 // Ownership: a room as the files of an Open Evermore tree (docs/open-evermore/resources.md §maps) and back, one
-// concern per file: map.json (header, families, graphics), scripts.json (the scripts the room runs: its enter script,
+// concern per file: map.json (header, palettes, graphics), scripts.json (the scripts the room runs: its enter script,
 // its step-on and B triggers), animations.json (animated tiles, palette cycles), grass.json (cuttable grass),
 // grid.txt (the cells), metatiles.json (what each metatile draws and how it collides) and objects.json (each object's
 // states). Pure: values in, values out; the tool (tools/open-evermore) and the Rooms tab (imports/tree/) do the files.
@@ -19,7 +19,7 @@
 import { buildBlob, encodeBlock1, encodeBlock2, lzssCompressVanilla, unpackBlock, SUB_LZSS, SUB_RAW } from './encode';
 import type { Block, RoomModel, TriggerRecord } from './encode';
 import { decompressMarkovGrid } from './markov';
-import { collisionText, grassText, hexN, layerText, objectsText, parseCollision, parseGrass, parseLayer, parseObjects, slotNames } from './tree-map-text';
+import { collisionText, grassText, hexN, layerText, objectsText, paletteSlots, parseCollision, parseGrass, parseLayer, parseObjects, slotNames } from './tree-map-text';
 import type { Cells } from './tree-map-text';
 
 export const TREE_MAP = {
@@ -27,14 +27,15 @@ export const TREE_MAP = {
     grid: 'grid.txt', metatiles: 'metatiles.json', objects: 'objects.json',
 } as const;
 export type TreeMapFile = (typeof TREE_MAP)[keyof typeof TREE_MAP];
-/** map.json's version; v7 moved triggers, animations and grass into files of their own. */
-export const TREE_MAP_VERSION = 7;
+/** map.json's version; v7 moved triggers, animations and grass into files of their own, v8 calls tile families
+ *  palettes (metatiles.json v2 names them, and its collision words). */
+export const TREE_MAP_VERSION = 8;
 const FORMAT = 'open-evermore/map', META_FORMAT = 'open-evermore/metatiles', OBJ_FORMAT = 'open-evermore/objects';
 const SCRIPTS_FORMAT = 'open-evermore/room-scripts', ANIM_FORMAT = 'open-evermore/room-animations', GRASS_FORMAT = 'open-evermore/grass';
 /** The JSON files and the format each one names (grid.txt is text). */
 const FORMATS: [keyof TreeMapFiles, string, number][] = [
     ['map', FORMAT, TREE_MAP_VERSION], ['scripts', SCRIPTS_FORMAT, 1], ['animations', ANIM_FORMAT, 1], ['grass', GRASS_FORMAT, 1],
-    ['metatiles', META_FORMAT, 1], ['objects', OBJ_FORMAT, 1],
+    ['metatiles', META_FORMAT, 2], ['objects', OBJ_FORMAT, 1],
 ];
 /** Animation channels the engine runs ($90:A1B4 scans 50). */
 const MAX_CHANNELS = 50;
@@ -43,14 +44,18 @@ const MAX_CHANNELS = 50;
 export interface TreeMapFiles { map: any; scripts: any; animations: any; grass: any; grid: string; metatiles: any; objects: any }
 /** Names for other kinds' ids (explode); `script`: a trigger's script id (a byte offset, 3·id) by name, when the
  *  tree has scripts (undefined keeps the number); `trigger` and `object`: the room's own entries by what they do
- *  (undefined: none written). */
+ *  (undefined: none written); `collision`: a collision word's name in the tree (undefined: the name that spells it). */
 export interface TreeNames {
-    family(id: number): string; tile(id: number): string; script?(scriptId: number): string | undefined;
+    palette(id: number): string; tile(id: number): string; script?(scriptId: number): string | undefined; collision?(word: number): string | undefined;
     trigger?(list: 'stepOn' | 'bTrigger', index: number): string | undefined; object?(index: number): string | undefined;
 }
 /** Ids for other kinds' names (implode, the Rooms tab); `dma`: the tile is an animation frame (streamed raw);
- *  `script`: a trigger's script by name → its script id (3·id). */
-export interface TreeRefs { family(name: string): number | undefined; tile(name: string, dma: boolean): number | undefined; script?(name: string): number | undefined }
+ *  `script`: a trigger's script by name → its script id (3·id); `collision`: a collision file's word by its name
+ *  (maps/collisions/), undefined when the tree has none of that name (the name is then read as it is spelled). */
+export interface TreeRefs {
+    palette(name: string): number | undefined; tile(name: string, dma: boolean): number | undefined; script?(name: string): number | undefined;
+    collision?(name: string): number | undefined;
+}
 export interface TreeProblem { level: 'error' | 'info'; code: string; file: TreeMapFile; pointer: string; message: string }
 
 interface Channel { countdown: number; frames: { ticks: number; tile: number }[] }
@@ -99,7 +104,7 @@ function cellsOf(m: RoomModel, count: number): Cells {
 /** A room's files, other kinds named by `names`. */
 export function roomToTree(m: RoomModel, names: TreeNames): TreeMapFiles {
     const h = m.header, ids = graphicIds(m.block1), anim = channels(m.section2Count, m.section2Data);
-    const slots = slotNames(ids.map(names.tile));
+    const slots = slotNames(ids.map(names.tile)), palettes = m.tileFamilies.map(names.palette);
     const named = (n: string | undefined) => n === undefined ? {} : { name: n };
     const trigger = (list: 'stepOn' | 'bTrigger') => (t: TriggerRecord, i: number) =>
         ({ ...named(names.trigger?.(list, i)), from: [t.x1, t.y1], to: [t.x2, t.y2], script: names.script?.(t.scriptId) ?? t.scriptId });
@@ -115,7 +120,7 @@ export function roomToTree(m: RoomModel, names: TreeNames): TreeMapFiles {
             triggerOrigin: [h[0], h[1]], mainScreen: h[4], subScreen: h[5], colourMath: h[6], colourWindow: h[7], effect: h[8],
             cameraFlags: h[9] | (h[10] << 8), reserved: h[11] | (h[12] << 8),
         },
-        tileFamilies: m.tileFamilies.map(names.family),
+        palettes,
         graphics: { ...stored(m.block1), tiles: ids.map(names.tile) },
     };
     const scripts = { format: SCRIPTS_FORMAT, version: 1, stepOn: m.stepOn.map(trigger('stepOn')), bTrigger: m.bTrigger.map(trigger('bTrigger')) };
@@ -127,9 +132,10 @@ export function roomToTree(m: RoomModel, names: TreeNames): TreeMapFiles {
     const grassFile = { format: GRASS_FORMAT, version: 1, list: grass.list, ...(grass.sources !== undefined ? { sources: grass.sources } : {}) };
     const grid = Array.from({ length: room.height }, (_, y) => room.cells.slice(y * room.width, (y + 1) * room.width).map(c => hexN(c, digits)).join(' ')).join('\n') + '\n';
     const metatiles = {
-        format: META_FORMAT, version: 1, ...stored(m.block3),
+        format: META_FORMAT, version: 2, ...stored(m.block3),
         list: Array.from({ length: n }, (_, k) => ({
-            id: hexN(k, digits), canopy: layerText(words[k], slots, anim.length), terrain: layerText(words[n + k], slots, anim.length), collision: collisionText(words[2 * n + k]),
+            id: hexN(k, digits), canopy: layerText(words[k], slots, anim.length, paletteSlots(palettes)), terrain: layerText(words[n + k], slots, anim.length, paletteSlots(palettes)),
+            collision: names.collision?.(words[2 * n + k]) ?? collisionText(words[2 * n + k]),
         })),
     };
     const objects = { format: OBJ_FORMAT, version: 1, list: objectsText(m.objectOffsets, m.objectArea, room, digits).map((o, i) => {
@@ -193,12 +199,12 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
         }
         return out;
     };
-    const familyIds = (list: unknown, p: string): number[] | null => {
-        if (!Array.isArray(list) || list.length > 0xFF) return bad(p, 'a list of tile family names');
+    const paletteIds = (list: unknown, p: string): number[] | null => {
+        if (!Array.isArray(list) || list.length > 0xFF) return bad(p, 'a list of palette names');
         const out: number[] = [];
         for (let i = 0; i < list.length; i++) {
-            const id = refs.family(list[i]);
-            if (id === undefined) return bad(`${p}/${i}`, `no tile family "${list[i]}"`, 'unknown-reference');
+            const id = refs.palette(list[i]);
+            if (id === undefined) return bad(`${p}/${i}`, `no palette "${list[i]}"`, 'unknown-reference');
             out.push(id);
         }
         return out;
@@ -245,6 +251,9 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
         }
         return Uint8Array.from(out);
     })();
+    // Before metatiles.json: its layer words name these palettes.
+    const tileFamilies = paletteIds(v.palettes, '/palettes');
+    if (!tileFamilies) return null;
     const g = v.graphics;
     if (!g || !Array.isArray(g.tiles)) return bad('/graphics', '{ compression, tiles: [tile name, …], packed?: base64 }');
     const ids: number[] = [];
@@ -269,12 +278,14 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
 
     // metatiles.json
     if (!Array.isArray(meta.list)) return badMeta('/list', 'a list of { id, canopy, terrain, collision }');
-    const slots = slotNames(g.tiles), channelCount = anim ? anim.length : 0;
+    const slots = slotNames(g.tiles), channelCount = anim ? anim.length : 0, palettes = paletteSlots(v.palettes);
     const n = meta.list.length, payload = new Uint8Array(n * 6);
     for (let k = 0; k < n; k++) {
         const t = meta.list[k];
         if (t?.id !== undefined && parseInt(t.id, 16) !== k) return badMeta(`/list/${k}/id`, `"${t.id}" is entry ${k} (${hexN(k, 3)}): ids are positions, in order`);
-        const parts = [parseLayer(t?.canopy, slots, channelCount), parseLayer(t?.terrain, slots, channelCount), parseCollision(t?.collision)];
+        // A collision is a name: a collision file's word, else what the name spells.
+        const known = typeof t?.collision === 'string' ? refs.collision?.(t.collision) : undefined;
+        const parts = [parseLayer(t?.canopy, slots, channelCount, palettes), parseLayer(t?.terrain, slots, channelCount, palettes), known ?? parseCollision(t?.collision)];
         for (let slice = 0; slice < 3; slice++) {
             const w = parts[slice];
             if (typeof w === 'string') return badMeta(`/list/${k}/${['canopy', 'terrain', 'collision'][slice]}`, w);
@@ -298,8 +309,8 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
     let block2: Block;
     try { block2 = encodeBlock2(cells.map(c => room.base + 8 * c), width, rows.length, room.base, section4[0]); }
     catch (e) { return badGrid('', (e as Error).message); }
-    const stepOn = triggers(sc.stepOn, '/stepOn'), bTrigger = triggers(sc.bTrigger, '/bTrigger'), tileFamilies = familyIds(v.tileFamilies, '/tileFamilies');
-    if (!stepOn || !bTrigger || !tileFamilies) return null;
+    const stepOn = triggers(sc.stepOn, '/stepOn'), bTrigger = triggers(sc.bTrigger, '/bTrigger');
+    if (!stepOn || !bTrigger) return null;
     return {
         header: hdr, stepOn, bTrigger, tileFamilies, extras, block1, section2Count: anim.length, section2Data: section2Bytes(anim),
         objectOffsets: objects.offsets, block2, section4, block3, objectArea: objects.area,

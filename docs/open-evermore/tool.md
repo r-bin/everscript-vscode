@@ -14,7 +14,7 @@ No npm commands (owner, 2026-11-19). `npm run build:ts` first: the codecs call t
 
 ```sh
 T=tools/open-evermore/open-evermore.mts
-node $T explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json] [--kinds a,b] [--previews]   # rom: else the library's base ROM; dir: out/open-evermore; --kinds: only those (proving kinds apart); --previews: each room drawn (preview.png)
+node $T explode [rom] [--out <dir>] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]   # rom: else the library's base ROM; dir: out/open-evermore; --kinds: only those (proving kinds apart); --previews: each room drawn (preview.png)
 node $T implode <dir> [--random [seed]] [--check-only] [--strict]
 node $T prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
 ```
@@ -44,7 +44,8 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `tree.mts`, `findings.mts`, `report.mts` | the tree as path → bytes; findings; terminal and `report.md` |
 | `evermore/kinds.mts` | Evermore's kinds, in migration order — the only place with game facts, with `evermore/codecs/` |
 | `evermore/codecs/maps.mts` | the maps kind ([resources.md](resources.md) §maps): files, names, placement, the map and enter-script tables (generated items) and `roomBlobs` (every kind walks the rooms through it); the room ↔ files mapping is `src/games/evermore/maps/tree-map.ts` |
-| `evermore/codecs/tile-families.mts` | the tile families kind: the array and its two loader operands; JSON or PNG |
+| `evermore/codecs/palettes.mts` | the palettes kind (the room format's tile families): the array and its two loader operands; JSON or PNG |
+| `evermore/codecs/collisions.mts` | the collisions kind: one file per collision word, no bytes of its own; the maps kind reads them |
 | `evermore/codecs/strings.mts` | the strings kind: the text form, the key table, our encoder |
 | `evermore/codecs/scripts.mts` | the scripts kind ([resources.md](resources.md) §scripts): one `.txt` per script, groups, the pointer table, the boot pointer; `scriptLayout` names every script (the maps kind names enter scripts with it) |
 | `evermore/codecs/script-lines.mts` | a script file's lines: `scriptText` writes one from the ROM, `parse` reads one, `assemble` builds a group (labels, relative calls, ids; a longer form where a shorter one does not reach, `segments` for the proof) |

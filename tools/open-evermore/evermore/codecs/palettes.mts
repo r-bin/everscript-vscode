@@ -1,15 +1,15 @@
-// The `tile_families` kind (docs/open-evermore/resources.md §tile_families): the background palettes rooms draw
-// with, one file per family, reached only through the array implode writes and the two loader operands that
-// point at it. A family is `<name>.json` (its 16 colours, and the maps that use it, derived) or, exploded with
-// `--families png`, `<name>.png`: a 128×8 stripe of 16 solid 8×8 cells, colour 0 on the left.
+// The `palettes` kind (docs/open-evermore/resources.md §palettes): the background palettes rooms draw with (the room
+// format's "tile families"), one file per palette, reached only through the array implode writes and the two loader
+// operands that point at it. A palette is `<name>.json` (its 16 colours, and the maps that use it, derived) or,
+// exploded with `--palettes png`, `<name>.png`: a 128×8 stripe of 16 solid 8×8 cells, colour 0 on the left.
 //
 // Facts used (docs/map-format/room-reference.md §5, tools/table-hack/tables.js map_palettes, proven moved there):
-//   array      family n = 16 BGR555 colours at base + 32·n; vanilla base $9C:C322, 365 families (the highest family
+//   array      palette n = 16 BGR555 colours at base + 32·n; vanilla base $9C:C322, 365 palettes (the highest one
 //              any room names, plus one)
-//   readers    the family loader $90:D05C: `adc #$C322` (file 0x10D065) and `lda #$9C` (file 0x10D079) are the only
+//   readers    the palette loader $90:D05C: `adc #$C322` (file 0x10D065) and `lda #$9C` (file 0x10D079) are the only
 //              ones; implode rewrites both operands with the array's new place
 //   placement  upper half (the $80-$BF form), never across a bank: the 16-bit address stays in its bank; at most
-//              1024 families (32 KiB from $xx:8000)
+//              1024 palettes (32 KiB from $xx:8000)
 import { createRequire } from 'node:module';
 import type { Codec, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -23,38 +23,38 @@ const maps = require('../../../../dist/games/evermore/maps');
 const { decodePng, encodePng } = require('../../../../dist/platform/png');
 const CELL = 8;
 
-export const KIND = 'tile_families';
+export const KIND = 'palettes';
 const DIR = KIND, ARRAY = `${DIR}/array`;
 const ENTRY = 32, LIMIT = 1024;
-const FORMAT = 'open-evermore/tile-family', VERSION = 1;
+const FORMAT = 'open-evermore/palette', VERSION = 1;
 // The loader's two instructions; implode rewrites their operands, so explode reads them (vanilla: $C322, $9C).
 const ADC = { at: 0x10D065, opcode: 0x69 }, LDA = { at: 0x10D079, opcode: 0xA9 };
 
 const channels = (c: number) => [c & 31, (c >> 5) & 31, (c >> 10) & 31].map(v => v << 3);
 const hexColour = (c: number) => '#' + [c & 31, (c >> 5) & 31, (c >> 10) & 31].map(v => (v << 3).toString(16).padStart(2, '0')).join('');
 
-/** The array's file offset and family count, from the loader operands and the rooms. */
+/** The array's file offset and palette count, from the loader operands and the rooms. */
 function locate(rom: Uint8Array, blobs: number[]): { start: number; count: number } {
     for (const s of [ADC, LDA]) {
-        if (rom[s.at] !== s.opcode) throw new Error(`tile families: the loader at file 0x${s.at.toString(16)} is not the US 1.0 one; explode would not know the array's readers`);
+        if (rom[s.at] !== s.opcode) throw new Error(`palettes: the loader at file 0x${s.at.toString(16)} is not the US 1.0 one; explode would not know the array's readers`);
     }
     let max = 0;
     blobs.forEach((at, id) => { for (const f of maps.decodeRoom(rom, id, at).tileFamilies) max = Math.max(max, f); });
     return { start: maps.romFileOffset(rom, (rom[LDA.at + 1] << 16) | rom[ADC.at + 1] | (rom[ADC.at + 2] << 8)), count: max + 1 };
 }
 
-/** Every family's 16 colours as [r, g, b], from the ROM (the tiles kind colours its PNGs with them). */
-export function familyColours(rom: Uint8Array, blobs: number[]): number[][][] {
+/** Every palette's 16 colours as [r, g, b], from the ROM (the tiles kind colours its PNGs with them). */
+export function paletteColours(rom: Uint8Array, blobs: number[]): number[][][] {
     const { start, count } = locate(rom, blobs);
     return Array.from({ length: count }, (_, id) => Array.from({ length: 16 }, (_, c) => channels(rom[start + id * ENTRY + c * 2] | (rom[start + id * ENTRY + c * 2 + 1] << 8))));
 }
 
-/** A 128×8 stripe → `{ colours }` like a JSON family; every 8×8 cell must be one opaque colour. */
+/** A 128×8 stripe → `{ colours }` like a JSON palette; every 8×8 cell must be one opaque colour. */
 function fromPng(bytes: Uint8Array, file: string, findings: import('../../findings.mts').Findings): { colours: string[] } | null {
     let img: { width: number; height: number; rgba: Uint8Array };
     try { img = decodePng(bytes); }
     catch (e) { findings.error('parse-error', file, '', (e as Error).message); return null; }
-    if (img.width !== 16 * CELL || img.height !== CELL) { findings.error('invalid-value', file, '', `${img.width}×${img.height}; a family is ${16 * CELL}×${CELL}: 16 cells of ${CELL}×${CELL}`); return null; }
+    if (img.width !== 16 * CELL || img.height !== CELL) { findings.error('invalid-value', file, '', `${img.width}×${img.height}; a palette is ${16 * CELL}×${CELL}: 16 cells of ${CELL}×${CELL}`); return null; }
     const colours: string[] = [];
     for (let c = 0; c < 16; c++) {
         const at = (x: number, y: number) => Array.from(img.rgba.subarray((y * img.width + x) * 4, (y * img.width + x) * 4 + 4));
@@ -68,20 +68,20 @@ function fromPng(bytes: Uint8Array, file: string, findings: import('../../findin
     return { colours };
 }
 
-export const tileFamiliesCodec: Codec = {
+export const palettesCodec: Codec = {
     kind: KIND, version: 1, path: DIR, folder: `maps/${DIR}`,
 
-    defaultName: id => 'family_' + id.toString(16).padStart(3, '0'),
+    defaultName: id => 'palette_' + id.toString(16).padStart(3, '0'),
     canonical: (path, bytes) => {
         const m = /^(.*)\.(png|json)$/.exec(path);
         if (!m) return [path, bytes];
         const colours = m[2] === 'png' ? fromPng(bytes, path, new Findings())?.colours : JSON.parse(readText(bytes)).colours;
-        return [m[1] + '.family', json(colours ?? null)];
+        return [m[1] + '.palette', json(colours ?? null)];
     },
 
     explode(rom, name, options, countOf) {
         const format = options.format ?? 'json';
-        if (format !== 'json' && format !== 'png') throw new Error(`tile families: format "${format}"; json or png`);
+        if (format !== 'json' && format !== 'png') throw new Error(`palettes: format "${format}"; json or png`);
         const blobs = roomBlobs(rom, countOf('maps'));
         const { start, count } = locate(rom, blobs);
         const users: string[][] = Array.from({ length: count }, () => []);
@@ -100,7 +100,7 @@ export const tileFamiliesCodec: Codec = {
                 files.set(`${DIR}/${n}.json`, json({ format: FORMAT, version: VERSION, colours: bgr.map(hexColour), maps: users[id].sort() }));
             }
         }
-        files.set(`${DIR}/${ENUM}`, enumFile({ kind: KIND, limit: LIMIT, names, why: 'family n is read at base + 32·n with a 16-bit address in one bank half: 32 KiB' }));
+        files.set(`${DIR}/${ENUM}`, enumFile({ kind: KIND, limit: LIMIT, names, why: 'palette n is read at base + 32·n with a 16-bit address in one bank half: 32 KiB' }));
         const end = start + count * ENTRY;
         return {
             files,
@@ -114,8 +114,8 @@ export const tileFamiliesCodec: Codec = {
         const names = new Set<string>();
         for (const path of tree.keys()) {
             if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}`) continue;
-            const m = /^tile_families\/([^/]+)\.(json|png)$/.exec(path);
-            if (!m) { findings.warning('unknown-file', path, '', 'a family is one <name>.json or <name>.png; ignored'); continue; }
+            const m = /^palettes\/([^/]+)\.(json|png)$/.exec(path);
+            if (!m) { findings.warning('unknown-file', path, '', 'a palette is one <name>.json or <name>.png; ignored'); continue; }
             if (names.has(m[1])) findings.error('duplicate-name', path, '', `"${m[1]}" is both a .json and a .png; keep one`);
             names.add(m[1]);
         }
@@ -155,7 +155,7 @@ export const tileFamiliesCodec: Codec = {
             if (good) ok.add(id);
         }
         for (let id = 0; id < count; id++) {
-            if (!ok.has(id) && ![...ids.values()].includes(id)) findings.error('id-gap', `${DIR}/${ENUM}`, `/names/${id}`, `no family has id ${id}; the array cannot skip one`);
+            if (!ok.has(id) && ![...ids.values()].includes(id)) findings.error('id-gap', `${DIR}/${ENUM}`, `/names/${id}`, `no palette has id ${id}; the array cannot skip one`);
         }
         if (bytes.length > LIMIT * ENTRY) return [];
         const item: Item = { key: ARRAY, file: `${DIR}/${ENUM}`, bytes, rule: { upperHalf: true, noCrossBank: true, maxSize: LIMIT * ENTRY } };

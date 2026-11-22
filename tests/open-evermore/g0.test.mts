@@ -1,6 +1,6 @@
 // Open Evermore on the user's ROM (docs/open-evermore/README.md §5): explode the base ROM of the ROM library, then
-// implode the tree in memory: stable gives the vanilla sha1 with no warning (G0), also with the families as PNGs;
-// two random layouts (grown to 4 MiB) and an ExHiROM and SA-1 one place every room, the family array and every tile, rewrite their tables and
+// implode the tree in memory: stable gives the vanilla sha1 with no warning (G0), also with the palettes as PNGs;
+// two random layouts (grown to 4 MiB) and an ExHiROM and SA-1 one place every room, the palette array and every tile, rewrite their tables and
 // explode back to the same tree; an edited room, object and grass record are compressed anew; cross-kind references, colours and pixels are
 // checked. Playing them is `open-evermore.mts prove` (on demand: never in a tier). Skips without the ROM.
 // Run: node tests/open-evermore/g0.test.mts   (npm run build:ts first)
@@ -19,7 +19,7 @@ const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 /** Where a kind lives in the tree when not at the top (folders.mts). */
-const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels' };
+const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', palettes: 'maps/palettes', collisions: 'maps/collisions', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -42,10 +42,10 @@ if (!path || !existsSync(path)) {
         assert.deepStrictEqual(r.findings.list.filter(f => f.severity !== 'info'), []);
         const moved = r.placed.filter(p => p.at !== p.home).length;
         assert.ok(moved > 100, `only ${moved} rooms moved`);
-        const families = r.placed.find(p => p.key === 'tile_families/array')!;
+        const families = r.placed.find(p => p.key === 'palettes/array')!;
         assert.strictEqual(r.image!.length, 0x400000, 'a random layout grows the image to 4 MiB');
         const fourth = r.placed.filter(p => p.at >= 0x300000).length;
-        console.log(`  ✓ random ${seed}: ${moved} of ${r.placed.length} resources moved, ${fourth} into the 4th MB (tile families ${families.at === families.home ? 'stayed' : 'moved'}), tables rewritten, round trip holds`);
+        console.log(`  ✓ random ${seed}: ${moved} of ${r.placed.length} resources moved, ${fourth} into the 4th MB (palettes ${families.at === families.home ? 'stayed' : 'moved'}), tables rewritten, round trip holds`);
     }
 
     const rules = (edit: (t: typeof tree) => void, strict = false) => {
@@ -57,17 +57,18 @@ if (!path || !existsSync(path)) {
         const v = JSON.parse(Buffer.from(t.get(path)!).toString()); fn(v); t.set(path, new Uint8Array(Buffer.from(JSON.stringify(v))));
     };
     const room = [...tree.keys()].find(p => p.startsWith('maps/') && p.endsWith('/map.json'))!;
-    assert.deepStrictEqual(rules(t => editJson(t, room, m => { m.tileFamilies[0] = 'no_such_family'; })), [`unknown-reference ${room}#/tileFamilies/0`]);
-    assert.deepStrictEqual(rules(t => editJson(t, 'maps/tile_families/family_000.json', f => { f.colours[3] = '#123456'; })), ['invalid-value maps/tile_families/family_000.json#/colours/3']);
+    assert.deepStrictEqual(rules(t => editJson(t, room, m => { m.palettes[0] = 'no_such_palette'; })), [`unknown-reference ${room}#/palettes/0`]);
+    assert.deepStrictEqual(rules(t => editJson(t, 'maps/palettes/palette_000.json', f => { f.colours[3] = '#123456'; })), ['invalid-value maps/palettes/palette_000.json#/colours/3']);
     assert.deepStrictEqual(rules(t => editJson(t, room, m => { m.graphics.tiles[0] = 'no_such_tile'; })), [`unknown-reference ${room}#/graphics/tiles/0`]);
     const rgb = new Uint8Array(encodePng(16, 16, new Uint8Array(16 * 16 * 4).fill(255)));
     assert.deepStrictEqual(rules(t => { t.set('maps/tiles/tile_0000.png', rgb); }), ['invalid-value maps/tiles/tile_0000.png#']);
-    console.log('  ✓ a map naming a missing family or tile, a colour the SNES cannot show and a tile PNG that is not indexed are errors');
+    console.log('  ✓ a map naming a missing palette or tile, a colour the SNES cannot show and a tile PNG that is not indexed are errors');
 
     const meta = room.replace('map.json', 'metatiles.json'), grid = room.replace('map.json', 'grid.txt');
-    assert.deepStrictEqual(rules(t => editJson(t, meta, m => { m.list[0].collision += ' sticky'; })), [`invalid-value ${meta}#/list/0/collision`]);
+    assert.deepStrictEqual(rules(t => editJson(t, meta, m => { m.list[0].collision += '_sticky'; })), [`invalid-value ${meta}#/list/0/collision`]);
     assert.deepStrictEqual(rules(t => { t.set(grid, new TextEncoder().encode('000 001\n000\n')); }), [`invalid-value ${grid}#/1`]);
-    console.log('  ✓ an unknown collision flag and a ragged grid.txt are errors');
+    assert.deepStrictEqual(rules(t => editJson(t, 'maps/collisions/solid_plane1_in_front.json', c => { c.geometry = 'squishy'; })), ['invalid-value maps/collisions/solid_plane1_in_front.json#/geometry']);
+    console.log('  ✓ an unknown collision word, a collision file with no such geometry and a ragged grid.txt are errors');
 
     // Entities and projectiles by name in script lines (`damage dog ba`): renamed everywhere, or written as the hex
     // byte, the ROM is the same; a name for nothing is an error, and a new projectile has no record to go to.
@@ -155,11 +156,20 @@ if (!path || !existsSync(path)) {
 
     // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
     const edited = new Map(tree);
-    editJson(edited, meta, m => { const c: string = m.list[0].collision; m.list[0].collision = c.includes('front') ? c.replace(' front', '') : c + ' front'; });
+    editJson(edited, meta, m => { const c: string = m.list[0].collision; m.list[0].collision = c.includes('_in_front') ? c.replace('_in_front', '') : c + '_in_front'; });
     const e = implode(edited, GAME, KINDS);
     assert.deepStrictEqual(e.findings.list.filter(f => f.severity === 'error'), []);
     assert.notStrictEqual(e.sha1, sha1(rom));
-    console.log('  ✓ an edited metatile is compressed anew and round-trips');
+    // A collision file is the word of every metatile that names it; a name no file has is read as it is spelled.
+    const plain = 'solid_plane1_in_front', users = [...tree.keys()].filter(p => p.endsWith('/metatiles.json') && JSON.parse(Buffer.from(tree.get(p)!).toString()).list.some((x: any) => x.collision === plain));
+    const recoloured = new Map(tree);
+    editJson(recoloured, `maps/collisions/${plain}.json`, c => { c.inFront = false; });
+    const unfront = new Map(tree);
+    for (const p of users) editJson(unfront, p, m => { for (const x of m.list) if (x.collision === plain) x.collision = 'solid_plane1'; });
+    const [byFile, byName] = [implode(recoloured, GAME, KINDS), implode(unfront, GAME, KINDS)];
+    assert.deepStrictEqual([...byFile.findings.list, ...byName.findings.list].filter(f => f.severity === 'error'), []);
+    assert.ok(byFile.sha1 !== sha1(rom) && byFile.sha1 === byName.sha1, 'an edited collision file = the same edit in every metatile that names it');
+    console.log(`  ✓ an edited metatile is compressed anew and round-trips; editing ${plain}.json edits its ${users.length} rooms' metatiles`);
 
     // Objects and cuttable grass are text (objects.json, grass.json): an edited state and an edited grass record build
     // and explode back to the edit; a token that is no metatile is an error at its row.
@@ -175,13 +185,13 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(rules(t => editJson(t, grassRoom, m => { m.list[0].cut = 'fff'; })), [`invalid-value ${grassRoom}#/list/0`]);
     console.log('  ✓ an edited object state and grass record build and round-trip; a cell that is no metatile is an error');
 
-    const other = explode(rom, { release: 'us', sha1: sha1(rom), explodedWith: 'test' }, GAME, KINDS, undefined, { tile_families: { format: 'png' }, tiles: { format: 'json' } });
-    assert.ok(other.has('maps/tile_families/family_000.png') && other.has('maps/tiles/tile_0000.json'));
+    const other = explode(rom, { release: 'us', sha1: sha1(rom), explodedWith: 'test' }, GAME, KINDS, undefined, { palettes: { format: 'png' }, tiles: { format: 'json' } });
+    assert.ok(other.has('maps/palettes/palette_000.png') && other.has('maps/tiles/tile_0000.json'));
     const p = implode(other, GAME, KINDS, { strict: true });
     assert.deepStrictEqual(p.findings.list.filter(f => f.severity !== 'info'), []);
     assert.strictEqual(p.sha1, sha1(rom));
     assert.deepStrictEqual(rules(t => { t.delete('maps/tiles/tile_0000.png'); t.set('maps/tiles/tile_0000.json', other.get('maps/tiles/tile_0000.json')!); }), []);
-    console.log('  ✓ families as PNG stripes and tiles as JSON rows: the same ROM; one tile as JSON among PNGs too');
+    console.log('  ✓ palettes as PNG stripes and tiles as JSON rows: the same ROM; one tile as JSON among PNGs too');
 
     // Strings: an unknown tag is an error; an edited string is encoded anew (our encoder) and explodes back.
     assert.deepStrictEqual(rules(t => { t.set('strings/string_0000.txt', new TextEncoder().encode('Hello [WAVE]\n')); }), ['invalid-value strings/string_0000.txt#']);

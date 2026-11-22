@@ -29,9 +29,10 @@ and the order to fix it in. The kinds themselves: [resources.md](resources.md); 
 |---|---|---|---|
 | script | `"<map>/door_01"`, `@door_01` in a script | `scripts/` | built (v0.446.0; full names in scripts.json v0.457.0) |
 | room object | `sniff_03` in a room's script | the room's `objects.json` | built (v0.457.0) |
-| tile, tile family | `"tile_0d7b"`, `"family_020"` | `maps/tiles/`, `maps/tile_families/` | built |
+| tile, background palette | `"tile_0d7b"`, `"palette_020"` (also in each layer word) | `maps/tiles/`, `maps/palettes/` | built (palettes named in layer words v0.458.0) |
+| collision | `"solid_plane1_in_front"` | `maps/collisions/`, else the name as it spells | built (v0.458.0) |
 | string | `string_0afb` | `strings/` (dialogue) | built for dialogue; **names and UI text (`$C4`) are pointers** (§4) |
-| palette | `palette_<name>` | a palettes kind | **missing**: sprite and icon palettes (`$90`, `$D0`) are addresses |
+| sprite palette | `palette_<name>` | a kind of its own | **missing**: sprite and icon palettes (`$90`, `$D0`) are addresses |
 | animation | `dog_act2_leap` | `characters/animations/` | built for ids; **records and frames are addresses** (S7d) |
 | WRAM | `FORMULA_XP_ACID_RAIN`, `temp[n]` | knowledge entries (`soe://ram/`) | built in scripts; **unnamed cells stay `$7E:xxxx`** ([wram.md](wram.md)) |
 | flag | `WEAPONS_OWNED_FLAGS_0+1` and its bit | knowledge entries, compiler FLAG enum | the word by name; **the bit is a number** |

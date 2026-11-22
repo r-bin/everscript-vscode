@@ -4,13 +4,14 @@
 // a copy of an Evermore image, so the tab draws, inspects and edits it like a ROM room. No `vscode`: the host hands
 // over the folders to look in and the library ROM.
 //
-// The image's graphics and families: the tree's `_build/evermore.sfc` when implode left a 3 MiB one (an edited tile
+// The image's graphics and palettes: the tree's `_build/evermore.sfc` when implode left a 3 MiB one (an edited tile
 // shows once imploded), else the library ROM. The blob goes past the image's end ($B1:8000), the room's own map
 // table entry points at it; nothing else of the image changes. A room's files are read again whenever one changes.
 
 import * as fs from 'fs';
 import * as path from 'path';
 import { blobFromTree, TREE_MAP } from '../../maps/tree-map';
+import { collisionOfFields } from '../../maps/tree-map-text';
 import type { TreeMapFiles, TreeProblem, TreeRefs } from '../../maps/tree-map';
 import { writeRoomAt } from '../../maps/encode';
 import { readRomMapHeaderFrom } from '../../rom-readers';
@@ -61,10 +62,10 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         if (!trees || Date.now() - trees.at > 5000) trees = { at: Date.now(), list: findTrees(deps.roots()) };
         return trees.list;
     };
-    /** A kind's folder in a tree (v0.457.0: maps/rooms, maps/tiles, maps/tile_families, scripts); older trees
-     *  have them elsewhere, so the first folder holding the kind's _enum.json wins. */
+    /** A kind's folder in a tree (v0.458.0: maps/rooms, maps/tiles, maps/palettes, maps/collisions, scripts); older
+     *  trees have them elsewhere, so the first folder holding the kind's _enum.json wins. */
     const FOLDERS: Record<string, string[]> = {
-        maps: ['maps/rooms', 'maps'], tiles: ['maps/tiles', 'tiles'], tile_families: ['maps/tile_families', 'tile_families'], scripts: ['scripts', 'scripts/global'],
+        maps: ['maps/rooms', 'maps'], tiles: ['maps/tiles', 'tiles'], palettes: ['maps/palettes'], collisions: ['maps/collisions'], scripts: ['scripts', 'scripts/global'],
     };
     const folderOf = (dir: string, kind: string): string =>
         (FOLDERS[kind] ?? [kind]).find(f => fs.existsSync(path.join(dir, f, '_enum.json'))) ?? kind;
@@ -94,7 +95,7 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         if (name === undefined) throw new Error(`${folderOf(tree.dir, 'maps')}/_enum.json has no map ${id}`);
         const dir = path.join(tree.dir, folderOf(tree.dir, 'maps'), name), build = path.join(tree.dir, '_build', 'evermore.sfc');
         const watched = [...Object.values(TREE_MAP).map(f => path.join(dir, f)), build,
-            ...['tile_families', 'tiles', 'scripts'].map(k => path.join(tree.dir, folderOf(tree.dir, k), '_enum.json'))];
+            ...['palettes', 'tiles', 'scripts', 'collisions'].map(k => path.join(tree.dir, folderOf(tree.dir, k), '_enum.json'))];
         const soe = deps.soeRom();
         const key = watched.map(mtime).join(',') + '|' + (soe ? soe.length : 0);
         const hit = cache.get(tree.dir + '#' + id);
@@ -110,11 +111,17 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
             };
         } catch (e) { throw new Error(`${folderOf(tree.dir, 'maps')}/${name}: ${(e as Error).message}`); }
         const byName = (kind: string) => new Map(names(tree.dir, kind).map((n, i) => [n, i] as [string, number]));
-        const families = byName('tile_families'), tiles = byName('tiles'), scripts = byName('scripts');
+        const palettes = byName('palettes'), tiles = byName('tiles'), scripts = byName('scripts');
         // A trigger names its script in full (scripts.json); the trigger record holds its table offset, 3·id (scripts/_enum.json).
-        const refs: TreeRefs = { family: n => families.get(n), tile: n => tiles.get(n), script: n => {
+        const refs: TreeRefs = { palette: n => palettes.get(n), tile: n => tiles.get(n), script: n => {
             const id = scripts.get(n);
             return id === undefined ? undefined : id * 3;
+        }, collision: n => {
+            // A collision file's word (a file edited after the tree's _enum.json is read when the room is next built).
+            try {
+                const c = collisionOfFields(readJson(path.join(tree.dir, folderOf(tree.dir, 'collisions'), n + '.json')));
+                return typeof c === 'number' ? c : undefined;
+            } catch { return undefined; }
         } };
         const problems: TreeProblem[] = [];
         const blob = blobFromTree(files, refs, p => problems.push(p));
@@ -148,7 +155,7 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         if (!p) return null;
         // The WRAM window holds the grid (2 bytes a cell) and the stamps (8 bytes each); the files built, so they are well formed.
         const e = entry(p.tree, p.id), cells = e.files.grid.trim().split(/\s+/).length;
-        return { blobBytes: e.blobBytes, wramBytes: cells * 2 + e.files.metatiles.list.length * 8, families: e.files.map.tileFamilies.length };
+        return { blobBytes: e.blobBytes, wramBytes: cells * 2 + e.files.metatiles.list.length * 8, families: e.files.map.palettes.length };
     }
 
     /** The Rooms tab's room object for `vid` (`tree-0-2a`), or null. */
@@ -156,11 +163,14 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         const p = parse(vid);
         if (!p) return null;
         const e = entry(p.tree, p.id), mapName = names(p.tree.dir, 'maps')[p.id];
-        const row = (t: { from: number[]; to: number[]; script: number }) => {
-            const label = 'script ' + t.script.toString(16).padStart(4, '0');
-            return { x1: t.from[0], y1: t.from[1], x2: t.to[0], y2: t.to[1], scriptId: t.script, label, what: label };
+        // Triggers are in scripts.json (v7), each by name and its script by name (a number in trees without scripts).
+        const scriptIds = new Map(names(p.tree.dir, 'scripts').map((n, i) => [n, i * 3] as [string, number]));
+        const row = (t: { name?: string; from: number[]; to: number[]; script: string | number }) => {
+            const scriptId = typeof t.script === 'number' ? t.script : scriptIds.get(t.script) ?? null;
+            const label = t.name ?? (scriptId === null ? String(t.script) : 'script ' + scriptId.toString(16).padStart(4, '0'));
+            return { x1: t.from[0], y1: t.from[1], x2: t.to[0], y2: t.to[1], scriptId, label, what: typeof t.script === 'string' ? t.script : label };
         };
-        const stepOn: ReturnType<typeof row>[] = (e.files.map.stepOn ?? []).map(row), bTrigger: ReturnType<typeof row>[] = (e.files.map.bTrigger ?? []).map(row);
+        const stepOn: ReturnType<typeof row>[] = (e.files.scripts.stepOn ?? []).map(row), bTrigger: ReturnType<typeof row>[] = (e.files.scripts.bTrigger ?? []).map(row);
         const roomId = TREE_ROOM_BASE + p.t * PER_TREE + p.id;
         return {
             name: name || mapName,
@@ -196,7 +206,7 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
 
     return {
         railGroups, detail, check, resolveRoom,
-        // A tree's families are ROM families (their ids are the tree's family enum = the image's table).
+        // A tree's palettes are ROM families (their ids are the tree's palette enum = the image's table).
         resolveFamily: (_familyId: unknown) => null,
         // Play in emulator: implode the tree (tools/open-evermore) and run _build/evermore.sfc.
         playable: (_roomId: unknown) => null,

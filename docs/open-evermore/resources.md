@@ -38,29 +38,32 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
 - **Limits.** Each entry's value range, from the table's description (`invalid-value`). A count that disagrees
   with a count byte elsewhere is an error.
 
-## tile_families — background palettes *(built, S2)*
+## palettes — background palettes *(built, S2; named palettes v0.458.0)*
 
-**Folder.** `maps/tile_families/_enum.json` + one file per family, by default `<family>.json`:
+What the room format calls a *tile family* is one 16-colour palette; up to 7 a room's set, loaded into BG palettes
+1–7. v0.458.0 calls them what they are (owner: "I can't see the palettes"): the folder was `maps/tile_families/`.
+
+**Folder.** `maps/palettes/_enum.json` + one file per palette, by default `<palette>.json`:
 
 ```jsonc
-{ "format": "open-evermore/tile-family", "version": 1,
+{ "format": "open-evermore/palette", "version": 1,
   "colours": ["#000000", "#f8f8f8", …],            // 16 colours; each channel a multiple of 8 (5 bits on the SNES)
   "maps": ["antiqua_pyramid_outside", …] }         // derived: the maps that use it; implode ignores it
 ```
 
-`explode --families png` writes `<family>.png` instead: a 128×8 stripe of 16 solid 8×8 cells, colour 0 on the left
+`explode --palettes png` writes `<palette>.png` instead: a 128×8 stripe of 16 solid 8×8 cells, colour 0 on the left
 (owner, 2026-11-19: easier to see; JSON stays the default because it carries more). The choice is kept in
-`manifest.json` `options`, so the round trip writes the same form. Implode reads either; a family that is both is
+`manifest.json` `options`, so the round trip writes the same form. Implode reads either; a palette that is both is
 `duplicate-name`; a cell that is not one opaque colour, or a stripe of another size, is `invalid-value`.
 
-- **Names.** `family_<id>` (`family_024`): the repo has no names for families ("a ROM id tied to an area",
+- **Names.** `palette_<id>` (`palette_024`): the repo has no names for them ("a ROM id tied to an area",
   room-reference.md §5). Better names are an open question ([README.md](README.md) §9); `maps` is there to help.
-- **References.** Used by maps (`"tileFamilies": ["family_024", …]`, `unknown-reference` when missing). Uses
-  nothing.
-- **Implode generates** one placeable item, the array (family *n* at base + 32·*n*, in enum order), and the
+- **References.** Used by maps: `map.json` `"palettes": ["palette_024", …]` (`unknown-reference` when missing), and
+  every layer word in `metatiles.json` names the palette it draws with (`tile_026d palette_01c`, §maps). Uses nothing.
+- **Implode generates** one placeable item, the array (palette *n* at base + 32·*n*, in enum order), and the
   two operands of the loader `$90:D05C` that hold its address: `adc #$C322` and `lda #$9C`. They are the only
   readers *(repo: the table hack moved the array the same way)*.
-- **Placement.** Upper half (the `$80–$BF` form), never across a bank; at most 1024 families (32 KiB).
+- **Placement.** Upper half (the `$80–$BF` form), never across a bank; at most 1024 palettes (32 KiB).
   The array sits between two rooms in bank `$9C`, so `--random` shuffles it with them (or into the 4th MB).
 - **Proven (G1).** Seeds 1, 2, 99 moved it (`$9C:D25E`, `$9C:8000`, `$9C:8F3C`); the playbacks played identically
   and no WRAM byte points into it (knowledge `asset_9cc322_background_palettes_tile_families`).
@@ -68,6 +71,41 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
   (`id-gap`).
 - **Later:** sprite palettes (bank `$90`, full) as their own kind once their readers allow it
   ([../split-and-link/extending.md](../split-and-link/extending.md) §5).
+
+## collisions — collision words *(built, v0.458.0)*
+
+Every collision word the rooms use, one file per word (516 in vanilla), named by what it does; metatiles name them
+(`"collision": "solid_plane1_in_front"`). No bytes of its own: the words live in each room's Block 3, and implode
+writes them there.
+
+**Folder.** `maps/collisions/_enum.json` (the most used first; the order means nothing to the game) + `<name>.json`:
+
+```jsonc
+{ "format": "open-evermore/collision", "version": 1,
+  "geometry": "solid", "plane": 1, "seeThrough": false, "gate": null, "inFront": true, "stepOn": false, "bTrigger": false,
+  "what": "Solid; on plane 1; a character here is drawn in front of the canopy.",   // derived, for the reader
+  "metatiles": 32264, "maps": ["antiqua_…", …] }                                       // derived: how often, where
+```
+
+- **The vocabulary** ([../map-format/room-reference.md](../map-format/room-reference.md) §9, `maps/tree-map-text.ts`).
+  `geometry` names bits 3–0 and 13 together. Without bit 13, the solid part of the cell: `open`, `solid`, `half_n`
+  `half_s` `half_e` `half_w` (that half is solid), `corner_ne` `corner_nw` `corner_se` `corner_sw` (that triangle);
+  six shapes have two codes, the second written `_2` (`half_s_2`: what the engine does differently is not known).
+  With bit 13 the cell is always walkable and bits 3–0 say how it moves you: `walk` (`walk_3`–`walk_7` for the
+  nibbles with no handler), `drift_n` … `drift_sw` (eight directions), `stairs_ne` / `stairs_se` (diagonal stairs:
+  walking east goes north / south). `plane` 0–3; `seeThrough` (bit 6); `gate` (bits 11–8): `blocks_others`,
+  `blocks_dog`, `blocks_boy_dog`, `hides_sprite`, else `gate_<hex>`; `inFront` (bit 12), `stepOn` (14), `bTrigger`
+  (15); `bit7` only when set (never in vanilla).
+- **Names spell the fields**, joined by `_` in that order: geometry, `plane<n>`, then the set flags `see_through`,
+  `bit7`, the gate, `in_front`, `step_on`, `b_trigger` (`open_plane1_in_front_step_on`).
+- **References.** A metatile's `collision` is a name: the file of that name gives the word, else the name is read
+  as it spells (so a new combination needs no file, and `explode --kinds maps` alone still builds). Editing a file
+  edits every metatile that names it (G0 test: `solid_plane1_in_front.json` set to `inFront: false` builds the same
+  ROM as renaming its metatiles in 115 rooms). An unknown word is `invalid-value` in metatiles.json, a bad field in the
+  collision file.
+- **Round trip.** Each word keeps the tree's name for it (the pseudo kind `collisions.word`'s symbols; of several
+  names for one word, the one that spells it). The files are a vocabulary, so the round trip compares what each
+  metatile means (its word), not the files.
 
 ## strings *(built, S4)*
 
@@ -181,7 +219,7 @@ room *references* its scripts, as it references its tiles and families):
 
 ```
 maps/rooms/_enum.json                    names[id]: the map table's order (README.md §4); up to 256 ids
-maps/rooms/<map>/map.json                  header, tile families, graphics
+maps/rooms/<map>/map.json                  header, palettes, graphics
 maps/rooms/<map>/scripts.json              the scripts the room runs: enter, step-on and B triggers (names of scripts/)
 maps/rooms/<map>/animations.json           animated tiles (Section 2) and palette cycles
 maps/rooms/<map>/grass.json                cuttable grass (Section 4)
@@ -191,14 +229,14 @@ maps/rooms/<map>/objects.json              each object by name: its states, wher
 maps/rooms/<map>/preview.png               only with `explode --previews`: the room drawn, for the reader; implode ignores it
 ```
 
-`map.json` (version 7, v0.457.0; the files are `src/games/evermore/maps/tree-map.ts`, which the Rooms tab reads too):
+`map.json` (version 8, v0.458.0; the files are `src/games/evermore/maps/tree-map.ts`, which the Rooms tab reads too):
 
 ```jsonc
 {
   "format": "open-evermore/map", "version": 7,
   "header": { "triggerOrigin": [17, 11], "mainScreen": 23, "subScreen": 0, "colourMath": 0, "colourWindow": 2,
               "effect": 2, "cameraFlags": 0, "reserved": 0 },  // room-reference.md §4; width and height come from grid.txt
-  "tileFamilies": ["family_020", …],               // names in tile_families/
+  "palettes": ["palette_020", …],                  // names in palettes/; BG palettes 1-7 are the first seven
   "graphics": { "compression": "lzss", "tiles": ["tile_0d7b", …] }    // Block 1, names in tiles/
 }
 ```
@@ -231,9 +269,9 @@ cycle: CGRAM colour, how many, frames per step, signed). `grass.json`: `{ "list"
 `grid.txt`, one row per line (`048 048 049 …`), and `metatiles.json`, one metatile per line:
 
 ```jsonc
-{ "format": "open-evermore/metatiles", "version": 1, "compression": "lzss",
+{ "format": "open-evermore/metatiles", "version": 2, "compression": "lzss",
   "list": [
-    { "id": "000", "canopy": "tile_0d7b p2 pr v", "terrain": "tile_02a3 p1 h", "collision": "gf z1" }, …
+    { "id": "000", "canopy": "tile_026d palette_01c pr v", "terrain": "tile_02ac palette_020", "collision": "solid_plane1" }, …
   ] }
 ```
 
@@ -257,11 +295,14 @@ move in the list, its scripts follow; one with `id` instead of a name is reached
   not 1. The source count Section 4 starts with (also the grid's first Markov counter) is the number of distinct
   `cut`s, as in all 7 vanilla rooms; `sources` overrides it. `#<4 hex>` is a word that is no metatile.
 
-- **Layer words** (`canopy` = BG1, `terrain` = BG2): `<graphic> p<palette>` and the set flags `pr` (priority), `h`, `v`
+- **Layer words** (`canopy` = BG1, `terrain` = BG2): `<graphic> <palette>` and the set flags `pr` (priority), `h`, `v`
   (flips). The graphic is a name from `graphics.tiles` (`tile_10ee#2` for its second occurrence), `anim<n>` for
-  animation channel *n*'s slot, or `chr<3 hex>` for a character no slot names (82 vanilla words use `$3F0–$3FF`).
-- **Collision words** ([../map-format/room-reference.md](../map-format/room-reference.md) §9): `g<geometry>` and the
-  set flags `z<plane>`, `see`, `gate<n>`, `front`, `walk`, `step` (step-on cell), `b` (B-trigger cell); `bit7` if set.
+  animation channel *n*'s slot, or `chr<3 hex>` for a character no slot names (82 vanilla words use `$3F0–$3FF`). The
+  palette is a name from `map.json` `palettes` (BG palette *n* is entry *n*−1; `#2` for a palette listed twice in the
+  first seven), or `p<n>` for one the list does not name (`p0`, the HUD's). A room with more than 7 palettes (22 rooms)
+  holds several sets that a script switches (`MAP_PALETTE`): the name is the first set's palette in that slot.
+- **Collision words**: a name from `maps/collisions/` (§collisions), e.g. `solid_plane1_in_front`; any name that
+  spells a word works without a file.
 - `id` is the entry's position, written for the reader (`invalid-value` if it disagrees). Flags may come in any
   order and grid ids without padding: the round trip compares what they mean.
 - **Compression** is noted, not stored: `lzss` is our `lzssCompressVanilla`, which gives back 237 of the 241 vanilla
@@ -277,7 +318,9 @@ in words, and a preview (4–5/5). Version 6 (2026-11-19): objects and cuttable 
 the grid (0/5 → 4/5). 2026-11-20 (v0.446.0): triggers and the enter script name their scripts, which live in the
 room's `scripts/` folder (owner: no central `_enter_scripts.json`). Version 7 (v0.457.0): one concern per file,
 scripts moved out to `scripts/rooms/<map>/` and referenced from `scripts.json`, triggers and objects named by what they
-do, previews optional. Still open: a grid of names rather than ids, animation channels by name in metatiles.json.
+do, previews optional. Version 8 (v0.458.0): layer words name their palette (`tile_026d palette_01c`, was `p2`), and
+a collision is a name that says what it does (`solid_plane1_in_front`, was `gf z1 front`) with a file of its own in
+`maps/collisions/`. Still open: a grid of names rather than ids, animation channels by name in metatiles.json.
 
 - **Names.** From `localizations/data/rooms.json` *(repo, our own wording)*: region + place + part in snake case
   (`prehistoria_jungle_south_where_the_game_starts`); `map_<hexid>` for a room it does not name.

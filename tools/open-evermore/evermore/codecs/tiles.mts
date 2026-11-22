@@ -24,7 +24,7 @@ import { ENUM, enumFile } from '../../enum.mts';
 import { Findings } from '../../findings.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
-import { familyColours } from './tile-families.mts';
+import { paletteColours } from './palettes.mts';
 import { roomBlobs } from './maps.mts';
 
 const require = createRequire(import.meta.url);
@@ -137,7 +137,7 @@ export const tilesCodec: Codec = {
         const table = tableOf(rom), count = countOf(KIND) ?? VANILLA;
         const blobs = roomBlobs(rom, countOf('maps'));
         const frames = animationFrames(rom, blobs);
-        const colours = familyColours(rom, blobs), shown = format === 'png' ? displayFamilies(rom, blobs) : new Map<number, number>();
+        const colours = paletteColours(rom, blobs), shown = format === 'png' ? displayFamilies(rom, blobs) : new Map<number, number>();
         const encoded: Record<string, { encoded: string; followedBy?: string }> = {};
         const at = Array.from({ length: count }, (_, id) => maps.romFileOffset(rom, rom[table + 3 * id] | rom[table + 3 * id + 1] << 8 | rom[table + 3 * id + 2] << 16) as number);
         const starts = [...at].sort((a, b) => a - b);

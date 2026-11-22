@@ -20,10 +20,11 @@ export const text = (s: string): Uint8Array => encoder.encode(s);
  * JSON as the tree stores it: indented, but compact where a file holds many small things (owner, 2026-11-19): an
  * array of numbers (a grid row) is one line; an object, or an array of plain values, that fits in LINE characters is
  * one line (a trigger, a frame, a metatile); a list of objects is one per line. The rest is one item per line.
+ * `line`: a wider limit for a file of long entries that reads best one per line (metatiles.json).
  */
-export const json = (value: unknown): Uint8Array => text(format(value, '') + '\n');
+export const json = (value: unknown, line = LINE): Uint8Array => text(format(value, '', line) + '\n');
 const LINE = 120;
-function format(v: unknown, indent: string): string {
+function format(v: unknown, indent: string, line: number): string {
     if (v === null || typeof v !== 'object') return JSON.stringify(v);
     const inline = (x: unknown): string => x === null || typeof x !== 'object' ? JSON.stringify(x)
         : Array.isArray(x) ? `[${x.map(inline).join(', ')}]`
@@ -31,11 +32,11 @@ function format(v: unknown, indent: string): string {
     const one = inline(v);
     if (Array.isArray(v) && v.every(e => typeof e === 'number')) return one;
     const flat = Array.isArray(v) ? v.every(e => e === null || typeof e !== 'object') : true;
-    if (flat && indent.length + one.length <= LINE) return one;
+    if (flat && indent.length + one.length <= line) return one;
     const inner = indent + '  ';
-    if (Array.isArray(v)) return v.length ? `[\n${v.map(e => inner + format(e, inner)).join(',\n')}\n${indent}]` : '[]';
+    if (Array.isArray(v)) return v.length ? `[\n${v.map(e => inner + format(e, inner, line)).join(',\n')}\n${indent}]` : '[]';
     const entries = Object.entries(v).filter(([, e]) => e !== undefined);
-    return entries.length ? `{\n${entries.map(([k, e]) => `${inner}${JSON.stringify(k)}: ${format(e, inner)}`).join(',\n')}\n${indent}}` : '{}';
+    return entries.length ? `{\n${entries.map(([k, e]) => `${inner}${JSON.stringify(k)}: ${format(e, inner, line)}`).join(',\n')}\n${indent}}` : '{}';
 }
 export const readText = (bytes: Uint8Array): string => decoder.decode(bytes);
 

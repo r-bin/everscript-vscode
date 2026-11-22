@@ -3,7 +3,8 @@
 // marks another's resources (maps → tiles: used, dma) comes first.
 import type { Codec } from '../codec.mts';
 import { mapsCodec } from './codecs/maps.mts';
-import { tileFamiliesCodec } from './codecs/tile-families.mts';
+import { palettesCodec } from './codecs/palettes.mts';
+import { collisionsCodec } from './codecs/collisions.mts';
 import { tilesCodec } from './codecs/tiles.mts';
 import { stringsCodec } from './codecs/strings.mts';
 import { scriptsCodec, WINDOW as SCRIPT_WINDOW } from './codecs/scripts.mts';
@@ -32,5 +33,5 @@ export const PAST_END = [{ start: 0x30E293, end: 0x30E293 + 0x780 + 0x40 }];
  *  WRAM ($26-$28 when it starts a script). The proof translates them like long pointers. */
 export const POINTER_WINDOWS = [SCRIPT_WINDOW];
 
-export const KINDS: Codec[] = [mapsCodec, tileFamiliesCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
+export const KINDS: Codec[] = [mapsCodec, palettesCodec, collisionsCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
     animationsCodec, animationModesCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, musicCodec, soundsCodec, fontsCodec, hudCodec, ...MENU_KINDS, ...EQUIPMENT_KINDS, ...ALCHEMY_KINDS];
