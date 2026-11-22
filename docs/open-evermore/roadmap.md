@@ -1,6 +1,6 @@
 # Open Evermore: the road to 10/10
 
-Status: **rule set and plan (owner, 2026-11-22); step 1 (rooms) built in v0.457.0.** What makes the tree a product
+Status: **rule set and plan (owner, 2026-11-22); step 1 (rooms) built in v0.457.0; §4 scored per folder at v0.458.2.** What makes the tree a product
 a romhacker uses rather than a lab, the rules every kind follows, what still breaks them (counted in a fresh tree),
 and the order to fix it in. The kinds themselves: [resources.md](resources.md); the state of each: [progress.md](progress.md).
 
@@ -38,19 +38,35 @@ and the order to fix it in. The kinds themselves: [resources.md](resources.md); 
 | flag | `WEAPONS_OWNED_FLAGS_0+1` and its bit | knowledge entries, compiler FLAG enum | the word by name; **the bit is a number** |
 | routine | `script_op_5c_set_object_state` | `soe://rom/code/` | built (handlers) |
 
-## 4. What still breaks the rules (fresh US tree, v0.457.0)
+## 4. What still breaks the rules (fresh US tree, v0.458.2)
 
-Raw addresses in editable JSON, by folder (`"$…"` values; `maps/rooms` is at 0 since v0.457.0):
+Census of 2026-11-22: 29,837 files, 41 MB; `_base/unexploded.bin` keeps ~0.6 MB of the 3 MiB unexploded (code, `$C4`
+tables, animation records and scripts), the rest is blanked pool. Raw addresses are `"$…"` values in editable JSON;
+scripts have none (247 of 73,540 lines keep a `<0x…>` WRAM cell). Score: against §1 and R1–R6, 10 = no gap.
 
-| Folder | Files | Addresses | Fields | Fix |
+| Folder | Score | Addresses | What keeps it from 10 | Fix |
 |---|---:|---:|---|---|
-| `characters/records` | 284 | 17,905 | `sprite` 12,748, `script` 3,025, `record` 1,704 (animations.json), `name`, `palette`, `palette2` | animations.json is a derived dump (R4): explode S7d (animation records, scripts, sprite infos) or drop the dump to `--previews`; `name` → string, `palette` → palette |
-| `characters/animations` | 212 | 1,690 | `sprite`, `script`, `record` | S7d |
-| `music/packages` | 70 | 3,347 | `to` | ARAM (the sound CPU's RAM), not ROM: legitimate; later named ARAM regions |
-| `menus/ring_items` | 162 | 324 | `icon`, `palette` | an icons kind, palettes kind |
-| `equipment/*`, `alchemy/formulas` | 51 | 298 | `palette`, animation slots, flag `bit`, `target`, `level` (`$7E:2F98`) | palettes, S7d, flag bits by name, target flags by enum, WRAM names |
-| `characters/projectiles` | 16 | 64 | `animation`, `palette`, `unknown_04`, `unknown_06` | S7d, palettes, research the two words |
-| `menus/rings` | 18 | 18 | `flags` | flag names (null when 0) |
+| `maps/collisions` | 9 | 0 | — | — |
+| `scripts/opcodes`, `scripts/entities` | 9 | 0 | field docs (`what`) copied into every file | one README per kind |
+| `maps/rooms` | 8.5 | 0 | objects `unknown_NN`; animation channels by position; metatile ids and object `cells` as hex (`"000"`, `"301 302"`); header numbers (`mainScreen: 23`); `metatiles.json` ~2,700 lines a room | step 2; header fields by name |
+| `scripts/rooms` | 8 | 0 | 287 of 2,766 scripts `unknown_NN` | name by what they do |
+| behaviours, attack_procs, animation_modes, `menus/*_actions`, `ring_flows`, `weapon_schools`, `graphics/fonts` | 8–8.5 | 0 | `what` in every file | one README per kind |
+| `equipment/armour`, `graphics/hud` | 7 | 0 / 7 | `"text_2": { "same_as": … }` unexplained; hud's `what` one long string | name the field; README |
+| `maps/tiles`, `maps/palettes`, `alchemy/alchemy_levels` | 7 | 0 | numbered names (6,690 `tile_xxxx`) | names by use, where known |
+| `scripts/global` | 6.5 | 0 | 223 of 522 `global_NN` | name by what they do |
+| `characters/sprite_blocks_8`, `_16` | 6.5 | 0 | ~11k `block_xxxx`, no owner | S7d (blocks by character) |
+| `strings` | 6 | 0 | 3,002 `string_xxxx`; `$C4` names not here | step 3 |
+| `alchemy/formulas`, `alchemy/ingredients` | 6 | 105 | `target: "$2010"`, `level: "$7E:2F98"`, `bit: "$0001"`; `held: "ING_QTY_GREASE+11"` (a cell named off another item) | target enum, flag bits, step 6 |
+| `menus/ring_items`, `menus/rings` | 6 | 342 | `icon`, `palette`, `flags: "$000A"`; names in place, capped | icons, step 4, flag names, step 3 |
+| `music/sounds` | 6 | 0 | only `{ sfx, package }` | — |
+| `equipment/weapons`, `bazooka_ammo` | 5 | 193 | 9 `$C4:` animation slots, `palette`, `unknown_1a`/`1c`, `skill: "WEAPON_SKILL_FIST+16"`, `name` = `ring_item` | steps 4, 5, 6; research the two words |
+| `characters/projectiles` | 5 | 64 | `projectile_NN`, `animation`, `palette`, `unknown_04`/`06`, a 12-line `what` per file | steps 4, 5; research the two words |
+| `characters/records` | 4 | 17,905 | `character.json` is fine (8), `animations.json` (~2,600 lines) is a derived dump implode ignores (R4); `name: "$C4705A"`, `palette` | step 5 or the dump to `--previews`; steps 3, 4 |
+| `music/packages` | 4 | 3,754 | 2,650 opaque `data_N.bin`; `to` is ARAM (the sound CPU's RAM), legitimate | decode sequences and samples; named ARAM regions |
+| `characters/animations` | 3 | 1,690 | every `record`, `script`, `sprite` an address | step 5 |
+
+Overall ~6.5: maps and scripts are near the product, everything that points into `$C4`, palettes or animations is
+still a lab dump. Steps 3–5 fix ~20k of the ~24k addresses left.
 
 Other gaps against R2/R3, found on the way:
 
@@ -58,6 +74,9 @@ Other gaps against R2/R3, found on the way:
   and should be written so (a parameter type for the `LOOT_OBJECT` cell, `operands.mts`).
 - Animation channels are positions (`anim3` in metatiles.json): name them in animations.json and write the name.
 - A script reached from several rooms names objects of the room whose folder holds it (the first to reach it).
+- 376 JSON files carry a `what`: field docs belong in one README per kind (review §3), not in data files.
+- explode's closing "Next:" line prints `--out` relative to the repository (`../../../../../private/tmp/…`): print it absolute.
+- [tool.md](tool.md)'s status line still says "built for maps, tile families, tiles, strings and scripts".
 
 ## 5. The editor: one look, one click
 
