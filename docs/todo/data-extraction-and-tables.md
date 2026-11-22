@@ -4,7 +4,7 @@
 > **Master Dashboard & Progress Tracker:** [`docs/disassembly/PROGRESS.md`](../disassembly/PROGRESS.md)  
 > **Data Tab Models:** [`src/games/evermore/data-tab/model/tables.ts`](../../src/games/evermore/data-tab/model/tables.ts), [`enums.ts`](../../src/games/evermore/data-tab/model/enums.ts)  
 > **Disassembly Reference:** [`docs/disassembly/engine-core/rom-tables.md`](../disassembly/engine-core/rom-tables.md), [`rom-enums.md`](../disassembly/engine-core/rom-enums.md), [`wram-enums.md`](../disassembly/engine-core/wram-enums.md)  
-> **Current Status (v0.384.0):** 40 Decoded Master Tables · 40 Decoded Enums · 352 Named Functions (87.3%) · 391 Clean C Functions (97.0%)
+> **Current Status (v0.399.78):** 40 Decoded Master Tables · 40 Decoded Enums · 403 Named Functions (100.0%) · 403 Clean C Functions (100.0%)
 
 ---
 

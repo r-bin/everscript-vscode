@@ -6,8 +6,9 @@ kind: code
 category: 🎛️
 name: window_system_reset_and_buffers_clear
 title: Window system buffer reset and base palette initializer
-confidence: likely
-tags: [window, ui, cgram, buffers, reset]
+confidence: confirmed
+tags: [window, ui, cgram, buffers, reset, reconstructed-c]
 evidence: ["disasm: called by gameplay_session_subsystems_init ($80:8CC9) and menu dispatchers; clears active window flags $0B2B, $0B2F, $0B31; resets window geometry $0365 ($A000), $0391 ($A500), $03BD ($AA00); commits standard window border palette via $80:85FA (REA dossier 0x8cab10)"]
+see: [routines/window_tilemap_buffer_init.md, reconstructed-c/8C/8CAB10_window_system_reset_and_buffers_clear.c]
 ---
 Master reset routine for the game window and dialogue system, clearing active window descriptor slots, restoring default window bounds, and resetting UI CGRAM palettes.

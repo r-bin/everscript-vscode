@@ -6,26 +6,16 @@ kind: code
 category: 🧠
 name: combat_weapon_charge_attack_hit_detection
 title: Performs spatial collision and radius checks for level 2 and 3 weapon charged swings
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+confidence: confirmed
+tags: [combat, weapon, collision, sfx, reconstructed-c]
+evidence: ["disasm: reads attacker slot in DP $4C; inspects active animation descriptor pointer in +$06,X and +$07,X; validates weapon shape 6; probes 4 corners against Bank $7F metatile collision grid; on collision plays SFX index $2C from $8C:8362 via $8C:82DC and returns CLC; on clear path returns SEC"]
+see: [routines/combat_hitbox_bounds_overlap_test.md, reconstructed-c/8F/8FB8F0_combat_weapon_charge_attack_hit_detection.c]
 ---
-Low confidence — Performs spatial collision and radius checks for level 2 and 3 weapon charged swings.
-
-> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
-
-Evaluates charged melee weapon area attacks (such as the Sword or Axe spin/slice attacks).
-The routine checks the weapon animation record pointer in `$26`. When weapon strike shape type 6 (wide arc swing) is detected, it calculates horizontal and vertical reach relative to attacker position `$1C,X`.
-
-It tests candidate target coordinates within the sweep arc. If a collision is registered, it triggers weapon contact sound effects via `$8C:82DC` (`play_sound_effect_direct`) and flags targets for damage resolution.
-
-## Callers
-- `$90:8810` (`func_908810`)
-
-## Callees
-- `$8C:82DC` (`play_sound_effect_direct`)
-
-## Variables and memory (hypotheses)
-- `$26` (Pointer to active weapon attack hitbox descriptor)
-- `$1C,X` (Attacker world X coordinate)
-- `$14` (Calculated attack strike radius and reach boundary)
+Performs spatial collision and terrain obstruction checks for weapon charge attacks (shape 6):
+- Reads active attacker entity slot from Direct Page register `$4C`.
+- Inspects active animation record descriptor pointer in `+$06,X` and `+$07,X`.
+- If shape type is not 6 (wide sweep), returns `SEC` immediately (unobstructed attack).
+- Probes four bounding corners of the attack arc against the Bank `$7F` map metatile collision grid.
+- If any corner collides with an obstacle, plays weapon rebound SFX (index `$2C` from table `$8C:8362` via `$8C:82DC`) and returns `CLC` (blocked attack).
+- If all corners are clear, returns `SEC` (valid hit).
+Clean C implementation: `reconstructed-c/8F/8FB8F0_combat_weapon_charge_attack_hit_detection.c`.

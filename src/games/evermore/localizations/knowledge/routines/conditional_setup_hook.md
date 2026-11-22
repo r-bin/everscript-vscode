@@ -7,8 +7,8 @@ category: 🧠
 name: conditional_setup_hook
 title: Conditional setup hook
 confidence: confirmed
-tags: [system]
+tags: [system, reconstructed-c]
 evidence: ["disasm: reads $0106 and $05A9, applies three early-return conditions, then calls $8C:C543, $8E:A0B3, and $8C:C55D before RTL at $8E:A0B2", "disasm: direct JSL callers at $8E:E520 and $8E:E53F"]
-see: [docs/disassembly/ui/ring-menu-subitems.md]
+see: [docs/disassembly/ui/ring-menu-subitems.md, reconstructed-c/8E/8EA091_conditional_setup.c]
 ---
-This hook is called from `$8E:E520` and `$8E:E53F`. It returns when `$0106` bit `$0080` is set, when the 16-bit compare against `$0008` takes the negative branch, or when `$05A9` bit `$0001` is set. Otherwise it calls `$8C:C543`, `$8E:A0B3`, and `$8C:C55D` in that order. The callees' effects are not assigned by this entry.
+This hook is called from `$8E:E520` and `$8E:E53F`. It returns when `$0106` bit `$0080` is set, when the 16-bit compare against `$0008` takes the negative branch, or when `$05A9` bit `$0001` is set. Otherwise it calls `$8C:C543`, `$8E:A0B3`, and `$8C:C55D` in that order. Clean C reconstruction: `reconstructed-c/8E/8EA091_conditional_setup.c`.

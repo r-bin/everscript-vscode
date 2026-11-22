@@ -7,11 +7,11 @@ category: 🧠
 name: script_op_97_palette_transfer
 title: Script opcode 0x97 palette data transfer
 confidence: confirmed
-tags: [script-vm]
+tags: [script-vm, reconstructed-c]
 evidence: ["vanilla disasm: opcode table word at $8C:E9EB points here; evaluates seven expressions, applies three BGR555 channel adjustments in a count-controlled loop, and calls $80:85FA", "vanilla disasm: $90:D34C only reads DP $14 and returns; handler ends with SEC; RTS at $8C:E59F-$8C:E5A0", "vanilla VFS opcode 0x97 lists reachable script callers, including $92:D730 and $92:D75F"]
-see: [docs/disassembly/script-vm/opcode-97-palette-transfer.md, docs/scripts/vm.md, docs/scripts/opcodes.md]
+see: [docs/disassembly/script-vm/opcode-97-palette-transfer.md, docs/scripts/vm.md, docs/scripts/opcodes.md, reconstructed-c/8C/8CE4B1_opcode_97_palette_transfer.c]
 ---
-Handler for script opcode [0x97](soe://rom/assets/scripts/opcodes/97.md). Its seven expression operands and palette data path are documented in [opcode-97-palette-transfer.md](../../../../../../docs/disassembly/script-vm/opcode-97-palette-transfer.md).
+Handler for script opcode [0x97](soe://rom/assets/scripts/opcodes/97.md). Its seven expression operands and palette data path are documented in [opcode-97-palette-transfer.md](../../../../../../docs/disassembly/script-vm/opcode-97-palette-transfer.md). Clean C reconstruction: `reconstructed-c/8C/8CE4B1_opcode_97_palette_transfer.c`.
 
 ## Addresses
 Read from the handler's code (direct calls only; data bank tracked, default `$7E`):

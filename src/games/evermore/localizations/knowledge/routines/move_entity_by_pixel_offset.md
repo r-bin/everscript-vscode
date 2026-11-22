@@ -7,7 +7,7 @@ category: 🧠
 name: move_entity_by_pixel_offset
 title: Move an entity by pixel offsets
 confidence: confirmed
-tags: [script-vm]
+tags: [script-vm, reconstructed-c]
 evidence: ["vanilla disassembly: evaluates entity and X/Y offsets; zero offsets set $7E:23E3 to 1; bit $0008 in entity field +$10 rejects movement; adds offsets to +$1A and +$1C, clears bit $0800, and calls $8F:AF48; carry-clear rejects, carry-set calls $8F:C2E4; success writes $7E:23E3=1 and rejection at $8C:E089 writes 0; both return with carry set"]
 see: [docs/disassembly/script-vm/move-entity-by-pixel-offset.md, reconstructed-c/8C/8CE040_move_entity_by_pixel_offset.c, docs/scripts/vm.md, docs/scripts/opcodes.md]
 ---
