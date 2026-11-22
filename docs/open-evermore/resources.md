@@ -494,7 +494,8 @@ menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (o
 
 - **ring items** (162, `$8E:8000` → 8-byte entries `$8E:8144`): `name` is the text the ring prints, a plain ASCII
   string in bank `$C4`. Weapon records, formula and ingredient names point at the same strings, so a name changes the
-  item everywhere and is written where it was: at most its vanilla length (`no-room`). `icon` an animation record
+  item everywhere and is written where it was: at most its vanilla length (`no-room`, why: §Why a name keeps its
+  length). `icon` an animation record
   (`$C4`), `palette` 16 colours (`$D0`). The index is what the ring that shows the item reads: by id range it is an
   `action` (options → `option_actions`, consumables → `item_actions`, Call Bead callers → `caller_actions`, their
   spells → `spell_actions`), a `formula` (`alchemy_actions`: also the number the learned bits and levels use) or a
@@ -512,6 +513,33 @@ menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (o
 - **Next.** The `$C4` tables that turn inventory into ring items (consumables `$C4:5AAE`, armour `$C4:5ABE`, formulas
   `$C4:5BAF`, ingredients `$C4:5B10`, weapon records +`$1E`) as references by name; moving names (needs every reader
   of a name string); `when` conditions as data (code today); shop rings named from `$0E6C`.
+
+### Why a name keeps its length *(open)*
+
+Implode writes each ring item's name back into its own bytes, padded with zeros; a longer name is `no-room`. A longer
+name would have to move, and nothing may move unless every reader is generated (the hard rule). What stands in the way:
+
+1. **The string is shared, and its readers are not all known.** The ring item's `+0` points at it, and so do the
+   weapon records (`$C4:3874`), the formula name table (`$C4:5D09`) and the ingredient name table (`$C4:6001`), all as
+   16-bit offsets. These were found by searching the ROM for the pointer values (v0.455.0), which proves neither that
+   they are the only readers nor that every hit is one: a code immediate (`lda #$xxxx` / `sta $22`) or a pointer into
+   the middle of a string would be missed. A moved string with a reader left behind prints garbage. Shortening is safe
+   only because the string stays where it was.
+2. **It must stay in bank `$C4`.** Every ring loop sets the string's bank to `#$C4` itself (`lda #$00C4 : sta $24`
+   before `$8C:9E03`), and the other tables hold 16 bits too: a moved name can go anywhere in `$C4`, nowhere else.
+3. **Bank `$C4` has no free byte.** The names lie back to back from `$C4:60D0` to `$C4:7240`, each right after the
+   previous one's 0, among other strings (descriptions) that no kind owns yet. Implode's pool is exactly vanilla's
+   resources, so room in `$C4` only comes from another `$C4` resource giving it up: a shorter name, or a table that
+   leaves the bank (the animate id table at `$C4:3C92` frees `$C4:3C92`-`$3E39` once moved, animations kind).
+4. **The box may be too narrow** *(unverified)*. The ring prints the name in a window of fixed width; how many pixels
+   it holds, and what a longer name does (clipped, wrapped, drawn over the frame), is not checked. The fonts kind has
+   each glyph's width, so the limit would be in pixels, not characters.
+
+**To lift it:** (a) list every reader of the name strings from the CDL library (each instruction that reads
+`$C4:60D0`-`$7240`, with the pointer it used), not from a byte search; (b) make the shared strings a kind of their own
+(`menus/names/` or part of `strings`), referenced by name from ring items, weapon records, formulas and ingredients, so
+the pointer tables are generated; (c) give implode the free space of bank `$C4` that other kinds release, with a rule
+that keeps a name in `$C4`; (d) measure the box in game (a 20-character name on the ring) and check widths in pixels.
 
 ### Full-screen menus *(explored, not a kind)*
 
