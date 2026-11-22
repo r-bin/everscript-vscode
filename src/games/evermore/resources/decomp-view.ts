@@ -189,6 +189,11 @@ function getDecompiledC(bus: number): DecompiledC | null {
     return null;
 }
 
+/** C for a routine from a source other than reconstructed-c/: a curated docs block, else the snesrecomp lift; null without one. */
+function otherC(bus: number): DecompiledC | null {
+    return findCuratedC(bus) || findRecompC(bus);
+}
+
 /** Render a standalone .c listing for a given bus address. */
 function cListing(rom: unknown, bus: number): string {
     const decomp = getDecompiledC(bus);
@@ -198,5 +203,6 @@ function cListing(rom: unknown, bus: number): string {
     return `// No decompiled C found for address $${h(bus, 6)}.\n// You can run decomp-curator or inspect soe://rom/${h(hiromFileOffset(bus), 6)}.asm\n`;
 }
 
-export { getDecompiledC, cListing };
+export { getDecompiledC, otherC, cListing };
+export type { DecompiledC };
 

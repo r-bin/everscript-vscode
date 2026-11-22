@@ -3643,9 +3643,9 @@ test('palette animation: lists placed tiles using cycling palettes with per-inst
     assert.ok(html.includes('Frame 0 of 4'));
     assert.ok(html.includes('Frame 3 of 4'));
 
-    // Edit ticks per shift step (24 ticks -> rate = 24 / 3 = 8)
+    // Edit frames per shift: the rate is frames per shift ($90D58C), so 24 frames -> rate 24
     ui.paletteAnimInputChange({ dataset: { palAnimCycle: '0' }, value: '24' });
-    assert.strictEqual(p.paletteCycles[0].rate, 8);
+    assert.strictEqual(p.paletteCycles[0].rate, 24);
 });
 
 test('tile picker: swatch animates when family has active palette cycle', () => {

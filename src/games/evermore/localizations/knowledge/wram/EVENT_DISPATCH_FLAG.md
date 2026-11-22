@@ -2,7 +2,7 @@
 addr: $7E:2553
 name: EVENT_DISPATCH_FLAG
 type: u16
-tags: [scripts, event, flag]
+tags: [scripts, event, flag, script-vm]
 confidence: verified
 evidence: ["disasm", "cdl"]
 ---

@@ -13,11 +13,10 @@ The primary thread slot for the Secret of Evermore Event Script VM.
 Contains:
 - `+$00`: 16-bit Script PC
 - `+$02`: 8-bit Script Bank (starts at `$92`)
-- `+$03`: Thread status enum (0 = Inactive, 2 = Active, 4 = Timer wait, 6 = Window wait, 8 = Button wait, 10 = Entity wait, 12 = Camera wait)
-- `+$05`: Wait countdown timer or target coordinate
-- `+$09`: Thread execution flags
-- `+$0B`: Bound Actor Entity record pointer
-- `+$0D`: Subroutine return address (gosub stack)
+- `+$03`: Thread status enum (0 = free, 2 = running, 4 = sleeping until the frame counter reaches the deadline in +5/+7, 6 = waiting for an entity's busy bits, 8 = waiting for the step-on trigger script, 10 = waiting for a text box / room object record, 12 = waiting for the camera; see routines/SCRIPT_THREAD_WAKE_TABLE.md. Previously believed: 6 window, 8 button, 10 entity wait)
+- `+$05` / `+$07`: wake parameters of the waiting states: the 32-bit sleep deadline (`+5` low, `+7` high), the entity busy-bit word address, the trigger id or the camera position to compare against
+- `+$09`: wait mask / thread flags
+- `+$0D`: bound actor entity (opcode `0x4E`, read by `script_owner()`; the entity's reference count at its `+$3E` follows it). Previously believed: `+$0B` bound entity and `+$0D` a gosub return address; the opcode entry `opcodes/4e.md`, the expression sub-op `$2E` and the debugger layout all use `+$0D` for the entity, `+$0B` is not traced
 - `+$0F`..`+$4E`: 32 local 16-bit variables (`local[0..31]`)
 
 ## Widescreen notes

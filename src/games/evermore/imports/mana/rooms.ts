@@ -9,9 +9,10 @@
 
 import * as mana from '../../../mana/decoder';
 import { readRomMapHeaderFrom } from '../../rom-readers';
-import { convertManaMap } from './convert';
-import { buildVirtualRom } from './virtual-rom';
-import * as ids from './ids';
+import { convertManaMap, RETURN_SCRIPT } from './convert';
+import { buildVirtualRom, roomHeader } from '../common/virtual-rom';
+import { defaultStart } from '../common/start';
+import * as ids from '../common/ids';
 
 type Rom = Uint8Array;
 type Entry = { soe: Rom; manaRom: Rom; room: NonNullable<ReturnType<typeof convertManaMap>>; image: ReturnType<typeof buildVirtualRom> };
@@ -46,6 +47,21 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
         return e;
     }
 
+    /**
+     * `vid`'s conversion counts for its status (common/status.ts), converted without filling the cache (a sweep over
+     * every map must not push out the one on screen). Null when `vid` is not a Mana map or a ROM is missing; throws
+     * when the map does not convert.
+     */
+    function check(vid: unknown) {
+        const r = roms();
+        if (!r || typeof vid !== 'string' || !vid.startsWith(VID_PREFIX)) return null;
+        const manaId = parseInt(vid.slice(VID_PREFIX.length), 16), hit = cache.get(manaId);
+        const room = hit && hit.soe === r.soe && hit.manaRom === r.m ? hit.room : convertManaMap(r.m, manaId);
+        if (!room) throw new Error('no such map');
+        const image = hit && hit.room === room ? hit.image : buildVirtualRom(r.soe, room, manaId + 1);
+        return { ...room.stats, wramBytes: image.wramBytes, blobBytes: image.blobBytes, families: room.families.length };
+    }
+
     /** The rail: one row per picture, grouped by area. [] without both ROMs. */
     function railGroups() {
         const r = roms();
@@ -68,16 +84,19 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
         const e = Number.isInteger(manaId) ? entry(manaId) : null;
         if (!e) return null;
         const { room, image } = e;
-        const label = (t: { scriptId: number }): string => 'Mana event ' + hex4(t.scriptId);
+        const label = (t: { scriptId: number }): string => (t.scriptId === RETURN_SCRIPT ? 'Mana return cell' : 'Mana event ' + hex4(t.scriptId));
         // `scriptId` keeps the tab from looking the number up among Evermore's scripts;
         // `what` is what the row says the trigger does.
-        const stepOn = room.stepOn.map((t) => ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, scriptId: t.scriptId, label: label(t), what: label(t) }));
+        const row = (t: Entry['room']['stepOn'][number]) => ({ x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2, scriptId: t.scriptId, label: label(t), what: label(t) });
+        const stepOn = room.stepOn.map(row), bTrigger = room.bTrigger.map(row);
         return {
             name: name || ('Secret of Mana ' + manaId.toString(16)),
             vanillaId: 'som ' + manaId.toString(16),
             romRoomId: ids.IMPORTED_ROOM_BASE + manaId,
             imported: 'mana',
             relPath: 'Secret of Mana map ' + manaId.toString(16) + ', converted',
+            // The Boy's default start for Play in emulator (the editor's marker moves it).
+            start: defaultStart(room),
             startLine: -1, endLine: -1, imageUri: null, imageDims: null,
             families: room.families.map((f) => ({
                 id: f.id, label: f.label, tiles: f.graphics, rooms: 1, areas: ['Secret of Mana'],
@@ -91,14 +110,27 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
                 entrances: [], objects: [], transitions: [],
                 // Mana's map objects, as the tab's spawn markers (8-pixel units).
                 enemies: room.spawns.map((o) => ({ x: o.x * 2, y: o.y * 2, type: 'Mana object ' + hex4(o.kind), dynamic: false })),
-                triggerNames: { stepOn: stepOn.map((t) => t.label), bTrigger: [] },
-                triggers: { enter: null, stepOn, bTrigger: [], meta: null },
+                triggerNames: { stepOn: stepOn.map((t) => t.label), bTrigger: bTrigger.map((t) => t.label) },
+                triggers: { enter: null, stepOn, bTrigger, meta: null },
                 roomError: null,
                 mapId: ids.IMPORTED_ROOM_BASE + manaId,
                 romHeader: readRomMapHeaderFrom(image.rom, image.roomId),
                 trigOffset: { offX: 0, offY: 0 },
             },
         };
+    }
+
+    /**
+     * What a playable ROM needs of converted tab room `roomId` (rooms/rendering rom-export-own.ts):
+     * the room's own parts with its header, the image the editor draws it from, and its default
+     * start. Null when it is not a converted room.
+     */
+    function playable(roomId: unknown) {
+        const n = Number(roomId);
+        if (!Number.isInteger(n) || n < ids.IMPORTED_ROOM_BASE || n >= ids.IMPORTED_ROOM_BASE + mana.MAP_COUNT) return null;
+        const e = entry(n - ids.IMPORTED_ROOM_BASE);
+        if (!e) return null;
+        return { room: { ...e.room, header: roomHeader(e.soe, e.room) }, shown: { rom: e.image.rom, roomId: e.image.roomId }, start: defaultStart(e.room) };
     }
 
     /** `{rom, roomId}` to answer a request about tab room `roomId`, or null when it is not converted. */
@@ -117,7 +149,7 @@ function createManaRooms(deps: { soeRom(): Rom | null; manaRom(): Rom | null }) 
         return e ? { rom: e.image.rom, roomId: e.image.roomId } : null;
     }
 
-    return { railGroups, detail, resolveRoom, resolveFamily, clear: () => { cache.clear(); familyMap.clear(); } };
+    return { railGroups, detail, check, resolveRoom, resolveFamily, playable, clear: () => { cache.clear(); familyMap.clear(); } };
 }
 
 export const isImportedRoomId = (n: unknown): boolean => Number(n) >= ids.IMPORTED_ROOM_BASE;

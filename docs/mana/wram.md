@@ -47,6 +47,7 @@ Evermore or from other projects. Partial knowledge says so. Format and code:
 | `+$02`, `+$04` | x, y in pixels; a spawned object stands at cell * 16 + 4 | game, maps `$10` and `$81` |
 | `+$0B` | bit 7: on layer B (the cut probe uses `$7F:4000` / `$BC00`) | `$01:D2F3` |
 | `+$0B` | also bits 0-1 the level, flipped by c0 bit 3 cells | `$00:D864`; game (2 → `$82`) |
+| `+$0B` (`$7E:E00B`, the first character) | a forced map load (`$00:C481`) leaves it as it was: layer A after the opening in maps `$10`, `$16`, `$66`, `$80`, `$101`, `$104`; a door sets it | game (2026-11-14) |
 | `+$1C` | with `+$2C` set, a special cell blocks while `$D0` or `+$1C` is non-zero (and `$FF` is 0) | `$01:B9BE`-`B9C7` |
 | `+$2C` | 0: a special cell whose c1 bit 6 is clear blocks this party member; non-zero: see `+$1C` | `$01:B9AE` |
 | `+$45` | must be 0 for a step event to run | `$00:B63C` |
@@ -81,3 +82,13 @@ from the code, not watched.
 
 More than 64 special cells in one layer (maps `$04`, `$05`, `$1FF`) push the slots past
 `$BC00`/`$C800` into layer B's tables.
+
+## Engine and I/O (seen while building the combo POC, 2026-11-15)
+
+| address | what | evidence |
+|---|---|---|
+| `$7E:0100`, `$7E:0104` | the NMI and IRQ vectors point here; the game keeps its own jumps in these bytes | ROM vectors; MesenCE |
+| `$7E:1E00–$1EFF` | sound state (direct page of `$C3:0000`/`$C3:0004`); `$1E00` command, `$1E05` current song (`$FF` none after init) | disasm |
+| `$7F:0090` | `$4200` shadow: bits set or cleared here, then stored. **Not the whole truth**: other code writes `$4200` directly (`$00:B061` `#$B1`, `$00:87CD` `#$01`, 20 more sites), so the shadow can say `$01` while NMI and the H/V IRQ are on. Values seen: `$01`, `$81`, `$A1` (V-IRQ line 192), `$B1` (H+V, H 132–200, V 81–196) | `$7E:A231`, `$7E:A256`, `$7E:A288`; MesenCE `internalRegisters` along a playback (2026-11-15) |
+| `$7E:A29F` (WRAM code) | before play, the main thread's idle loop `LDA $10 / AND #$80 / BEQ $A29F` (waits for the NMI's flag): the NMI stopped it there in 970 of the first 1047 frames | MesenCE stack at the NMI entry `$00:0100`, WRAM dump (2026-11-15) |
+| `$7E:8000`–… | code unpacked at boot (not in the ROM byte for byte): the pad routine `$7E:A6E8` (`LDA $004218,X`, used before play), the PPU register queue writer `$7E:C0FD` (two lists at `$7F:02DA`/`$7F:02DE`, per-register write count at `$7E:603E`; a queue, not a copy of the registers) and the IRQ line set-up `$7E:A1E2` (`$4209` = `$00C0`) | MesenCE WRAM dump, disasm |

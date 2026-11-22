@@ -153,6 +153,51 @@ test('CHR mode 1 (uncompressed) fills 128 bytes and repeats the last word', () =
     assert.deepStrictEqual(Array.from(out.slice(126, 128)), [0xcc, 0xdd]);
 });
 
+test('CHR bit-6 form: zero prefix, literals from +2; run prefix, literals fetched from +7 (as $8CC8B0 does)', () => {
+    const zero = Uint8Array.from([0x41, 0x03, 0x11, 0x22, 0x33, 0x44, 0xee]);   // 3 zero words, 2 literals
+    const z = maps.decodeTile(zero, 0);
+    assert.deepStrictEqual(Array.from(z.bytes.slice(0, 10)), [0, 0, 0, 0, 0, 0, 0x11, 0x22, 0x33, 0x44]);
+    assert.deepStrictEqual(Array.from(z.bytes.slice(126)), [0x33, 0x44], 'last literal repeats');
+    assert.strictEqual(z.end, 6);
+    // run: 2 copies of word 0xBBAA, then 1 literal; the game skips 3 bytes and reads it at +7, past the 6 stored.
+    const run = Uint8Array.from([0x40, 0x82, 0xaa, 0xbb, 0x01, 0x02, 0x03, 0x77, 0x88]);
+    const r = maps.decodeTile(run, 0);
+    assert.deepStrictEqual(Array.from(r.bytes.slice(0, 6)), [0xaa, 0xbb, 0xaa, 0xbb, 0x77, 0x88]);
+    assert.strictEqual(r.end, 9);
+});
+
+test('CHR encodeTile: decodes back, picks the shorter form, streams animation frames raw', () => {
+    let seed = 7;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x80000000;
+    for (let k = 0; k < 200; k++) {
+        const t = new Uint8Array(128);
+        for (let i = 0; i < 128; i += 2) {
+            const r = rnd();
+            const w = r < 0.4 ? 0 : r < 0.5 ? 0xffff : r < 0.7 && i ? t[i - 2] | (t[i - 1] << 8) : Math.floor(rnd() * 0x10000);
+            t[i] = w & 0xff; t[i + 1] = w >> 8;
+        }
+        const e = maps.encodeTile(t, k % 10 === 0);
+        assert.deepStrictEqual(Array.from(maps.decodeTile(e, 0).bytes), Array.from(t));
+        if (k % 10 === 0) assert.deepStrictEqual([e[0], e.length], [0x3f, 129], 'full: 64 raw words');
+    }
+    const flat = new Uint8Array(128);
+    assert.deepStrictEqual(Array.from(maps.encodeTile(flat)), [0x00, 0, 0], 'one word repeated: the literal form');
+    const px = Array.from({ length: 256 }, (_, i) => (i * 7) & 15);
+    assert.deepStrictEqual(Array.from(maps.decodeTilePixels(maps.encodeTilePixels(px))), px);
+});
+
+test('lzssCompressVanilla decompresses back and ends with the 13-bit end mark', () => {
+    const enc = require('../../dist/games/evermore/maps/encode');
+    let seed = 3;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x80000000;
+    for (const n of [0, 1, 2, 17, 300, 5000]) {
+        const data = Uint8Array.from({ length: n }, (_, i) => rnd() < 0.5 ? i & 7 : Math.floor(rnd() * 256));
+        const packed = enc.lzssCompressVanilla(data);
+        const back = enc.unpackBlock({ sub: enc.SUB_LZSS, decomp: n, data: packed });
+        assert.deepStrictEqual(Array.from(back), Array.from(data), `${n} bytes`);
+    }
+});
+
 // ── collision.ts ────────────────────────────────────────────────────────────
 
 test('tilePlane reads bits 5..4', () => {

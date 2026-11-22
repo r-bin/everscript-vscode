@@ -6,7 +6,7 @@ name: TRIGGER_SCRIPT_LOCK
 title: Active step-on trigger script ID
 lifetime: room
 confidence: verified
-tags: [ram.triggers, ram.collision]
+tags: [ram.triggers, ram.collision, script-vm]
 evidence: ["disasm: $8FACB1 records trigger script ID into $7E2429 via STX $2429 when entering step-on trigger bounding box", "disasm: $8FAD15 CPX $2429 suppresses re-triggering while player stands on the trigger line", "disasm: $8FB083 resets $7E2429 to $FFFF when exiting bit-14 cells"]
 see: [docs/map-format/map_collision_mechanics.md, docs/cheats.md]
 ---

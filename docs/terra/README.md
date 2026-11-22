@@ -6,7 +6,8 @@ Reverse-engineering notes for *Terranigma* (Quintet / Enix, 1995, SNES), derived
 of the European base ROM unless a file offset is named. Nothing here comes from other projects.
 
 Code: `src/games/terra/decoder` (pure TS), `terra://` (`src/games/terra/resources`), the Maps panel
-(`src/games/terra/maps`). The player's jump and what is solid in the air: [jumping.md](jumping.md).
+(`src/games/terra/maps`). The player's jump and what is solid in the air: [jumping.md](jumping.md). Rooms converted
+into Evermore rooms (the Rooms tab's Terranigma group): [evermore-rooms.md](evermore-rooms.md). Room names (ours, from the exit graph): [room-names.md](room-names.md).
 
 ## 1. Cartridge
 
@@ -88,13 +89,15 @@ After the load the room change copies colour 32 (`$7F:0640`) into colour 0, the 
 
 | Address | What |
 |---|---|
-| `$0826/$0828` | layer 0/1 width in pixels (0 = no such layer; `$7E:0826` / `$7E:0828`); `$082A/$082C` height |
+| `$0826/$0828` | layer 0/1 width in pixels (0 = no such layer; `$7E:0826` / `$7E:0828`); `$082A/$082C` height (`$7E:082A` / `$7E:082C`) |
 | `$082E/$0830` | layer 0/1 cell count |
 | `$0832/$0834` | layer 0/1 map (bank `$7E`), one word per 16 px cell, row by row |
 | `$0836/$0838` | layer 0/1 VRAM tilemap word address (which BG shows it) |
 | `$083A/$083C` | layer 0/1 metatile table: 512 metatiles × 4 SNES tile words (TL, TR, BL, BR) |
 | `$084E/$0850` | layer 0/1 cell-type table in bank `$7F` (one byte per metatile) |
 | `$7F:0600` | the palette (256 colours) the frame upload copies to CGRAM |
+| `$0874/$0876`, `$0878/$087A` | the camera's left / top and right / bottom limits in pixels (§3.11) |
+| `$0866` | `$E0` or `$100`: how far above the bottom limit the camera stops (§3.11) |
 
 The power-on routine `$86:B8D6` clears WRAM and writes a table of (address, word) pairs from `$86:B93F`
 (up to a negative address): the addresses above, `$0402` (a `PHB; MVN; PLB; RTS` stub whose banks
@@ -151,7 +154,19 @@ word +4: `$FFFF` they cannot enter (every type but 0, 1, 2, `$11`, `$16`), `$800
 bit 15 of `$048A` is set, else they can; bit 0 of the word sets sprite priority `$3000`. Which characters those are
 is not checked.
 
+Seen in the game (headless core, November 2026, Crysta `$00A`): Ark walks up from (40,4) beside the waterfall through the
+type-`$16` cell (40,3) into (40,1), the canopy above, all type 0, all characters low priority. At (40,2) his upper sprites carry OAM priority 3
+(the shadow `$7E:0A00`), his feet 2: he is drawn in front of the canopy. Behind a roof ridge (row 4 of the house at (7-15,4-8):
+type 0, high characters with transparent pixels) the ridge covers him below the shoulders; that he shows through its transparent pixels
+follows from BG priority (they are backdrop), not looked at pixel by pixel.
+
 ### 3.7 Exits
+
+Not every exit is reached by walking: 234 of the 1304 exits lie on wall cells only (a house's closed door, Crysta's
+(56,46) a type `$0E` cell above floor). In the headless core (November 2026) walking Ark up to (56,46) from two cells
+below stops him at the cell's edge, and holding up or pressing A there for 120 frames does not take the exit
+(`$047C` stays 0). Placed on the cell below, facing up, one press of A opens the door (§3.9: the cell turns to floor)
+and he can walk in; why the first try did not open it (the check wants the point in front on a cell edge) is not checked.
 
 Every frame the main loop runs `$8D:8797` (data bank `$81`): unless bit 4 of `$097C` is set, it walks the room's
 list at `$81:8000 + room × 2` — 12 bytes per exit up to an `$FF` byte: x, y, width, height in cells, a room word,
@@ -175,6 +190,7 @@ clear: inside an exit), called from character scripts.
 | `$7E:06C0` | event flags, a bit each (§3.7) |
 | `$7E:0710` | map-change bits, one per change of `$99:D4E7` (§3.8) |
 | `$7E:09C7` / `$7E:09C9` | a chest being opened: its contents word, and its flag in set-flag form (§3.9) |
+| `$7E:0988` | the pot the player holds: 0 none, else its slot `$098A` / `$098F` / `$0994` (§3.9); `$09C7` then holds the pot's metatile |
 
 A room word with bit 15 set points (bank `$81`) at choices instead (`$8D:8911`): 10 bytes each — an event flag,
 the room, the two style bytes, the arrival x and y — ending with flag `$FFFF` (no exit). The first choice whose
@@ -210,8 +226,10 @@ There are no per-room "B triggers": cells carry no event, and exits (§3.7) are 
 player's facing (`$0956`) it takes the point in front and tries, in order:
 
 1. a character there (`$87:C740`) — talk to it (`$87:9313`);
-2. `$87:C7AE`: the cell's metatile is `$0F0` (a closed chest, only while facing up, `$0956` = 1), `$0F3`, or
-   `$0FA-$0FC`, or the cell is of type 4 — then look the cell up in the room's chest list; found → `$87:939E`;
+2. `$87:C7AE` (only with the point on a cell edge): the cell's metatile is `$0F0` (a closed chest, only while facing
+   up, `$0956` = 1) or the cell is of type 4 — then look the cell up in the room's chest list; `$0F3` (a door) or
+   `$0FA-$0FC` (a pot) — no list. Found → `$87:939E`, which sends a door to `$87:9724` and a pot to `$87:95DD`
+   (below). While `$04F6` is set only a door counts;
 3. a cell of type `$10` in front (a counter): look for a character 32 px further.
 
 The chest list: `$99:D859 + room × 2` points (bank `$99`) at records up to an `$FF` byte: the cell (x, y), a flags
@@ -224,9 +242,79 @@ likely money, not checked; 0 empty) and the opened flag n. Opening (`$87:939E`) 
 set-flag form of `$80:BB77`, built at `$87:93FF`). Every room load redraws the cells of the chests whose flag is set as open
 (`$8D:912B`, called at `$8D:8C10`; `$8D:91A2`). Bits 3-4 of the flags pick a variant of the opening (`$7F:102C`).
 
+**Doors and pots** are their metatile alone: what they become is that metatile's cell type from the layer's table
+(`$7F:0000`), as for a map change's set (§3.8). Seen in the game (`tools/terra/check-press.mts`, November 2026):
+
+* A **door** is `$0F3` with `$0F2` above it (the upper half): A from below (Crysta (56,46), `$052` (21,69)) redraws them
+  `$0F5` / `$0F4`, then ~10 frames later `$0F7` / `$0F6` (the open doorway). `$0F3` is a wall (type `$0E`); `$0F7` is type 0
+  (Crysta), or 2 (`$052`: its table says so), so the player walks in — onto the exit when the door has one. 157 pictures
+  have doors; 52 of them have one on an exit (the converted rooms: 65 of their exits on wall cells lie behind a door,
+  the rest are walls with no door), the others' doors lie between parts of one map. Three pictures use `$0F3` for something else, a floor cell with no `$0F2` above (`$0FD`, `$106`, `$280`).
+* A **pot** is `$0FA`, `$0FB` or `$0FC` (three looks: Ark's house has a brass pot, a jar and a plant pot), mostly on a wall
+  cell (type `$0C`). A lifts it at once: the cell becomes `$0F8` (`$18FA` → `$00F8`, Crysta (52,33); `$18FB` → `$00F8`,
+  Crysta (55,26) and Ark's house (25,21): the floor under it), `$09C7` takes the metatile and `$0988` one of three slots
+  (`$098A` / `$098F` / `$0994` by the pot). While `$0988` is set (one is held) no other pot lifts. About 150 pictures.
+  Throwing it, and whether a pot comes back on the next load, is not read.
+
 132 records in 96 rooms: 120 on a closed chest, 6 on a type-4 cell (the opening script takes another path,
 `$87:9471`, and changes no tile), 6 where the loaded map has neither (a map change or an event puts the chest
 there). Item names are not decoded.
+
+### 3.10 The room's characters and animation helpers
+
+After the load and the map changes, the room change ($8D:8717) starts the room's characters: `$80:F3F1` (called at
+`$8D:8C04`) walks the **character list**, the room property stream of §3 (`$82:8000 + room × 2`, else `$83:8000`)
+from its third byte, entry by entry (`$80:F4EA`) up to an `$FF` byte:
+
+| Entry | Bytes | What |
+|---|---|---|
+| a character | flags, x, y (cells), kind, header pointer (word, bank), 3 more (6 more when the kind has bits 6-7) | the header: a byte to `$7F:0008,X`, the record's `+4` and `+6` words, the script from its 6th byte |
+| `$FD` | x, y, kind, header (word, bank) | a character without sprite (`+$10/+$12` = `$9C:D000`; `$80:F5F9`) |
+| `$FE` | kind, header (word, bank) | the same at 0, 0 (`$80:F5F0`) |
+| `$FB` | param, header (word, bank) | a **helper** (a small record from `$86:8380`, on the list at `$7C`; `$80:F6E6`): `+6` = param, its script 3 bytes into the header |
+| `$FA` | flag words, a target word | a branch on event flags (`$80:F759`; `$80:BBC7` tests a flag): words follow while bits 11-14 chain them (bit 15, or none of 11-15, ends); the list goes on after it or at the target |
+| `$F0` | 6 bytes | a layer size and a mode-7 setup (`$80:F689`) |
+| `$FC` | — | a link between records (`$80:F47B`) |
+
+Two helper scripts animate the room, both checked in the running game in Crysta (`$00A`: a breakpoint on
+`$8D:93B2` gave the records, the palette buffer `$7F:0600` changed as the steps say):
+
+* `$87:987F`, **palette**: the list for param p is at `$9C:8000 + word($9C:8000 + p × 2)`; 6-byte steps — frame count
+  (0: start over), source (bank `$9C`), first colour, length − 1, delay (`$8D:9331`). Each frame copies the bytes into
+  the palette buffer and moves the source on (`$8D:93B2`, a block move at `$0402`), then waits delay + 1 frames.
+  Crysta: param `$06` rotates palette 7 colours 1-7 (the river and the waterfall) every 6 frames; param `$23` writes
+  palette 6 four times over, every 8 frames. The first frame is copied when the room change runs the helpers once
+  (`$80:E8FE` at `$8D:8C23`), before the room is shown: room `$212`'s lava colours from the loader are never seen,
+  the helper's blue is (seen in the game).
+* `$87:98A8`, **characters**: the word at `$9D:8000 + p × 2` is the list's offset (bit 15: an index into the base / bank
+  table at `$8D:9407`, read by `$8D:93D8`); 8-byte steps — frame count, source, VRAM word address, length, delay (`$8D:940D`). Each frame
+  queues a DMA record at `$82` (`$8D:9470`). Crysta's param 0 rewrites characters 9-12 (two grass metatiles) in 12
+  steps of 8 frames.
+
+237 room pictures start a palette helper, 99 a character helper; other helper scripts are not decoded. Run on the
+interpreter, `$80:F3F1` runs to its end in Crysta but never returns in 142 rooms, and with the event flags of power-on
+it takes other branches than the game after the opening: the decoder walks the list instead (`roomHelpers`), along both
+sides of every `$FA`, and marks the helpers every path starts.
+
+### 3.11 What the screen can show: the camera's area
+
+The map is larger than what the player ever sees: past the camera's area it keeps the blocks map changes copy from
+(§3.8), staging rows, and in a picture several rooms share (`$012`: eight house interiors), the other rooms.
+
+* **Table** `$99:C57A` (file `$19C57A`): two bytes per room (× `$0480`). Low byte: left (bits 0-3) and width (bits 4-7),
+  high byte: top and height, in 256 px units. A low byte `$FF`: the whole of layer 0 (`$0826`, `$082A`).
+* **`$86:9371`**, called by the room loader at `$86:874F`, writes the limits: `$0874` left, `$0878` right, `$0876` top,
+  `$087A` bottom (pixels). Rooms that share a picture differ in this word: `$012`-`$019` are one 16 × 14 cell screen each.
+* **`$0866`**: `$100` when bit 6 of the display mode's layout byte (`$99:C2AE` entry +4) is set, else `$E0` (`$86:8CDE`).
+* **The camera** (`$87:9008`-`$87:905F`, every frame): x = the player's − 128, kept in `$0874` … `$0878` − 256 (`$080E`);
+  y = the player's − 112, kept in `$0876` … `$087A` − `$0866` (`$0812`). The screen's 224 lines then end at
+  `$087A` − `$0866` + 224: with `$100` the last 32 px of the area are never shown.
+
+Checked in the game (headless, Ark placed and left to stand, the screen found in the room picture): Crysta (`$00A`,
+`$40 $40`, `$0866` = `$100`) — Ark on row 61, the screen stops at y 768, its last line on row 61: rows 62-79 (the gate
+change 0 copies from 23,68) never show; `$0F1`, `$128` (left 512: the strip with the hole change copies), `$36F`
+(right 768), `$1D6`, `$101` read back as the table says; `$28C` (`$FF`) gets layer 0's size. Other writers of the limits
+(`$85:A4F4`…, `$8D:A16B`, `$8F:B812`, `$97:8985`…) are events, not read.
 
 ## 4. How the decoder gets a room
 
@@ -242,7 +330,8 @@ which sections, sizes, palette and display registers each room has, and which ro
 The picture: each layer drawn from its metatiles and its BG's characters, BG priority (BG1 high, BG2 high,
 BG1 low, BG2 low), colour math with the sub screen or the fixed colour. A layer smaller than the map repeats
 when it is on the main screen (a parallax background); on the sub screen only it is a screen effect
-(light, haze) and is left out. Not drawn: sprites, BG3 (text), tile animation, windows, palette animation (§6).
+(light, haze) and is left out. The palette helpers every story state starts have written their first frame (§3.10).
+Not drawn: sprites, BG3 (text), character animation, windows; palette animation past the first frame.
 
 ## 5. Checked against the game
 
@@ -259,6 +348,7 @@ room instead, and compares the screen with the render (`npm run build:ts` first)
 | `$000F` (Ark's house) | 61.9% | the dialogue box and two characters |
 | `$0024` | 38% | a parallax room: the background scrolls at its own speed, so no one offset matches both layers |
 | `$0047` | 29.5% | the game shows the room dark at that moment (an event) |
+| `$0212` | 39.2% | the clouds, a screen effect on the sub screen the picture leaves out (November 2026; without the palette helper's first frame the picture had the loader's lava colours, which the game never shows) |
 
 `node tools/terra/check-exit.mts <room hex> [exit] [--flag <hex>]` brings the room up the same way, stands the
 player in an exit and prints the room the game goes to. October 2026: exits of `$00A` (#0, #3, #6, #8), `$00C`
@@ -271,7 +361,9 @@ direction, printing the box's path: how the diagonals of §3.6 were checked.
 
 `node tools/terra/check-chest.mts <room hex> [chest]` stands the player below a chest and presses A: room `$103`'s
 chest (12,37) turned from `$18F0` to `$18F1` and its flag `$580` was set; entering the room again with the flag set
-draws it open, without it closed. `node tools/terra/check-change.mts <room hex> <bit>` sets a map-change bit and
+draws it open, without it closed. `node tools/terra/check-press.mts <room hex> <x> <y>` stands the player below a cell facing up, presses A and prints
+every layer-0 cell that changes, frame by frame, with `$047C` and `$0988`: how the doors and pots of §3.9 were seen.
+`node tools/terra/check-change.mts <room hex> <bit>` sets a map-change bit and
 enters the room: changes 0 and 1 (room `$101`, a block copy on each layer), 2 (`$102`), 6 (`$109`), 8 and 14 (`$10A`,
 one cell, and an 8×15 block) left exactly the cells the table says (room `$10A` also changes 8 cells itself on entry,
 with or without the bits).
@@ -283,15 +375,13 @@ and the same display registers (`$2105=$09`, BG1 `$3C00`, BG2 `$3800`, main `$17
 ## 6. Not decoded yet
 
 * What sets the map-change bits and most event flags (events), item names, whether bit 15 contents are money, the
-  `$0F3` / `$0FA-$0FC` lookups' own handling (`$87:9724`).
+  part of the door and pot scripts that writes the cells (past `COP $37` / `COP $BC`), throwing a pot.
 * Bit 14 of a map word, which characters the ground table `$80:E11C` applies to, what `$048A` bit 15 stands for, the style byte `$0484` and the high nibble of `$0490`.
 * The `08` commands `FC`/`FD`/`F8`/`F9`, sections `$04`/`$01`.
 * The rest of a room's script after the header (events, characters) and the room properties' flags.
-* Tile animation and palette animation. Palette effects are records at `$7F:0100+` (source pointer `+$0A`,
-  bank `+$04`, destination `+$0C`, length `+$0E`); `$8D:93B2` copies one frame per tick and moves the source on
-  (Crysta, room `$00A`: palette 6 from `$9C:97C6`, palette 7 rotated by one colour). The pictures show the
-  colours the loader leaves, so animated water can look wrong (Crysta's river is purple, not blue). What sets
-  the records up (probably the room's event script) is not decoded.
+* Animation (§3.10): the pictures show each palette helper's first frame and no character animation; the helper
+  scripts other than `$87:987F` / `$87:98A8`; what an event flag test with bits 11-14 combines exactly (`$80:F759`);
+  the room's other characters (where they stand is read, not what they are).
 * The world map (mode 7), room names.
 
 ## 7. Character scripts: COP commands

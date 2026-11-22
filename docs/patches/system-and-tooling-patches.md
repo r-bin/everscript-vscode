@@ -149,3 +149,20 @@ Created by phonymike, this reference bridges live 24-bit SNES WRAM (`$7E:0000..$
 - Story Flags Array: SRAM `+0x180` $\rightarrow$ WRAM `$7E:2280..$7E:237F`
 This mapping forms the foundation for save editors, runtime radar displays, and SRAM comparison utilities.
 
+---
+
+## 7. MSU-1 CD Audio Streaming Architecture
+
+*Full technical specification, register mapping, and track tables: [docs/msu1/README.md](../msu1/README.md).*
+
+### Architectural Summary
+The MSU-1 enhancement patch upgrades *Secret of Evermore* to support streaming CD-quality PCM audio (44.1 kHz 16-bit stereo) via the standard pseudo-coprocessor specification (`$00:2000`–`$00:2007`), eliminating room transition music upload freezes while preserving original SPC700 sound effects.
+
+### Mechanics & Hooks
+1. **ROM Footprint:** Expands the clean 3.0 MB FastROM HiROM image to 4.0 MB (`out/soe-msu1.sfc`), claiming Bank `$FE:6000` for the streaming kernel and `$FE:6100` for the 70-track looping table.
+2. **Audio Hook (`$8C:828F`):** Intercepts the top-level music loader `play_music_track` via `JML $FE6000` + `NOP`.
+3. **Hardware Detection:** Queries `$00:2002`..`$00:2007` for `"S-MSU1"`. If hardware is absent, it immediately falls back via `JML $8C8294` to the vanilla SPC700 music loader.
+4. **Missing Track Detection:** Polls `$00:2000` bit 3. If a specific `track-<N>.pcm` file is missing on disk, it gracefully falls back to vanilla music.
+5. **ARAM Optimization:** Frees ~24 KB of SPC700 ARAM previously consumed by music samples, enabling all 71 sound effects to fit simultaneously in ARAM without dynamic soundbank swaps.
+
+

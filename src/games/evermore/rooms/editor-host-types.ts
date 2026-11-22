@@ -2,7 +2,7 @@
 // editor-host-suggest.ts): the page's message, and what the radar hands each handler as `ctx`.
 
 import type * as vscode from 'vscode';
-import type { createManaRooms } from '../imports/mana/rooms';
+import type { ImportedRooms } from '../imports';
 
 /** A message from the Rooms page: the command and its fields (the wire format is the page's, see rooms/webview/). */
 interface EditorMessage { command: string; [key: string]: any }
@@ -16,8 +16,8 @@ interface EditorContext {
     post(message: object): void;
     /** A ROM room, or a converted room's image, or `{ error }`. */
     roomRom(roomId: number): RoomRomAnswer;
-    /** The Mana-room bridge (imports/mana), or null. */
-    manaRooms: ReturnType<typeof createManaRooms> | null;
+    /** Rooms converted from other games (imports/: Secret of Mana, Terranigma), or null. */
+    importedRooms: ImportedRooms | null;
     /** The "map export" output channel. */
     exportChannel(): vscode.OutputChannel;
     /** The emulator panel with a built ROM. */

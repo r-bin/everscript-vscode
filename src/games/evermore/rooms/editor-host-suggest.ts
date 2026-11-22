@@ -21,8 +21,8 @@ const SUGGEST_HANDLERS: Record<string, EditorHandler> = {
                 ctx.post({ ...reply, error: missingRomText('evermore') });
                 return;
             }
-            // A converted family lives in its room's image (src/games/evermore/imports/mana).
-            const conv = ctx.manaRooms && ctx.manaRooms.resolveFamily(msg.family);
+            // A converted family lives in its room's image (src/games/evermore/imports).
+            const conv = ctx.importedRooms && ctx.importedRooms.resolveFamily(msg.family);
             ctx.post({ ...reply,
                 sheet: conv ? buildFamilySheet(conv.rom, msg.family, conv.roomId)
                     : buildFamilySheet(romBuf, msg.family, msg.borrowFrom) });

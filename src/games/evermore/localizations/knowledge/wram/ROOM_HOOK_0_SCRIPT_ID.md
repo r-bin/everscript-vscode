@@ -2,7 +2,7 @@
 addr: $7E:0EAC
 name: ROOM_HOOK_0_SCRIPT_ID
 type: u16
-tags: [script]
+tags: [script, script-vm]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

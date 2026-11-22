@@ -258,21 +258,25 @@ export function familiesAt(families: number[], start: number): number[] {
     return out;
 }
 
-export function decodeRoom(rom: Uint8Array, roomId: number): RoomData {
-    if (!Number.isInteger(roomId) || roomId < 0 || roomId >= MAX_ROOMS) {
+/**
+ * `blobAt`: the blob's file offset, for a room the vanilla map table does not reach (a moved or grown table, Open
+ * Evermore); `roomId` then only names the room in messages.
+ */
+export function decodeRoom(rom: Uint8Array, roomId: number, blobAt?: number): RoomData {
+    if (blobAt === undefined && (!Number.isInteger(roomId) || roomId < 0 || roomId >= MAX_ROOMS)) {
         throw new Error(`Room id ${roomId} out of range (expected 0..${MAX_ROOMS - 1})`);
     }
     const tableOffset = mapTableOffset(rom);
     const tableEntry = tableOffset + roomId * MAP_TABLE_STRIDE;
-    if (tableEntry + 3 > rom.length) {
+    if (blobAt === undefined && tableEntry + 3 > rom.length) {
         throw new Error(
             `ROM too small for the map pointer table (need 0x${(tableEntry + 3).toString(16)}, ` +
                 `have 0x${rom.length.toString(16)}) — is this a Secret of Evermore ROM?`,
         );
     }
 
-    const snesPtr = read24(rom, tableEntry);
-    const blob = roomBlobOffset(rom, roomId);
+    const blob = blobAt ?? roomBlobOffset(rom, roomId);
+    const snesPtr = blobAt === undefined ? read24(rom, tableEntry) : 0x800000 | blob;
     if (blob + 0x0f > rom.length) {
         throw new Error(
             `Room 0x${roomId.toString(16).toUpperCase()}: blob pointer 0x${blob.toString(16)} ` +

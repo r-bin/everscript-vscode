@@ -24,6 +24,7 @@ rooms/
     deco-catalogue.ts         — the deco library: vanilla's Section 3 objects as portable, floor-free entries
     deco-preview.ts           — one entry rendered on nothing, so the thumbnail is the thing not the place
     rom-export.ts             — Export ROM: a custom map in room 0x15, the intro jumping there
+    rom-export-own.ts         — the same for a room with its own graphics (a converted Mana map): top vanilla ids taken over
     custom-export.ts          — Export map: the .zip (blob, map.json, sample .evs, stamps.json, README)
   data/
     widget-store.ts           — the user's own widgets: <globalStorage>/widgets.json (list, save, delete)
@@ -303,10 +304,10 @@ script by `memory/webview/index.ts` (`ROOMS_JS_FILES` fixes the order):
   (collapsed: what the script does; open: one summary line per instruction)
   and the Enter tab; owns `_triggerOpen` / `_triggerEnterView`
 - `rooms-imported.js` — rooms converted from another game (the host's
-  `src/games/evermore/imports/mana`: Secret of Mana maps), listed by `renderImportedTree` in their
-  own rail group under the vanilla rooms. A row (`data-import`) asks the host for its
+  `src/games/evermore/imports`: Secret of Mana maps, Terranigma rooms), listed by `renderImportedTree` in their
+  own rail groups under the vanilla rooms. A row (`data-import`) asks the host for its
   details (`requestImportedRoom` -> `importedRoom`), then opens like a ROM room: its id
-  is `0x1000 + map id`, which `roomVanillaIdNum` accepts for `room.imported`, and the
+  is `0x1000 + map id` (Terranigma `0x2000 + room id`), which `roomVanillaIdNum` accepts for `room.imported`, and the
   host answers its requests from the room's own ROM image. Families named by a label
   (`m12`) go through `familyName`. A change to an unlocked converted room shows the editor core's
   "not saved" notice (`importedNotSavedHtml`); a copy of one (Copy map) is a custom map whose donor
@@ -349,7 +350,17 @@ script by `memory/webview/index.ts` (`ROOMS_JS_FILES` fixes the order):
   came from itself (`data-vid` = ROM catalogue, `data-map` + `data-line` = a
   room declared in the active `.evs` file). One delegated click listener on
   `#rm-rail-scroll`, guarded by a dataset flag, walking up from `e.target`
-  in three branches (group header / area label / room row)
+  in three branches (group header / area label / room row). A row's **status colour**
+  (`railMarkRow`, `data-status`, drawn by the shell's `shell-rail.css`): yellow, the room works but
+  differs from its source (a converted room's tiles approximated, recoloured, an animation or effect
+  left out) or spends past any vanilla room — a dot; the name is yellow too only for a severe reason
+  (`severe`, `data-severe`: graphics ran out and were estimated or left empty); red, it cannot be
+  played or exported; its title lists why, severe reasons first. A converted room's comes from the host (`requestImportedStatus` -> `importedStatus` batches,
+  `imports/common/status.ts`; editor-host.ts converts every room a few at a time, ~40 s the first
+  time, cached after). The open room's row follows the editor's own checks (`editErrors`: hard = red,
+  warn = yellow) on every `renderEditChrome` (`railMarkOpenRoom`), so a vanilla edit or a custom map
+  that breaks a ceiling turns red at once; a custom map not opened since the page was built is not
+  coloured (its budget needs its donor's dictionary)
 - `tab-init.js` — the radar panel's top-level tab strip, and nothing else
   since Phase 7b moved the rail out
 - `map-editor-theme.css` — the map editor's design tokens (oklch palette

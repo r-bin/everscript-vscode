@@ -10,13 +10,6 @@ typedef uint16_t EntityAddress;
 
 typedef struct {
     uint16_t one_shot; /* $7E:23D9 */
-    uint16_t dp_0106;
-    uint16_t dp_0b83;
-    uint16_t dp_22;
-    uint16_t dp_24;
-    uint16_t dp_26;
-    uint16_t dp_28;
-    uint16_t dp_0f3e;
 } ScriptVmState;
 
 typedef enum {
@@ -30,53 +23,7 @@ extern uint16_t script_fetch_u16(void);                   /* [$82], then INC $82
 extern uint16_t entity_read_word(EntityAddress entity, uint16_t offset);
 extern void entity_write_word(EntityAddress entity, uint16_t offset, uint16_t value);
 extern uint16_t rom_read_word_long(uint32_t address);
-extern void rom_call_8ee56a(void);
-extern void rom_call_808fee(void);
-extern void rom_call_80858c(void);
-extern void rom_call_8caf23(void);
-extern void rom_call_8cb743(void);
-extern void rom_call_8d8000(void);
-extern void rom_call_80b149(void);
-extern void rom_call_8d82cb(void);
-extern void rom_call_8ee08b(void);
-extern void rom_call_9092c7(void);
-extern void rom_call_8cab10(void);
-extern void rom_call_8f87fe(uint16_t x_value);
 extern void start_entity_animation(uint16_t animation_id); /* $90:8124 */
-
-static void run_mode_10_path(ScriptVmState *state) {
-    rom_call_8ee56a();
-    rom_call_808fee();
-    rom_call_80858c();
-    rom_call_8caf23();
-    rom_call_8cb743();
-    rom_call_8d8000();
-
-    state->dp_0106 = 0;
-    state->dp_0b83 = 0x800F;
-
-    uint16_t selector = script_fetch_u16();
-    state->dp_24 = (uint16_t)(rom_read_word_long(0x8CE1FFUL + selector) & 0x00FF);
-    state->dp_22 = rom_read_word_long(0x8CE1FDUL + selector);
-    if (state->dp_22 == 0x2234) {
-        state->dp_26 = 0x60AC;
-        state->dp_28 = 0x00C4;
-        rom_call_80b149();
-    }
-
-    rom_call_8d82cb();
-    rom_call_8ee56a();
-    rom_call_808fee();
-    rom_call_8caf23();
-    rom_call_8ee08b();
-    rom_call_9092c7();
-    rom_call_80858c();
-    rom_call_8cab10();
-    rom_call_8f87fe(state->dp_0f3e);
-
-    state->dp_0106 = 0;
-    state->dp_0b83 = 0x800F;
-}
 
 ScriptHandlerResult script_op_78_animate(ScriptVmState *state) {
     EntityAddress entity = script_eval_entity_expression();
@@ -100,28 +47,30 @@ ScriptHandlerResult script_op_78_animate(ScriptVmState *state) {
     uint16_t entity_state = entity_read_word(entity, 0x0012);
     entity_write_word(entity, 0x0012, (uint16_t)(entity_state & 0xFCFF));
 
+    /* JMP ($E100,X): $E139, $E115, $E11D, $E130, $E10C, $E125; every target ends at $E139. */
     switch (mode) {
-        case 0:
+        case 0: /* $E139 */
             break;
-        case 2:
+        case 2: /* $E115 */
             entity_write_word(entity, 0x0012,
                               (uint16_t)(entity_read_word(entity, 0x0012) | 0x0200));
             break;
-        case 4:
+        case 4: /* $E11D */
             entity_write_word(entity, 0x0012,
                               (uint16_t)(entity_read_word(entity, 0x0012) | 0x0100));
             break;
-        case 6:
+        case 6: /* $E130 */
+            entity_write_word(entity, 0x0010,
+                              (uint16_t)(entity_read_word(entity, 0x0010) | 0x2000));
+            break;
+        case 8: /* $E10C: TDC, so 0 while DP is 0 */
             entity_write_word(entity, 0x0003, 0);
             entity_write_word(entity, 0x0001, 0);
             break;
-        case 8:
+        case 10: /* $E125 */
             entity_write_word(entity, 0x0010,
                               (uint16_t)(entity_read_word(entity, 0x0010) | 0x0001));
             break;
-        case 10:
-            run_mode_10_path(state);
-            return SCRIPT_HANDLER_CONTINUES;
         default:
             return SCRIPT_HANDLER_UNMODELED_DISPATCH;
     }

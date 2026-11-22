@@ -90,11 +90,11 @@ From the CDL decompilation worklist (`soe://rom/code/todo.md`), following the re
    - Purpose: Universal inventory satchel quantity subtraction and clamping routine.
    - Target: Write `src/games/evermore/localizations/knowledge/routines/sub_8EAD67.md`, reconstruct C.
 4. **`$8E:E08B` (6 callers)**:
-   - Callers: `main_loop_entry`, `script_op_63_select_alchemy`, `script_animate_mode_10_path`, `script_op_8c_save_menu`, `script_op_99_mode7_scene`.
+   - Callers: `main_loop_entry`, `script_op_63_select_alchemy`, `script_op_7f_name_entry`, `script_op_8c_save_menu`, `script_op_99_mode7_scene`.
    - Purpose: Field transition recovery, screen fade-in, and camera anchor re-attachment to active actor `$0F3E`.
    - Target: Write `src/games/evermore/localizations/knowledge/routines/field_screen_ppu_layers_and_hud_vram_init.md`, reconstruct C.
 5. **`$8C:AB10` (6 callers)**:
-   - Callers: `script_op_63_select_alchemy`, `script_animate_mode_10_path`, `script_op_8c_save_menu`, `script_op_99_mode7_scene`, `ring_menu_consumable_item_execute`.
+   - Callers: `script_op_63_select_alchemy`, `script_op_7f_name_entry`, `script_op_8c_save_menu`, `script_op_99_mode7_scene`, `ring_menu_consumable_item_execute`.
    - Purpose: Joypad button input filter re-arm and typematic repeat reset on menu closure.
    - Target: Write `src/games/evermore/localizations/knowledge/routines/window_system_reset_and_buffers_clear.md`, reconstruct C.
 6. **`$90:9815` (6 callers)**:

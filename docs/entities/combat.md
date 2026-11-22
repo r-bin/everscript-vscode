@@ -53,8 +53,10 @@ For each strike box, `$8F:B615` walks the entity list and skips the attacker's o
 the attacker is an enemy, anything with `+$10` bit 5 ("left out of targeting"); `$8F:B61E` then
 drops the dead, the invulnerable (`+$16 & $20`), closed states and **the one this attacker already
 struck** (`+$36`) (`rom/8fb5fc`). Before rolling, `$8F:BA06` writes the attacker into the target's
-`+$36` with a 20-tick timer (`+$38`) (`rom/8fba06`). So an attack whose strike frames come close
-together (the flower's at ticks 6, 12 and 18) **rolls once per target, hit or miss**.
+`+$36` with a timer of 20 (`+$38`) (`rom/8fba06`); the target's own tick counts it down and clears
+both once it passes 0 (`$8F:B00F`, in `gravity`), so the lock lasts **21 ticks**. So an attack whose
+strike frames come close together (the flower's at ticks 6, 12 and 18) **rolls once per target, hit
+or miss**.
 
 The chance comes from the table behind `$8F:BAAF` (rows by the target's evade, words by the
 attacker's hit rate, `$7FFF` certain). Read for the opening: Boy (hit 30) and Dog (33) against the
@@ -122,3 +124,33 @@ set — no enemy can hit him until it is cleared (the tool does).
 - The random numbers are uniform draws, not the game's generator (`$80:859B`), so a model run is
   a distribution, not a replay of a particular game.
 - Enemy drops, experience and levels between fights.
+
+## 10. Where the rolls are drawn
+
+Every roll above goes through the generator `$80:859B`, which leaves its result in `$7E:0133` as well
+as in A. Its callers are told apart by the return address the JSL left at S+1..S+3, and what each
+roll is about is still in registers and direct page at the generator's entry. The recomp's
+presentation-only mod `soe.debug.combat_rng` (SecretOfEvermoreRecomp `docs/mods/combat-rng.md`) reads
+them there and shows each roll over the character it concerns.
+
+| Roll | Return at S+1 | At the generator's entry | Result |
+|---|---|---|---|
+| to-hit (§4) | `$8F:BA9A` | Y target, DP `$4C` attacker, DP `$12` threshold | hit when `(r & $7FFF) <` threshold |
+| damage (§5) | `$80:AD6B` (random_below), `$8F:C08F` at S+5 | Y target, DP `$4C` attacker, DP `$02` = base + 1 | offset `(base+1)·r >> 16`, damage `(2(offset+base)+base)/4` |
+| knockback (§6) | `$90:8387` (`hold_random`) | Y entity, `[DP $5D]` → range, base | base + `(range·(r & $FF)) >> 8` ticks |
+
+A knockback starts at `$8F:C2C4`, which jumps to `anim_start_record` (`$90:8124`) with X = the
+character record's `+$40` word: an animation start with that id is a knockback, and the next
+`hold_random` of that entity before its next animation start is its length.
+
+A strike that rolls nothing left no trace: the sweep `$8F:B5FC` passed over every target. For a
+strike `[dx dy w h]` at the attacker + (dx, dy) (`$90:87BA`) a target is reached when
+`2(|y + 16 + (+$44) − sy| − r) < h` and `2(|x + (+$42) − sx| − r) < w`, `r` the word at record
+`+$0D`; before that it is skipped when on the attacker's side, `+$10 & $5002` (also `$0020` when an
+enemy strikes), HP 0, `+$16 & $20`, `+$36` = the attacker, or `+$14 & $070D`; after it, by height
+and plane.
+
+Seen with the mod in room `0x38` (2026-11-11): the Boy's Bone Crusher on the flower 100 % and 7–12
+at full charge, 0–1 when swung every 40 frames (charge at a few %; the game's own popup showed 0);
+the flower's knockback 40…79; the flower on the Boy 59 %, 6–10, knockback 8…47; the flower's
+second strike frame against a Boy it had just rolled on: locked, 15 ticks left.

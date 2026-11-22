@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { getRepoAutofillUpdates } from './language/config';
 import * as lp from './language/language-providers';
 import { buildVanillaRoomDetails, buildRoomTree, setRoomImageUris } from './rooms';
@@ -13,11 +14,12 @@ import { radar, getRadarMap, invalidateRadarMap, getRadarEnums, invalidateRadarE
 import { openMemoryRadar } from './radar-open';
 import { registerDebugger } from './debugger/inline-adapter';
 import { registerSoeResources } from './resources';
-import { createManaRooms } from './imports/mana';
+import { createImportedRooms } from './imports';
 import { sfxNames } from './music';
 import { registerReplayEditor } from '../../core/emulator/replay-editor';
 import { importRecordingBundle, exportRecordingBundle } from '../../core/emulator/bundle-commands';
 import * as cdlTools from './cdl/tools';
+import { readLibrary } from '../../platform/cdl/library-read';
 import * as emulatorHost from './emulator/host';
 import { exportRoomMaps } from './rooms/export-maps';
 import { registerBuildAndRun } from './language/build-and-run';
@@ -152,15 +154,15 @@ function activate(context: vscode.ExtensionContext): void {
         readMemory: (addr: number, len: number) => emulatorPanel.readMemory(addr, len),
         emulatorStatus: () => emulatorPanel.getStatus(),
         getLogs: () => emulatorPanel.getLogHistory() as any,
+        cdl: (rom: Uint8Array) => readLibrary(path.join(context.globalStorageUri.fsPath, 'cdl-library'), rom),
     });
-    // Converted Secret of Mana rooms (games/evermore/imports/mana) read the Mana ROM from the ROM library.
-    radar.manaRooms = createManaRooms({
+    // Rooms converted from Secret of Mana and Terranigma (games/evermore/imports) read those ROMs from the ROM library;
+    // the maps of Open Evermore trees in the workspace are read from their files (imports/tree).
+    radar.importedRooms = createImportedRooms({
         soeRom: () => romReaders.loadRomBuffer(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null, ''),
-        manaRom: () => {
-            const entry = platform.romFor('mana');
-            const file = entry && platform.readRomFile(entry.path);
-            return file ? platform.stripCopierHeader(file) : null;
-        },
+        manaRom: libraryRom('mana'),
+        terraRom: libraryRom('terra'),
+        treeRoots: () => (vscode.workspace.workspaceFolders ?? []).filter(f => f.uri.scheme === 'file').map(f => f.uri.fsPath),
     });
 
     /** Re-render the open radar for the current document (Switch ROM to another Evermore ROM). */
@@ -184,7 +186,7 @@ function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         roms.onDidChangeRoms(() => {
             romReaders.invalidateRomBuffer();
-            radar.manaRooms?.clear();
+            radar.importedRooms?.clear();
             radar.scalingChars = null;
             radar.hitLookup = null;
             radar.roomTree = null;
@@ -304,6 +306,22 @@ function activate(context: vscode.ExtensionContext): void {
     }));
 
     registerBuildAndRun(context, { getExtConfig, openEmulatorPanel, romPathFor: roms.romPathFor, invalidateRoomCaches });
+}
+
+
+/**
+ * The selected (else base) ROM of `game` from the ROM library, without a copier header. The same buffer while
+ * the file is unchanged: the converted rooms' catalogs are cached per buffer.
+ */
+function libraryRom(game: string): () => Uint8Array | null {
+    let last: { file: Uint8Array; rom: Uint8Array } | null = null;
+    return () => {
+        const entry = platform.romFor(game);
+        const file = entry && platform.readRomFile(entry.path);
+        if (!file) return null;
+        if (last?.file !== file) last = { file, rom: platform.stripCopierHeader(file) };
+        return last.rom;
+    };
 }
 
 export { activate };

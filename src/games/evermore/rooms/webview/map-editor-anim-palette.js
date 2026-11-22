@@ -112,7 +112,7 @@ function paletteAnimBuildList(p) {
     graphics.sort(function (a, b) { return a - b; });
     var key = (graphics.length > 1 ? 'set:' + graphics.join(',') : String(info.graphic)) + ':' + info.match.idx;
     partsOf[key] = (partsOf[key] || 0) + 1;
-    var d = Math.max(1, Math.abs(info.match.c.rate)) * 3, delays = [];
+    var d = Math.max(1, Math.abs(info.match.c.rate)), delays = [];   // frames per shift: maps/palette.ts paletteCycleFrames
     for (var k = 0; k < info.match.c.span; k++) delays.push(d);
     var animHit = paletteAnimEntryOfStamp(p.anim, info.sIdx);
     out.push({
@@ -244,7 +244,7 @@ function paletteAnimGroupSvg(entry, k, size, useDefs, open) {
 }
 
 function paletteAnimOpenHtml(entry, locked, useDefs) {
-  var dis = locked ? ' disabled' : '', ticks = Math.max(1, Math.abs(entry.rate)) * 3;
+  var dis = locked ? ' disabled' : '', ticks = Math.max(1, Math.abs(entry.rate));
   var cEnd = entry.cycle.colorStart + entry.span - 1;
   var html = '<div class="rg-object-expanded rg-anim-timing">'
     + '<div class="rg-anim-presets"><span class="rg-anim-timing-lbl">cycle</span>'
@@ -353,8 +353,8 @@ function paletteAnimInputChange(t) {
   if (!t || !t.dataset || t.dataset.palAnimCycle === undefined) return false;
   var cIdx = Number(t.dataset.palAnimCycle), p = _mtPalette;
   if (p && p.paletteCycles && p.paletteCycles[cIdx]) {
-    var c = p.paletteCycles[cIdx], ticks = Math.max(1, Number(t.value) || 3);
-    c.rate = (c.rate < 0 ? -1 : 1) * Math.max(1, Math.round(ticks / 3));
+    var c = p.paletteCycles[cIdx], ticks = Math.min(127, Math.max(1, Number(t.value) || 1));
+    c.rate = (c.rate < 0 ? -1 : 1) * ticks;
     if (p.anim && p.anim.entries) {
       for (var i = 0; i < p.anim.entries.length; i++) {
         var delays = p.anim.entries[i][1];

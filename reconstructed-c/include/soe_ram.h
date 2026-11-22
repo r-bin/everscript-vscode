@@ -389,75 +389,75 @@
 #define RING_ICON_ALIGN_PAD_SIZE 1
 #define RING_ICON_ALIGN_PAD RAM8(RING_ICON_ALIGN_PAD_ADDR)
 
-/* SHOP_EQUIP_WEAPONS_COUNT ($7E07A4-$7E07A5, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_EQUIP_WEAPONS_COUNT_ADDR 0x07A4u
-#define SHOP_EQUIP_WEAPONS_COUNT_SIZE 2
-#define SHOP_EQUIP_WEAPONS_COUNT RAM16(SHOP_EQUIP_WEAPONS_COUNT_ADDR)
+/* RING_BOY_WEAPONS_COUNT ($7E07A4-$7E07A5, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_WEAPONS_COUNT_ADDR 0x07A4u
+#define RING_BOY_WEAPONS_COUNT_SIZE 2
+#define RING_BOY_WEAPONS_COUNT RAM16(RING_BOY_WEAPONS_COUNT_ADDR)
 
-/* SHOP_EQUIP_WEAPONS_SELECTION ($7E07A6-$7E07A7, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_EQUIP_WEAPONS_SELECTION_ADDR 0x07A6u
-#define SHOP_EQUIP_WEAPONS_SELECTION_SIZE 2
-#define SHOP_EQUIP_WEAPONS_SELECTION RAM16(SHOP_EQUIP_WEAPONS_SELECTION_ADDR)
+/* RING_BOY_WEAPONS_CURSOR ($7E07A6-$7E07A7, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_WEAPONS_CURSOR_ADDR 0x07A6u
+#define RING_BOY_WEAPONS_CURSOR_SIZE 2
+#define RING_BOY_WEAPONS_CURSOR RAM16(RING_BOY_WEAPONS_CURSOR_ADDR)
 
-/* SHOP_EQUIP_WEAPONS_ITEMS_BUF ($7E07A8-$7E07C7, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_EQUIP_WEAPONS_ITEMS_BUF_ADDR 0x07A8u
-#define SHOP_EQUIP_WEAPONS_ITEMS_BUF_SIZE 32
+/* RING_BOY_WEAPONS_ITEMS ($7E07A8-$7E07C7, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_WEAPONS_ITEMS_ADDR 0x07A8u
+#define RING_BOY_WEAPONS_ITEMS_SIZE 32
 
-/* SHOP_RARE_ITEMS_COUNT ($7E07C8-$7E07C9, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_RARE_ITEMS_COUNT_ADDR 0x07C8u
-#define SHOP_RARE_ITEMS_COUNT_SIZE 2
-#define SHOP_RARE_ITEMS_COUNT RAM16(SHOP_RARE_ITEMS_COUNT_ADDR)
+/* RING_BOY_ITEMS_COUNT ($7E07C8-$7E07C9, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_ITEMS_COUNT_ADDR 0x07C8u
+#define RING_BOY_ITEMS_COUNT_SIZE 2
+#define RING_BOY_ITEMS_COUNT RAM16(RING_BOY_ITEMS_COUNT_ADDR)
 
-/* SHOP_RARE_ITEMS_SELECTION ($7E07CA-$7E07CB, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_RARE_ITEMS_SELECTION_ADDR 0x07CAu
-#define SHOP_RARE_ITEMS_SELECTION_SIZE 2
-#define SHOP_RARE_ITEMS_SELECTION RAM16(SHOP_RARE_ITEMS_SELECTION_ADDR)
+/* RING_BOY_ITEMS_CURSOR ($7E07CA-$7E07CB, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_ITEMS_CURSOR_ADDR 0x07CAu
+#define RING_BOY_ITEMS_CURSOR_SIZE 2
+#define RING_BOY_ITEMS_CURSOR RAM16(RING_BOY_ITEMS_CURSOR_ADDR)
 
-/* SHOP_RARE_ITEMS_ITEMS_BUF ($7E07CC-$7E07EB, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_RARE_ITEMS_ITEMS_BUF_ADDR 0x07CCu
-#define SHOP_RARE_ITEMS_ITEMS_BUF_SIZE 32
+/* RING_BOY_ITEMS_ITEMS ($7E07CC-$7E07EB, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_ITEMS_ITEMS_ADDR 0x07CCu
+#define RING_BOY_ITEMS_ITEMS_SIZE 32
 
-/* SHOP_INGREDIENTS_COUNT ($7E07EC-$7E07ED, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_INGREDIENTS_COUNT_ADDR 0x07ECu
-#define SHOP_INGREDIENTS_COUNT_SIZE 2
-#define SHOP_INGREDIENTS_COUNT RAM16(SHOP_INGREDIENTS_COUNT_ADDR)
+/* RING_BOY_ALCHEMY_COUNT ($7E07EC-$7E07ED, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_ALCHEMY_COUNT_ADDR 0x07ECu
+#define RING_BOY_ALCHEMY_COUNT_SIZE 2
+#define RING_BOY_ALCHEMY_COUNT RAM16(RING_BOY_ALCHEMY_COUNT_ADDR)
 
-/* SHOP_INGREDIENTS_SELECTION ($7E07EE-$7E07EF, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_INGREDIENTS_SELECTION_ADDR 0x07EEu
-#define SHOP_INGREDIENTS_SELECTION_SIZE 2
-#define SHOP_INGREDIENTS_SELECTION RAM16(SHOP_INGREDIENTS_SELECTION_ADDR)
+/* RING_BOY_ALCHEMY_CURSOR ($7E07EE-$7E07EF, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_ALCHEMY_CURSOR_ADDR 0x07EEu
+#define RING_BOY_ALCHEMY_CURSOR_SIZE 2
+#define RING_BOY_ALCHEMY_CURSOR RAM16(RING_BOY_ALCHEMY_CURSOR_ADDR)
 
-/* SHOP_INGREDIENTS_ITEMS_BUF ($7E07F0-$7E080F, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_INGREDIENTS_ITEMS_BUF_ADDR 0x07F0u
-#define SHOP_INGREDIENTS_ITEMS_BUF_SIZE 32
+/* RING_BOY_ALCHEMY_ITEMS ($7E07F0-$7E080F, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_ALCHEMY_ITEMS_ADDR 0x07F0u
+#define RING_BOY_ALCHEMY_ITEMS_SIZE 32
 
-/* RING_MENU_ACTIVE_ITEM_COUNT ($7E0810-$7E0811, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_ACTIVE_ITEM_COUNT_ADDR 0x0810u
-#define RING_MENU_ACTIVE_ITEM_COUNT_SIZE 2
-#define RING_MENU_ACTIVE_ITEM_COUNT RAM16(RING_MENU_ACTIVE_ITEM_COUNT_ADDR)
+/* RING_BOY_OPTIONS_COUNT ($7E0810-$7E0811, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_OPTIONS_COUNT_ADDR 0x0810u
+#define RING_BOY_OPTIONS_COUNT_SIZE 2
+#define RING_BOY_OPTIONS_COUNT RAM16(RING_BOY_OPTIONS_COUNT_ADDR)
 
-/* RING_MENU_ACTIVE_SELECTION ($7E0812-$7E0813, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_ACTIVE_SELECTION_ADDR 0x0812u
-#define RING_MENU_ACTIVE_SELECTION_SIZE 2
-#define RING_MENU_ACTIVE_SELECTION RAM16(RING_MENU_ACTIVE_SELECTION_ADDR)
+/* RING_BOY_OPTIONS_CURSOR ($7E0812-$7E0813, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_OPTIONS_CURSOR_ADDR 0x0812u
+#define RING_BOY_OPTIONS_CURSOR_SIZE 2
+#define RING_BOY_OPTIONS_CURSOR RAM16(RING_BOY_OPTIONS_CURSOR_ADDR)
 
-/* RING_MENU_ACTIVE_ITEMS_BUF ($7E0814-$7E0833, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_ACTIVE_ITEMS_BUF_ADDR 0x0814u
-#define RING_MENU_ACTIVE_ITEMS_BUF_SIZE 32
+/* RING_BOY_OPTIONS_ITEMS ($7E0814-$7E0833, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BOY_OPTIONS_ITEMS_ADDR 0x0814u
+#define RING_BOY_OPTIONS_ITEMS_SIZE 32
 
-/* RING_MENU_SECONDARY_ITEM_COUNT ($7E0834-$7E0835, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_SECONDARY_ITEM_COUNT_ADDR 0x0834u
-#define RING_MENU_SECONDARY_ITEM_COUNT_SIZE 2
-#define RING_MENU_SECONDARY_ITEM_COUNT RAM16(RING_MENU_SECONDARY_ITEM_COUNT_ADDR)
+/* RING_DOG_OPTIONS_COUNT ($7E0834-$7E0835, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_DOG_OPTIONS_COUNT_ADDR 0x0834u
+#define RING_DOG_OPTIONS_COUNT_SIZE 2
+#define RING_DOG_OPTIONS_COUNT RAM16(RING_DOG_OPTIONS_COUNT_ADDR)
 
-/* RING_MENU_SECONDARY_SELECTION ($7E0836-$7E0837, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_SECONDARY_SELECTION_ADDR 0x0836u
-#define RING_MENU_SECONDARY_SELECTION_SIZE 2
-#define RING_MENU_SECONDARY_SELECTION RAM16(RING_MENU_SECONDARY_SELECTION_ADDR)
+/* RING_DOG_OPTIONS_CURSOR ($7E0836-$7E0837, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_DOG_OPTIONS_CURSOR_ADDR 0x0836u
+#define RING_DOG_OPTIONS_CURSOR_SIZE 2
+#define RING_DOG_OPTIONS_CURSOR RAM16(RING_DOG_OPTIONS_CURSOR_ADDR)
 
-/* RING_MENU_SECONDARY_ITEMS_BUF ($7E0838-$7E0857, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_SECONDARY_ITEMS_BUF_ADDR 0x0838u
-#define RING_MENU_SECONDARY_ITEMS_BUF_SIZE 32
+/* RING_DOG_OPTIONS_ITEMS ($7E0838-$7E0857, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_DOG_OPTIONS_ITEMS_ADDR 0x0838u
+#define RING_DOG_OPTIONS_ITEMS_SIZE 32
 
 /* AUX_ANIM_CHAN_0 ($7E0858-$7E0867, ram): src/games/evermore/localizations/data/wram-map.md */
 #define AUX_ANIM_CHAN_0_ADDR 0x0858u
@@ -791,15 +791,9 @@
 #define NEW_GAME_INIT_FLAG_SIZE 2
 #define NEW_GAME_INIT_FLAG RAM16(NEW_GAME_INIT_FLAG_ADDR)
 
-/* WAVE_PHASE_COUNTER ($7E0B19-$7E0B1A, ram): src/games/evermore/localizations/data/wram-map.md */
-#define WAVE_PHASE_COUNTER_ADDR 0x0B19u
-#define WAVE_PHASE_COUNTER_SIZE 2
-#define WAVE_PHASE_COUNTER RAM16(WAVE_PHASE_COUNTER_ADDR)
-
-/* controller_prev_input ($7E0B1B-$7E0B1C, ram): src/games/evermore/localizations/data/wram-map.md */
-#define CONTROLLER_PREV_INPUT_ADDR 0x0B1Bu
-#define CONTROLLER_PREV_INPUT_SIZE 2
-#define CONTROLLER_PREV_INPUT RAM16(CONTROLLER_PREV_INPUT_ADDR)
+/* FIELD_FRAME_COUNTER ($7E0B19-$7E0B1C, ram): src/games/evermore/localizations/data/wram-map.md */
+#define FIELD_FRAME_COUNTER_ADDR 0x0B19u
+#define FIELD_FRAME_COUNTER_SIZE 4
 
 /* MODE7_FLIGHT_HUD_VISIBLE ($7E0B1D-$7E0B1E, ram): src/games/evermore/localizations/data/wram-map.md */
 #define MODE7_FLIGHT_HUD_VISIBLE_ADDR 0x0B1Du
@@ -811,20 +805,20 @@
 #define RING_MENU_SAVED_STACK_PTR_SIZE 2
 #define RING_MENU_SAVED_STACK_PTR RAM16(RING_MENU_SAVED_STACK_PTR_ADDR)
 
-/* menu_audio_pan_divisor ($7E0B21-$7E0B22, ram): src/games/evermore/localizations/data/wram-map.md */
-#define MENU_AUDIO_PAN_DIVISOR_ADDR 0x0B21u
-#define MENU_AUDIO_PAN_DIVISOR_SIZE 2
-#define MENU_AUDIO_PAN_DIVISOR RAM16(MENU_AUDIO_PAN_DIVISOR_ADDR)
+/* CONTROL_CONFIGURATION ($7E0B21-$7E0B22, ram): src/games/evermore/localizations/data/wram-map.md */
+#define CONTROL_CONFIGURATION_ADDR 0x0B21u
+#define CONTROL_CONFIGURATION_SIZE 2
+#define CONTROL_CONFIGURATION RAM16(CONTROL_CONFIGURATION_ADDR)
 
-/* menu_audio_sfx_pitch ($7E0B23-$7E0B24, ram): src/games/evermore/localizations/data/wram-map.md */
-#define MENU_AUDIO_SFX_PITCH_ADDR 0x0B23u
-#define MENU_AUDIO_SFX_PITCH_SIZE 2
-#define MENU_AUDIO_SFX_PITCH RAM16(MENU_AUDIO_SFX_PITCH_ADDR)
+/* RUN_BUTTON ($7E0B23-$7E0B24, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RUN_BUTTON_ADDR 0x0B23u
+#define RUN_BUTTON_SIZE 2
+#define RUN_BUTTON RAM16(RUN_BUTTON_ADDR)
 
-/* menu_audio_sfx_volume ($7E0B25-$7E0B26, ram): src/games/evermore/localizations/data/wram-map.md */
-#define MENU_AUDIO_SFX_VOLUME_ADDR 0x0B25u
-#define MENU_AUDIO_SFX_VOLUME_SIZE 2
-#define MENU_AUDIO_SFX_VOLUME RAM16(MENU_AUDIO_SFX_VOLUME_ADDR)
+/* ACTION_BUTTON ($7E0B25-$7E0B26, ram): src/games/evermore/localizations/data/wram-map.md */
+#define ACTION_BUTTON_ADDR 0x0B25u
+#define ACTION_BUTTON_SIZE 2
+#define ACTION_BUTTON RAM16(ACTION_BUTTON_ADDR)
 
 /* ALCHEMY_RING_BROWSE_MODE ($7E0B27-$7E0B28, ram): src/games/evermore/localizations/data/wram-map.md */
 #define ALCHEMY_RING_BROWSE_MODE_ADDR 0x0B27u
@@ -1011,19 +1005,19 @@
 #define SHOP_ITEM_STREAM_BUF_ADDR 0x0B95u
 #define SHOP_ITEM_STREAM_BUF_SIZE 12
 
-/* SHOP_CATALOG_COUNT ($7E0BA1-$7E0BA2, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_CATALOG_COUNT_ADDR 0x0BA1u
-#define SHOP_CATALOG_COUNT_SIZE 2
-#define SHOP_CATALOG_COUNT RAM16(SHOP_CATALOG_COUNT_ADDR)
+/* RING_SHOP_COUNT ($7E0BA1-$7E0BA2, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_SHOP_COUNT_ADDR 0x0BA1u
+#define RING_SHOP_COUNT_SIZE 2
+#define RING_SHOP_COUNT RAM16(RING_SHOP_COUNT_ADDR)
 
-/* SHOP_CATALOG_SELECTION ($7E0BA3-$7E0BA4, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_CATALOG_SELECTION_ADDR 0x0BA3u
-#define SHOP_CATALOG_SELECTION_SIZE 2
-#define SHOP_CATALOG_SELECTION RAM16(SHOP_CATALOG_SELECTION_ADDR)
+/* RING_SHOP_CURSOR ($7E0BA3-$7E0BA4, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_SHOP_CURSOR_ADDR 0x0BA3u
+#define RING_SHOP_CURSOR_SIZE 2
+#define RING_SHOP_CURSOR RAM16(RING_SHOP_CURSOR_ADDR)
 
-/* SHOP_CATALOG_ITEMS_BUF ($7E0BA5-$7E0BC4, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_CATALOG_ITEMS_BUF_ADDR 0x0BA5u
-#define SHOP_CATALOG_ITEMS_BUF_SIZE 32
+/* RING_SHOP_ITEMS ($7E0BA5-$7E0BC4, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_SHOP_ITEMS_ADDR 0x0BA5u
+#define RING_SHOP_ITEMS_SIZE 32
 
 /* SHOP_CATALOG_PRICES_BUF ($7E0BC5-$7E0BE4, ram): src/games/evermore/localizations/data/wram-map.md */
 #define SHOP_CATALOG_PRICES_BUF_ADDR 0x0BC5u
@@ -1058,108 +1052,108 @@
 #define MODE7_CAMERA_TARGET_OFFSET_Y_SIZE 2
 #define MODE7_CAMERA_TARGET_OFFSET_Y RAM16(MODE7_CAMERA_TARGET_OFFSET_Y_ADDR)
 
-/* RING_MENU_KEY_ITEMS_COUNT ($7E0BFF-$7E0C00, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_KEY_ITEMS_COUNT_ADDR 0x0BFFu
-#define RING_MENU_KEY_ITEMS_COUNT_SIZE 2
-#define RING_MENU_KEY_ITEMS_COUNT RAM16(RING_MENU_KEY_ITEMS_COUNT_ADDR)
+/* RING_ARMOUR_BODY_COUNT ($7E0BFF-$7E0C00, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_BODY_COUNT_ADDR 0x0BFFu
+#define RING_ARMOUR_BODY_COUNT_SIZE 2
+#define RING_ARMOUR_BODY_COUNT RAM16(RING_ARMOUR_BODY_COUNT_ADDR)
 
-/* RING_MENU_KEY_ITEMS_SELECTION ($7E0C01-$7E0C02, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_KEY_ITEMS_SELECTION_ADDR 0x0C01u
-#define RING_MENU_KEY_ITEMS_SELECTION_SIZE 2
-#define RING_MENU_KEY_ITEMS_SELECTION RAM16(RING_MENU_KEY_ITEMS_SELECTION_ADDR)
+/* RING_ARMOUR_BODY_CURSOR ($7E0C01-$7E0C02, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_BODY_CURSOR_ADDR 0x0C01u
+#define RING_ARMOUR_BODY_CURSOR_SIZE 2
+#define RING_ARMOUR_BODY_CURSOR RAM16(RING_ARMOUR_BODY_CURSOR_ADDR)
 
-/* RING_MENU_KEY_ITEMS_BUF ($7E0C03-$7E0C22, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_KEY_ITEMS_BUF_ADDR 0x0C03u
-#define RING_MENU_KEY_ITEMS_BUF_SIZE 32
+/* RING_ARMOUR_BODY_ITEMS ($7E0C03-$7E0C22, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_BODY_ITEMS_ADDR 0x0C03u
+#define RING_ARMOUR_BODY_ITEMS_SIZE 32
 
-/* RING_MENU_WEAPONS_COUNT ($7E0C23-$7E0C24, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_WEAPONS_COUNT_ADDR 0x0C23u
-#define RING_MENU_WEAPONS_COUNT_SIZE 2
-#define RING_MENU_WEAPONS_COUNT RAM16(RING_MENU_WEAPONS_COUNT_ADDR)
+/* RING_ARMOUR_HELM_COUNT ($7E0C23-$7E0C24, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_HELM_COUNT_ADDR 0x0C23u
+#define RING_ARMOUR_HELM_COUNT_SIZE 2
+#define RING_ARMOUR_HELM_COUNT RAM16(RING_ARMOUR_HELM_COUNT_ADDR)
 
-/* RING_MENU_WEAPONS_SELECTION ($7E0C25-$7E0C26, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_WEAPONS_SELECTION_ADDR 0x0C25u
-#define RING_MENU_WEAPONS_SELECTION_SIZE 2
-#define RING_MENU_WEAPONS_SELECTION RAM16(RING_MENU_WEAPONS_SELECTION_ADDR)
+/* RING_ARMOUR_HELM_CURSOR ($7E0C25-$7E0C26, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_HELM_CURSOR_ADDR 0x0C25u
+#define RING_ARMOUR_HELM_CURSOR_SIZE 2
+#define RING_ARMOUR_HELM_CURSOR RAM16(RING_ARMOUR_HELM_CURSOR_ADDR)
 
-/* RING_MENU_WEAPONS_BUF ($7E0C27-$7E0C46, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_WEAPONS_BUF_ADDR 0x0C27u
-#define RING_MENU_WEAPONS_BUF_SIZE 32
+/* RING_ARMOUR_HELM_ITEMS ($7E0C27-$7E0C46, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_HELM_ITEMS_ADDR 0x0C27u
+#define RING_ARMOUR_HELM_ITEMS_SIZE 32
 
-/* RING_MENU_ITEMS_COUNT ($7E0C47-$7E0C48, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_ITEMS_COUNT_ADDR 0x0C47u
-#define RING_MENU_ITEMS_COUNT_SIZE 2
-#define RING_MENU_ITEMS_COUNT RAM16(RING_MENU_ITEMS_COUNT_ADDR)
+/* RING_ARMOUR_GLOVES_COUNT ($7E0C47-$7E0C48, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_GLOVES_COUNT_ADDR 0x0C47u
+#define RING_ARMOUR_GLOVES_COUNT_SIZE 2
+#define RING_ARMOUR_GLOVES_COUNT RAM16(RING_ARMOUR_GLOVES_COUNT_ADDR)
 
-/* RING_MENU_ITEMS_SELECTION ($7E0C49-$7E0C4A, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_ITEMS_SELECTION_ADDR 0x0C49u
-#define RING_MENU_ITEMS_SELECTION_SIZE 2
-#define RING_MENU_ITEMS_SELECTION RAM16(RING_MENU_ITEMS_SELECTION_ADDR)
+/* RING_ARMOUR_GLOVES_CURSOR ($7E0C49-$7E0C4A, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_GLOVES_CURSOR_ADDR 0x0C49u
+#define RING_ARMOUR_GLOVES_CURSOR_SIZE 2
+#define RING_ARMOUR_GLOVES_CURSOR RAM16(RING_ARMOUR_GLOVES_CURSOR_ADDR)
 
-/* RING_MENU_ITEMS_BUF ($7E0C4B-$7E0C6A, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_ITEMS_BUF_ADDR 0x0C4Bu
-#define RING_MENU_ITEMS_BUF_SIZE 32
+/* RING_ARMOUR_GLOVES_ITEMS ($7E0C4B-$7E0C6A, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_GLOVES_ITEMS_ADDR 0x0C4Bu
+#define RING_ARMOUR_GLOVES_ITEMS_SIZE 32
 
-/* RING_MENU_SPELLS_COUNT ($7E0C6B-$7E0C6C, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_SPELLS_COUNT_ADDR 0x0C6Bu
-#define RING_MENU_SPELLS_COUNT_SIZE 2
-#define RING_MENU_SPELLS_COUNT RAM16(RING_MENU_SPELLS_COUNT_ADDR)
+/* RING_ARMOUR_COLLAR_COUNT ($7E0C6B-$7E0C6C, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_COLLAR_COUNT_ADDR 0x0C6Bu
+#define RING_ARMOUR_COLLAR_COUNT_SIZE 2
+#define RING_ARMOUR_COLLAR_COUNT RAM16(RING_ARMOUR_COLLAR_COUNT_ADDR)
 
-/* RING_MENU_SPELLS_SELECTION ($7E0C6D-$7E0C6E, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_SPELLS_SELECTION_ADDR 0x0C6Du
-#define RING_MENU_SPELLS_SELECTION_SIZE 2
-#define RING_MENU_SPELLS_SELECTION RAM16(RING_MENU_SPELLS_SELECTION_ADDR)
+/* RING_ARMOUR_COLLAR_CURSOR ($7E0C6D-$7E0C6E, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_COLLAR_CURSOR_ADDR 0x0C6Du
+#define RING_ARMOUR_COLLAR_CURSOR_SIZE 2
+#define RING_ARMOUR_COLLAR_CURSOR RAM16(RING_ARMOUR_COLLAR_CURSOR_ADDR)
 
-/* RING_MENU_SPELLS_BUF ($7E0C6F-$7E0C8E, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_SPELLS_BUF_ADDR 0x0C6Fu
-#define RING_MENU_SPELLS_BUF_SIZE 32
+/* RING_ARMOUR_COLLAR_ITEMS ($7E0C6F-$7E0C8E, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_ARMOUR_COLLAR_ITEMS_ADDR 0x0C6Fu
+#define RING_ARMOUR_COLLAR_ITEMS_SIZE 32
 
-/* RING_MENU_ALCH_FORMULA_COUNT ($7E0C8F-$7E0C90, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_ALCH_FORMULA_COUNT_ADDR 0x0C8Fu
-#define RING_MENU_ALCH_FORMULA_COUNT_SIZE 2
-#define RING_MENU_ALCH_FORMULA_COUNT RAM16(RING_MENU_ALCH_FORMULA_COUNT_ADDR)
+/* RING_BAZOOKA_AMMO_COUNT ($7E0C8F-$7E0C90, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BAZOOKA_AMMO_COUNT_ADDR 0x0C8Fu
+#define RING_BAZOOKA_AMMO_COUNT_SIZE 2
+#define RING_BAZOOKA_AMMO_COUNT RAM16(RING_BAZOOKA_AMMO_COUNT_ADDR)
 
-/* RING_MENU_ALCH_SELECTION ($7E0C91-$7E0C92, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_ALCH_SELECTION_ADDR 0x0C91u
-#define RING_MENU_ALCH_SELECTION_SIZE 2
-#define RING_MENU_ALCH_SELECTION RAM16(RING_MENU_ALCH_SELECTION_ADDR)
+/* RING_BAZOOKA_AMMO_CURSOR ($7E0C91-$7E0C92, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BAZOOKA_AMMO_CURSOR_ADDR 0x0C91u
+#define RING_BAZOOKA_AMMO_CURSOR_SIZE 2
+#define RING_BAZOOKA_AMMO_CURSOR RAM16(RING_BAZOOKA_AMMO_CURSOR_ADDR)
 
-/* RING_MENU_ALCH_FORMULAS_BUF ($7E0C93-$7E0CB2, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_ALCH_FORMULAS_BUF_ADDR 0x0C93u
-#define RING_MENU_ALCH_FORMULAS_BUF_SIZE 32
+/* RING_BAZOOKA_AMMO_ITEMS ($7E0C93-$7E0CB2, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_BAZOOKA_AMMO_ITEMS_ADDR 0x0C93u
+#define RING_BAZOOKA_AMMO_ITEMS_SIZE 32
 
 /* RING_MENU_ALCH_ALIGN_PAD ($7E0CB3-$7E0CB4, ram): src/games/evermore/localizations/data/wram-map.md */
 #define RING_MENU_ALCH_ALIGN_PAD_ADDR 0x0CB3u
 #define RING_MENU_ALCH_ALIGN_PAD_SIZE 2
 #define RING_MENU_ALCH_ALIGN_PAD RAM16(RING_MENU_ALCH_ALIGN_PAD_ADDR)
 
-/* RING_MENU_FORMULA_ACTION_COUNT ($7E0CB5-$7E0CB6, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_FORMULA_ACTION_COUNT_ADDR 0x0CB5u
-#define RING_MENU_FORMULA_ACTION_COUNT_SIZE 2
-#define RING_MENU_FORMULA_ACTION_COUNT RAM16(RING_MENU_FORMULA_ACTION_COUNT_ADDR)
+/* RING_CALL_BEAD_SPELLS_COUNT ($7E0CB5-$7E0CB6, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_CALL_BEAD_SPELLS_COUNT_ADDR 0x0CB5u
+#define RING_CALL_BEAD_SPELLS_COUNT_SIZE 2
+#define RING_CALL_BEAD_SPELLS_COUNT RAM16(RING_CALL_BEAD_SPELLS_COUNT_ADDR)
 
-/* RING_MENU_FORMULA_ACTION_SELECTION ($7E0CB7-$7E0CB8, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_FORMULA_ACTION_SELECTION_ADDR 0x0CB7u
-#define RING_MENU_FORMULA_ACTION_SELECTION_SIZE 2
-#define RING_MENU_FORMULA_ACTION_SELECTION RAM16(RING_MENU_FORMULA_ACTION_SELECTION_ADDR)
+/* RING_CALL_BEAD_SPELLS_CURSOR ($7E0CB7-$7E0CB8, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_CALL_BEAD_SPELLS_CURSOR_ADDR 0x0CB7u
+#define RING_CALL_BEAD_SPELLS_CURSOR_SIZE 2
+#define RING_CALL_BEAD_SPELLS_CURSOR RAM16(RING_CALL_BEAD_SPELLS_CURSOR_ADDR)
 
-/* RING_MENU_FORMULA_ACTIONS_BUF ($7E0CB9-$7E0CD8, ram): src/games/evermore/localizations/data/wram-map.md */
-#define RING_MENU_FORMULA_ACTIONS_BUF_ADDR 0x0CB9u
-#define RING_MENU_FORMULA_ACTIONS_BUF_SIZE 32
+/* RING_CALL_BEAD_SPELLS_ITEMS ($7E0CB9-$7E0CD8, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_CALL_BEAD_SPELLS_ITEMS_ADDR 0x0CB9u
+#define RING_CALL_BEAD_SPELLS_ITEMS_SIZE 32
 
-/* SHOP_MENU_OPTION_COUNT ($7E0CD9-$7E0CDA, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_MENU_OPTION_COUNT_ADDR 0x0CD9u
-#define SHOP_MENU_OPTION_COUNT_SIZE 2
-#define SHOP_MENU_OPTION_COUNT RAM16(SHOP_MENU_OPTION_COUNT_ADDR)
+/* RING_CALL_BEAD_CALLERS_COUNT ($7E0CD9-$7E0CDA, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_CALL_BEAD_CALLERS_COUNT_ADDR 0x0CD9u
+#define RING_CALL_BEAD_CALLERS_COUNT_SIZE 2
+#define RING_CALL_BEAD_CALLERS_COUNT RAM16(RING_CALL_BEAD_CALLERS_COUNT_ADDR)
 
-/* SHOP_MENU_SELECTION ($7E0CDB-$7E0CDC, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_MENU_SELECTION_ADDR 0x0CDBu
-#define SHOP_MENU_SELECTION_SIZE 2
-#define SHOP_MENU_SELECTION RAM16(SHOP_MENU_SELECTION_ADDR)
+/* RING_CALL_BEAD_CALLERS_CURSOR ($7E0CDB-$7E0CDC, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_CALL_BEAD_CALLERS_CURSOR_ADDR 0x0CDBu
+#define RING_CALL_BEAD_CALLERS_CURSOR_SIZE 2
+#define RING_CALL_BEAD_CALLERS_CURSOR RAM16(RING_CALL_BEAD_CALLERS_CURSOR_ADDR)
 
-/* SHOP_MENU_OPTIONS_BUF ($7E0CDD-$7E0CEC, ram): src/games/evermore/localizations/data/wram-map.md */
-#define SHOP_MENU_OPTIONS_BUF_ADDR 0x0CDDu
-#define SHOP_MENU_OPTIONS_BUF_SIZE 16
+/* RING_CALL_BEAD_CALLERS_ITEMS ($7E0CDD-$7E0CEC, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_CALL_BEAD_CALLERS_ITEMS_ADDR 0x0CDDu
+#define RING_CALL_BEAD_CALLERS_ITEMS_SIZE 16
 
 /* SHOP_MENU_OPTIONS_ALIGN_PAD ($7E0CED-$7E0D0C, ram): src/games/evermore/localizations/data/wram-map.md */
 #define SHOP_MENU_OPTIONS_ALIGN_PAD_ADDR 0x0CEDu
@@ -1684,9 +1678,24 @@
 #define PROJECTILE_CLUSTER_TRACKING_RATE_SIZE 2
 #define PROJECTILE_CLUSTER_TRACKING_RATE RAM16(PROJECTILE_CLUSTER_TRACKING_RATE_ADDR)
 
-/* ROOM_PPU_MIRROR_ALIGN_GAP ($7E0F5A-$7E0F7F, ram): src/games/evermore/localizations/data/wram-map.md */
-#define ROOM_PPU_MIRROR_ALIGN_GAP_ADDR 0x0F5Au
-#define ROOM_PPU_MIRROR_ALIGN_GAP_SIZE 38
+/* RING_DEBUG_COUNT ($7E0F5A-$7E0F5B, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_DEBUG_COUNT_ADDR 0x0F5Au
+#define RING_DEBUG_COUNT_SIZE 2
+#define RING_DEBUG_COUNT RAM16(RING_DEBUG_COUNT_ADDR)
+
+/* RING_DEBUG_CURSOR ($7E0F5C-$7E0F5D, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_DEBUG_CURSOR_ADDR 0x0F5Cu
+#define RING_DEBUG_CURSOR_SIZE 2
+#define RING_DEBUG_CURSOR RAM16(RING_DEBUG_CURSOR_ADDR)
+
+/* RING_DEBUG_ITEMS ($7E0F5E-$7E0F7D, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_DEBUG_ITEMS_ADDR 0x0F5Eu
+#define RING_DEBUG_ITEMS_SIZE 32
+
+/* RING_DEBUG_PAD ($7E0F7E-$7E0F7F, ram): src/games/evermore/localizations/data/wram-map.md */
+#define RING_DEBUG_PAD_ADDR 0x0F7Eu
+#define RING_DEBUG_PAD_SIZE 2
+#define RING_DEBUG_PAD RAM16(RING_DEBUG_PAD_ADDR)
 
 /* MAP_TM_MIRROR ($7E0F80, ram): src/games/evermore/localizations/data/wram-map.md */
 #define MAP_TM_MIRROR_ADDR 0x0F80u

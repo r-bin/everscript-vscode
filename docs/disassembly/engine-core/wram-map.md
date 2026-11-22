@@ -27,7 +27,7 @@
 | `$7E:0000` | [`DIRECT_PAGE_BLOCK`](knowledge/wram/DIRECT_PAGE_BLOCK.md) | `DirectPageBlock` | system, direct-page | SNES Direct Page continuous register scratchpad ($7E:0000..$7E:00FF). |
 | `$7E:0100` | [`PPU_FRAME_COUNTER_LOW`](knowledge/wram/PPU_FRAME_COUNTER_LOW.md) | `u16` | graphics | Low 16 bits of 32-bit hardware frame counter; incremented every VBlank interrupt by nmi_v_blank_handler ($80:8460). |
 | `$7E:0102` | [`PPU_FRAME_COUNTER_HIGH`](knowledge/wram/PPU_FRAME_COUNTER_HIGH.md) | `u16` | graphics | High 16 bits of 32-bit hardware frame counter; incremented when low word overflows. |
-| `$7E:0104` | [`JOYPAD1_HELD`](knowledge/wram/JOYPAD1_HELD.md) | `JoypadButtons` | system | Joypad 1 held button mask (SNES auto-joypad bitfield) |
+| `$7E:0104` | [`JOYPAD1_HELD`](knowledge/wram/JOYPAD1_HELD.md) | `JoypadButtons` | system | Joypad 1 held buttons minus acknowledged ones: a bit cleared by TRB $0104 stays clear until the button is released (NMI $80:847A). |
 | `$7E:0106` | [`JOYPAD1_TRIGGERED`](knowledge/wram/JOYPAD1_TRIGGERED.md) | `JoypadButtons` | script, system | Joypad 1 newly pressed button triggers this frame |
 | `$7E:0108` | [`PPU_SHADOW_HTIMEL`](knowledge/wram/PPU_SHADOW_HTIMEL.md) | `u16` | graphics | Hardware H-timer IRQ horizontal dot position shadow; copied to $4207 in VBlank. |
 | `$7E:010A` | [`PPU_SHADOW_VTIMEL`](knowledge/wram/PPU_SHADOW_VTIMEL.md) | `u16` | graphics | Hardware V-timer IRQ scanline position shadow; copied to $4209 in VBlank. |
@@ -107,21 +107,21 @@
 | `$7E:0633` | [`DIALOGUE_STACK_ALIGN_GAP`](knowledge/wram/DIALOGUE_STACK_ALIGN_GAP.md) | `u8[112]` | dialogue, unused | 112-byte alignment gap ($7E:0633..$7E:06A2) between dialogue token call stack and ring menu icon slots (unused to our knowledge). |
 | `$7E:06A3` | [`RING_ICON_SLOTS`](knowledge/wram/RING_ICON_SLOTS.md) | `u8[256]` | alchemy, weapon | Ring menu items inventory icon array (weapons, alchemy spells, items). |
 | `$7E:07A3` | [`RING_ICON_ALIGN_PAD`](knowledge/wram/RING_ICON_ALIGN_PAD.md) | `u8` | dialogue, unused | 1-byte alignment padding ($7E:07A3) between byte array RING_ICON_SLOTS and 16-bit word-aligned ring menu buffers (unused to our knowledge). |
-| `$7E:07A4` | [`SHOP_EQUIP_WEAPONS_COUNT`](knowledge/wram/SHOP_EQUIP_WEAPONS_COUNT.md) | `u16` | weapon | Number of selectable weapons currently owned and populated in weapon ring menu ($8E:99E6). |
-| `$7E:07A6` | [`SHOP_EQUIP_WEAPONS_SELECTION`](knowledge/wram/SHOP_EQUIP_WEAPONS_SELECTION.md) | `u16` | weapon | Currently highlighted weapon selection index cursor in weapon ring menu ($8E:99E6). |
-| `$7E:07A8` | [`SHOP_EQUIP_WEAPONS_ITEMS_BUF`](knowledge/wram/SHOP_EQUIP_WEAPONS_ITEMS_BUF.md) | `u16[16]` | weapon | 16-entry array ($7E:07A8..$7E:07C7, 32 bytes) of owned weapon item IDs displayed in weapon ring menu ($8E:99E6). |
-| `$7E:07C8` | [`SHOP_RARE_ITEMS_COUNT`](knowledge/wram/SHOP_RARE_ITEMS_COUNT.md) | `u16` | system | Number of key items and rare artifacts currently held and populated in rare items ring menu ($8E:9B6F). |
-| `$7E:07CA` | [`SHOP_RARE_ITEMS_SELECTION`](knowledge/wram/SHOP_RARE_ITEMS_SELECTION.md) | `u16` | system | Currently highlighted selection index cursor in rare items ring menu ($8E:9B6F). |
-| `$7E:07CC` | [`SHOP_RARE_ITEMS_ITEMS_BUF`](knowledge/wram/SHOP_RARE_ITEMS_ITEMS_BUF.md) | `u16[16]` | system | 16-entry array ($7E:07CC..$7E:07EB, 32 bytes) of held key and quest item IDs displayed in rare items ring menu ($8E:9B6F). |
-| `$7E:07EC` | [`SHOP_INGREDIENTS_COUNT`](knowledge/wram/SHOP_INGREDIENTS_COUNT.md) | `u16` | alchemy | Number of alchemy ingredients currently held in inventory and populated in ingredients ring menu ($8E:9B3A). |
-| `$7E:07EE` | [`SHOP_INGREDIENTS_SELECTION`](knowledge/wram/SHOP_INGREDIENTS_SELECTION.md) | `u16` | alchemy | Currently highlighted selection index cursor in alchemy ingredients ring menu ($8E:9B3A). |
-| `$7E:07F0` | [`SHOP_INGREDIENTS_ITEMS_BUF`](knowledge/wram/SHOP_INGREDIENTS_ITEMS_BUF.md) | `u16[16]` | alchemy | 16-entry array ($7E:07F0..$7E:080F, 32 bytes) of held alchemy ingredient item IDs displayed in ingredients ring menu ($8E:9B3A). |
-| `$7E:0810` | [`RING_MENU_ACTIVE_ITEM_COUNT`](knowledge/wram/RING_MENU_ACTIVE_ITEM_COUNT.md) | `u16` | dialogue | Number of selectable items/spells in currently active primary ring menu. |
-| `$7E:0812` | [`RING_MENU_ACTIVE_SELECTION`](knowledge/wram/RING_MENU_ACTIVE_SELECTION.md) | `u16` | dialogue | Currently highlighted item index cursor in primary ring menu. |
-| `$7E:0814` | [`RING_MENU_ACTIVE_ITEMS_BUF`](knowledge/wram/RING_MENU_ACTIVE_ITEMS_BUF.md) | `u16[16]` | alchemy, dialogue | 16-entry array ($7E:0814..$7E:0833, 32 bytes) of item / spell / formula IDs displayed in primary ring menu. |
-| `$7E:0834` | [`RING_MENU_SECONDARY_ITEM_COUNT`](knowledge/wram/RING_MENU_SECONDARY_ITEM_COUNT.md) | `u16` | dialogue | Number of selectable items in secondary ring menu. |
-| `$7E:0836` | [`RING_MENU_SECONDARY_SELECTION`](knowledge/wram/RING_MENU_SECONDARY_SELECTION.md) | `u16` | dialogue | Currently highlighted item index cursor in secondary ring menu. |
-| `$7E:0838` | [`RING_MENU_SECONDARY_ITEMS_BUF`](knowledge/wram/RING_MENU_SECONDARY_ITEMS_BUF.md) | `u16[16]` | dialogue | 16-entry array ($7E:0838..$7E:0857, 32 bytes) of item IDs displayed in secondary / equipment ring menu. |
+| `$7E:07A4` | [`RING_BOY_WEAPONS_COUNT`](knowledge/wram/RING_BOY_WEAPONS_COUNT.md) | `u16` | weapon | Item count of the Boy's weapons ring (`menus/rings/`). |
+| `$7E:07A6` | [`RING_BOY_WEAPONS_CURSOR`](knowledge/wram/RING_BOY_WEAPONS_CURSOR.md) | `u16` | weapon | Selected item of the Boy's weapons ring (`menus/rings/`). |
+| `$7E:07A8` | [`RING_BOY_WEAPONS_ITEMS`](knowledge/wram/RING_BOY_WEAPONS_ITEMS.md) | `u16[16]` | weapon | Ring item ids of the Boy's weapons ring (`menus/rings/`). |
+| `$7E:07C8` | [`RING_BOY_ITEMS_COUNT`](knowledge/wram/RING_BOY_ITEMS_COUNT.md) | `u16` | system | Item count of the Boy's items ring (`menus/rings/`). |
+| `$7E:07CA` | [`RING_BOY_ITEMS_CURSOR`](knowledge/wram/RING_BOY_ITEMS_CURSOR.md) | `u16` | system | Selected item of the Boy's items ring (`menus/rings/`). |
+| `$7E:07CC` | [`RING_BOY_ITEMS_ITEMS`](knowledge/wram/RING_BOY_ITEMS_ITEMS.md) | `u16[16]` | system | Ring item ids of the Boy's items ring (`menus/rings/`). |
+| `$7E:07EC` | [`RING_BOY_ALCHEMY_COUNT`](knowledge/wram/RING_BOY_ALCHEMY_COUNT.md) | `u16` | alchemy | Item count of the Boy's alchemy ring (`menus/rings/`). |
+| `$7E:07EE` | [`RING_BOY_ALCHEMY_CURSOR`](knowledge/wram/RING_BOY_ALCHEMY_CURSOR.md) | `u16` | alchemy | Selected item of the Boy's alchemy ring (`menus/rings/`). |
+| `$7E:07F0` | [`RING_BOY_ALCHEMY_ITEMS`](knowledge/wram/RING_BOY_ALCHEMY_ITEMS.md) | `u16[16]` | alchemy | Ring item ids of the Boy's alchemy ring (`menus/rings/`). |
+| `$7E:0810` | [`RING_BOY_OPTIONS_COUNT`](knowledge/wram/RING_BOY_OPTIONS_COUNT.md) | `u16` | dialogue | Item count of the Boy's options ring (`menus/rings/`). |
+| `$7E:0812` | [`RING_BOY_OPTIONS_CURSOR`](knowledge/wram/RING_BOY_OPTIONS_CURSOR.md) | `u16` | dialogue | Selected item of the Boy's options ring (`menus/rings/`). |
+| `$7E:0814` | [`RING_BOY_OPTIONS_ITEMS`](knowledge/wram/RING_BOY_OPTIONS_ITEMS.md) | `u16[16]` | alchemy, dialogue | Ring item ids of the Boy's options ring (`menus/rings/`). |
+| `$7E:0834` | [`RING_DOG_OPTIONS_COUNT`](knowledge/wram/RING_DOG_OPTIONS_COUNT.md) | `u16` | dialogue | Item count of the Dog's options ring (`menus/rings/`). |
+| `$7E:0836` | [`RING_DOG_OPTIONS_CURSOR`](knowledge/wram/RING_DOG_OPTIONS_CURSOR.md) | `u16` | dialogue | Selected item of the Dog's options ring (`menus/rings/`). |
+| `$7E:0838` | [`RING_DOG_OPTIONS_ITEMS`](knowledge/wram/RING_DOG_OPTIONS_ITEMS.md) | `u16[16]` | dialogue | Ring item ids of the Dog's options ring (`menus/rings/`). |
 | `$7E:0858` | [`AUX_ANIM_CHAN_0`](knowledge/wram/AUX_ANIM_CHAN_0.md) | `AuxAnimChannel` | combat, graphics | Auxiliary / spell animation channel 0 state descriptor (16 bytes). |
 | `$7E:0868` | [`AUX_ANIM_CHAN_1`](knowledge/wram/AUX_ANIM_CHAN_1.md) | `AuxAnimChannel` | combat, graphics | Auxiliary / spell animation channel 1 state descriptor (16 bytes). |
 | `$7E:0878` | [`MOSAIC_TRANSITION_STEP`](knowledge/wram/MOSAIC_TRANSITION_STEP.md) | `u16` | graphics | Active full-screen PPU mosaic transition step parameter ($8C:BB72) and torchlight mosaic jitter register ($90:9B30) written to PPU $2106. |
@@ -193,13 +193,12 @@
 | `$7E:0B13` | [`DOG_FOOTSTEP_TIMER`](knowledge/wram/DOG_FOOTSTEP_TIMER.md) | `u16` | dog, audio | Active footstep sound effect cadence timer for Dog companion character, triggering walking/running SFX ($8F:8C9A). |
 | `$7E:0B15` | [`game_boot_signature`](knowledge/wram/game_boot_signature.md) | `u16` | system | Warm boot RAM persistence validation signature word ($00A4 initialized in $80:8D30). |
 | `$7E:0B17` | [`new_game_init_flag`](knowledge/wram/new_game_init_flag.md) | `u16` | script, system | Assertion flag set during cold start / reset sequence to trigger state clearing ($80:8D33). |
-| `$7E:0B19` | [`WAVE_PHASE_COUNTER`](knowledge/wram/WAVE_PHASE_COUNTER.md) | `u16` | graphics, system | Wave phase counter incremented per frame for HDMA underwater distortion. |
-| `$7E:0B1B` | [`controller_prev_input`](knowledge/wram/controller_prev_input.md) | `u16` | script, system | Previous frame joypad button state used to calculate edge-triggered presses. |
+| `$7E:0B19` | [`FIELD_FRAME_COUNTER`](knowledge/wram/FIELD_FRAME_COUNTER.md) | `u32` | script, system | Field frame counter (32-bit, `$7E:0B19..$7E:0B1C`): +1 per field frame; script `sleep` deadlines and wake-ups count in it ($8E:E41E, $8C:D037). |
 | `$7E:0B1D` | [`MODE7_FLIGHT_HUD_VISIBLE`](knowledge/wram/MODE7_FLIGHT_HUD_VISIBLE.md) | `u16` | mode7 | Active toggle flag for Mode 7 flight instrument panel and HUD gauge overlay, toggled via controller R button ($80:C1F7, $80:C5DB). |
 | `$7E:0B1F` | [`RING_MENU_SAVED_STACK_PTR`](knowledge/wram/RING_MENU_SAVED_STACK_PTR.md) | `u16` | dialogue | Saved CPU stack pointer (S register) snapshot restored on ring menu closure. |
-| `$7E:0B21` | [`menu_audio_pan_divisor`](knowledge/wram/menu_audio_pan_divisor.md) | `u16` | audio, entity | Stereo audio panning coordinate factor for ring menu items. |
-| `$7E:0B23` | [`menu_audio_sfx_pitch`](knowledge/wram/menu_audio_sfx_pitch.md) | `u16` | audio | Pitch divisor passed to SPC700 sound driver when ring menu rotates. |
-| `$7E:0B25` | [`menu_audio_sfx_volume`](knowledge/wram/menu_audio_sfx_volume.md) | `u16` | audio, entity | Volume scale factor applied to UI menu sound effects. |
+| `$7E:0B21` | [`CONTROL_CONFIGURATION`](knowledge/wram/CONTROL_CONFIGURATION.md) | `u16` | input | Control Prefs configuration: 0 = Configuration 1 (action B, run A), 2 = Configuration 2 (action A, run B); index into $8D:A091/$8D:A095. |
+| `$7E:0B23` | [`RUN_BUTTON`](knowledge/wram/RUN_BUTTON.md) | `u16` | input, boy, dog | Run button mask of the control setup ($4218 order); BIT against $0104 at $8F:CE7C / $8F:CFB5 picks the run step $90:82A8. |
+| `$7E:0B25` | [`ACTION_BUTTON`](knowledge/wram/ACTION_BUTTON.md) | `u16` | input, boy, dog, combat | Attack / talk button mask of the control setup ($4218 order); a new press swings or checks a B-trigger ($8F:CE0D), held at 100 % it charges. |
 | `$7E:0B27` | [`ALCHEMY_RING_BROWSE_MODE`](knowledge/wram/ALCHEMY_RING_BROWSE_MODE.md) | `u16` | alchemy | Alchemy ring menu browse / assign mode flag; when non-zero, disables grey-out of uncastable formulas ($8D:BA77, $90:87B0). |
 | `$7E:0B29` | [`HUD_DIRTY_UPDATE_FLAGS`](knowledge/wram/HUD_DIRTY_UPDATE_FLAGS.md) | `u16` | map, dialogue | HUD refresh latch flags (bit 0 = tilemap redraw required, bit 2 = HUD hidden). |
 | `$7E:0B2B` | [`CHOICE_PROMPT_STATE`](knowledge/wram/CHOICE_PROMPT_STATE.md) | `ChoiceBoxState` | dialogue, system | Dialogue interactive choice selection box state machine |
@@ -238,9 +237,9 @@
 | `$7E:0B83` | [`AUDIO_TARGET_VOLUME`](knowledge/wram/AUDIO_TARGET_VOLUME.md) | `u16` | audio, graphics | Target master audio volume level latch for fade interpolation. |
 | `$7E:0B85` | [`SHOP_ITEM_STREAM_ALIGN_PAD`](knowledge/wram/SHOP_ITEM_STREAM_ALIGN_PAD.md) | `u8[16]` | dialogue, unused | 16-byte alignment padding gap ($7E:0B85..$7E:0B94) preceding shopkeeper inventory stream buffer (unused to our knowledge). |
 | `$7E:0B95` | [`SHOP_ITEM_STREAM_BUF`](knowledge/wram/SHOP_ITEM_STREAM_BUF.md) | `u8[12]` | system | Merchant stock item ID stream buffer terminated by 0x80 ($8E:9BC1). |
-| `$7E:0BA1` | [`SHOP_CATALOG_COUNT`](knowledge/wram/SHOP_CATALOG_COUNT.md) | `u16` | system | Total active merchandise items in current shopkeeper inventory ($8E:9BC1). |
-| `$7E:0BA3` | [`SHOP_CATALOG_SELECTION`](knowledge/wram/SHOP_CATALOG_SELECTION.md) | `u16` | system | Currently highlighted item selection index cursor in shop menu ($8E:9BC1). |
-| `$7E:0BA5` | [`SHOP_CATALOG_ITEMS_BUF`](knowledge/wram/SHOP_CATALOG_ITEMS_BUF.md) | `u16[16]` | system | 16-entry array ($7E:0BA5..$7E:0BC4, 32 bytes) of item IDs for active shop merchandise ($8E:9BC1). |
+| `$7E:0BA1` | [`RING_SHOP_COUNT`](knowledge/wram/RING_SHOP_COUNT.md) | `u16` | system | Item count of the shop rings (five ring ids share it) (`menus/rings/`). |
+| `$7E:0BA3` | [`RING_SHOP_CURSOR`](knowledge/wram/RING_SHOP_CURSOR.md) | `u16` | system | Selected item of the shop rings (five ring ids share it) (`menus/rings/`). |
+| `$7E:0BA5` | [`RING_SHOP_ITEMS`](knowledge/wram/RING_SHOP_ITEMS.md) | `u16[16]` | system | Ring item ids of the shop rings (five ring ids share it) (`menus/rings/`). |
 | `$7E:0BC5` | [`SHOP_CATALOG_PRICES_BUF`](knowledge/wram/SHOP_CATALOG_PRICES_BUF.md) | `u16[16]` | system | 16-entry array ($7E:0BC5..$7E:0BE4, 32 bytes) of resolved item purchase prices ($8E:9BC1). |
 | `$7E:0BE5` | [`WEAPON_XP_THRESHOLD_PAD`](knowledge/wram/WEAPON_XP_THRESHOLD_PAD.md) | `u8[16]` | weapon, unused | 16-byte alignment padding gap ($7E:0BE5..$7E:0BF4) preceding weapon experience threshold (unused to our knowledge). |
 | `$7E:0BF5` | [`WEAPON_NEXT_LEVEL_XP_THRESHOLD`](knowledge/wram/WEAPON_NEXT_LEVEL_XP_THRESHOLD.md) | `u16` | weapon, combat | Experience points milestone required for current weapon skill to level up in Status screen ($8E:AC9B). |
@@ -248,28 +247,28 @@
 | `$7E:0BF9` | [`RING_MENU_CURSOR_SECTOR`](knowledge/wram/RING_MENU_CURSOR_SECTOR.md) | `u16` | mode7, dialogue | Latched cursor sector index during ring menu item selection ($FFFF = unlatched). |
 | `$7E:0BFB` | [`MODE7_CAMERA_TARGET_OFFSET_X`](knowledge/wram/MODE7_CAMERA_TARGET_OFFSET_X.md) | `u16` | mode7, map | Mode 7 Engine: Camera target anchor X coordinate offset for flight viewport ($8E:B33D). |
 | `$7E:0BFD` | [`MODE7_CAMERA_TARGET_OFFSET_Y`](knowledge/wram/MODE7_CAMERA_TARGET_OFFSET_Y.md) | `u16` | mode7, map | Mode 7 Engine: Camera target anchor Y coordinate offset for flight viewport ($8E:B33D). |
-| `$7E:0BFF` | [`RING_MENU_KEY_ITEMS_COUNT`](knowledge/wram/RING_MENU_KEY_ITEMS_COUNT.md) | `u16` | dialogue | Number of eligible key / story items populated into Key Items ring menu ($8E:9DF9). |
-| `$7E:0C01` | [`RING_MENU_KEY_ITEMS_SELECTION`](knowledge/wram/RING_MENU_KEY_ITEMS_SELECTION.md) | `u16` | dialogue | Currently highlighted key / story item cursor selection in Key Items Ring Menu ($8E:9DF9). |
-| `$7E:0C03` | [`RING_MENU_KEY_ITEMS_BUF`](knowledge/wram/RING_MENU_KEY_ITEMS_BUF.md) | `u16[16]` | dialogue | 16-entry array ($7E:0C03..$7E:0C22, 32 bytes) of held key and quest item IDs displayed in Key Items ring menu ($8E:9DF9). |
-| `$7E:0C23` | [`RING_MENU_WEAPONS_COUNT`](knowledge/wram/RING_MENU_WEAPONS_COUNT.md) | `u16` | weapon, dialogue | Number of unlocked weapons in Weapons Ring Menu |
-| `$7E:0C25` | [`RING_MENU_WEAPONS_SELECTION`](knowledge/wram/RING_MENU_WEAPONS_SELECTION.md) | `u16` | weapon, dialogue | Currently highlighted weapon cursor selection in Weapons Ring Menu |
-| `$7E:0C27` | [`RING_MENU_WEAPONS_BUF`](knowledge/wram/RING_MENU_WEAPONS_BUF.md) | `u16[16]` | weapon, dialogue | 16-entry array ($7E:0C27..$7E:0C46, 32 bytes) of owned weapon item IDs displayed in Weapons ring menu. |
-| `$7E:0C47` | [`RING_MENU_ITEMS_COUNT`](knowledge/wram/RING_MENU_ITEMS_COUNT.md) | `u16` | dialogue | Number of available consumable items in Items Ring Menu |
-| `$7E:0C49` | [`RING_MENU_ITEMS_SELECTION`](knowledge/wram/RING_MENU_ITEMS_SELECTION.md) | `u16` | dialogue | Currently highlighted consumable item cursor selection in Items Ring Menu |
-| `$7E:0C4B` | [`RING_MENU_ITEMS_BUF`](knowledge/wram/RING_MENU_ITEMS_BUF.md) | `u16[16]` | dialogue | 16-entry array ($7E:0C4B..$7E:0C6A, 32 bytes) of held consumable item IDs displayed in Consumables ring menu. |
-| `$7E:0C6B` | [`RING_MENU_SPELLS_COUNT`](knowledge/wram/RING_MENU_SPELLS_COUNT.md) | `u16` | alchemy, dialogue | Number of eligible alchemy formulas in Formulas / Spells Ring Menu |
-| `$7E:0C6D` | [`RING_MENU_SPELLS_SELECTION`](knowledge/wram/RING_MENU_SPELLS_SELECTION.md) | `u16` | alchemy, dialogue | Currently highlighted formula cursor selection in Formulas / Spells Ring Menu |
-| `$7E:0C6F` | [`RING_MENU_SPELLS_BUF`](knowledge/wram/RING_MENU_SPELLS_BUF.md) | `u16[16]` | alchemy, dialogue | 16-entry array ($7E:0C6F..$7E:0C8E, 32 bytes) of eligible alchemy formula IDs displayed in Spells ring menu. |
-| `$7E:0C8F` | [`RING_MENU_ALCH_FORMULA_COUNT`](knowledge/wram/RING_MENU_ALCH_FORMULA_COUNT.md) | `u16` | alchemy, dialogue | Total learned alchemy formulas populated into secondary ring menu |
-| `$7E:0C91` | [`RING_MENU_ALCH_SELECTION`](knowledge/wram/RING_MENU_ALCH_SELECTION.md) | `u16` | alchemy, dialogue | Currently highlighted formula cursor selection in secondary formula ring menu |
-| `$7E:0C93` | [`RING_MENU_ALCH_FORMULAS_BUF`](knowledge/wram/RING_MENU_ALCH_FORMULAS_BUF.md) | `u16[16]` | alchemy, dialogue | 16-entry array ($7E:0C93..$7E:0CB2, 32 bytes) of learned formula IDs displayed in secondary formula ring menu. |
+| `$7E:0BFF` | [`RING_ARMOUR_BODY_COUNT`](knowledge/wram/RING_ARMOUR_BODY_COUNT.md) | `u16` | dialogue | Item count of the body armour ring (`menus/rings/`). |
+| `$7E:0C01` | [`RING_ARMOUR_BODY_CURSOR`](knowledge/wram/RING_ARMOUR_BODY_CURSOR.md) | `u16` | dialogue | Selected item of the body armour ring (`menus/rings/`). |
+| `$7E:0C03` | [`RING_ARMOUR_BODY_ITEMS`](knowledge/wram/RING_ARMOUR_BODY_ITEMS.md) | `u16[16]` | dialogue | Ring item ids of the body armour ring (`menus/rings/`). |
+| `$7E:0C23` | [`RING_ARMOUR_HELM_COUNT`](knowledge/wram/RING_ARMOUR_HELM_COUNT.md) | `u16` | weapon, dialogue | Item count of the helm ring (`menus/rings/`). |
+| `$7E:0C25` | [`RING_ARMOUR_HELM_CURSOR`](knowledge/wram/RING_ARMOUR_HELM_CURSOR.md) | `u16` | weapon, dialogue | Selected item of the helm ring (`menus/rings/`). |
+| `$7E:0C27` | [`RING_ARMOUR_HELM_ITEMS`](knowledge/wram/RING_ARMOUR_HELM_ITEMS.md) | `u16[16]` | weapon, dialogue | Ring item ids of the helm ring (`menus/rings/`). |
+| `$7E:0C47` | [`RING_ARMOUR_GLOVES_COUNT`](knowledge/wram/RING_ARMOUR_GLOVES_COUNT.md) | `u16` | dialogue | Item count of the gloves ring (`menus/rings/`). |
+| `$7E:0C49` | [`RING_ARMOUR_GLOVES_CURSOR`](knowledge/wram/RING_ARMOUR_GLOVES_CURSOR.md) | `u16` | dialogue | Selected item of the gloves ring (`menus/rings/`). |
+| `$7E:0C4B` | [`RING_ARMOUR_GLOVES_ITEMS`](knowledge/wram/RING_ARMOUR_GLOVES_ITEMS.md) | `u16[16]` | dialogue | Ring item ids of the gloves ring (`menus/rings/`). |
+| `$7E:0C6B` | [`RING_ARMOUR_COLLAR_COUNT`](knowledge/wram/RING_ARMOUR_COLLAR_COUNT.md) | `u16` | alchemy, dialogue | Item count of the Dog's collar ring (`menus/rings/`). |
+| `$7E:0C6D` | [`RING_ARMOUR_COLLAR_CURSOR`](knowledge/wram/RING_ARMOUR_COLLAR_CURSOR.md) | `u16` | alchemy, dialogue | Selected item of the Dog's collar ring (`menus/rings/`). |
+| `$7E:0C6F` | [`RING_ARMOUR_COLLAR_ITEMS`](knowledge/wram/RING_ARMOUR_COLLAR_ITEMS.md) | `u16[16]` | alchemy, dialogue | Ring item ids of the Dog's collar ring (`menus/rings/`). |
+| `$7E:0C8F` | [`RING_BAZOOKA_AMMO_COUNT`](knowledge/wram/RING_BAZOOKA_AMMO_COUNT.md) | `u16` | alchemy, dialogue | Item count of the bazooka ammo ring (`menus/rings/`). |
+| `$7E:0C91` | [`RING_BAZOOKA_AMMO_CURSOR`](knowledge/wram/RING_BAZOOKA_AMMO_CURSOR.md) | `u16` | alchemy, dialogue | Selected item of the bazooka ammo ring (`menus/rings/`). |
+| `$7E:0C93` | [`RING_BAZOOKA_AMMO_ITEMS`](knowledge/wram/RING_BAZOOKA_AMMO_ITEMS.md) | `u16[16]` | alchemy, dialogue | Ring item ids of the bazooka ammo ring (`menus/rings/`). |
 | `$7E:0CB3` | [`RING_MENU_ALCH_ALIGN_PAD`](knowledge/wram/RING_MENU_ALCH_ALIGN_PAD.md) | `u8[2]` | alchemy, unused | 2-byte alignment padding ($7E:0CB3..$7E:0CB4) preceding formula action commands submenu (unused to our knowledge). |
-| `$7E:0CB5` | [`RING_MENU_FORMULA_ACTION_COUNT`](knowledge/wram/RING_MENU_FORMULA_ACTION_COUNT.md) | `u16` | alchemy, dialogue | Total available formula action commands in Ring Menu formula submenu |
-| `$7E:0CB7` | [`RING_MENU_FORMULA_ACTION_SELECTION`](knowledge/wram/RING_MENU_FORMULA_ACTION_SELECTION.md) | `u16` | alchemy, dialogue | Currently highlighted formula action cursor selection in formula submenu |
-| `$7E:0CB9` | [`RING_MENU_FORMULA_ACTIONS_BUF`](knowledge/wram/RING_MENU_FORMULA_ACTIONS_BUF.md) | `u16[16]` | alchemy, dialogue | 16-entry array ($7E:0CB9..$7E:0CD8, 32 bytes) of available action command IDs in ring menu formula submenu. |
-| `$7E:0CD9` | [`SHOP_MENU_OPTION_COUNT`](knowledge/wram/SHOP_MENU_OPTION_COUNT.md) | `u16` | dialogue | Total active shopkeeper dialogue interaction options in merchant choice menu |
-| `$7E:0CDB` | [`SHOP_MENU_SELECTION`](knowledge/wram/SHOP_MENU_SELECTION.md) | `u16` | dialogue | Currently highlighted merchant interaction option cursor index |
-| `$7E:0CDD` | [`SHOP_MENU_OPTIONS_BUF`](knowledge/wram/SHOP_MENU_OPTIONS_BUF.md) | `u16[8]` | dialogue | 8-entry array ($7E:0CDD..$7E:0CEC, 16 bytes) of merchant interaction choice option IDs in shopkeeper menu. |
+| `$7E:0CB5` | [`RING_CALL_BEAD_SPELLS_COUNT`](knowledge/wram/RING_CALL_BEAD_SPELLS_COUNT.md) | `u16` | alchemy, dialogue | Item count of the Call Bead spells ring (`menus/rings/`). |
+| `$7E:0CB7` | [`RING_CALL_BEAD_SPELLS_CURSOR`](knowledge/wram/RING_CALL_BEAD_SPELLS_CURSOR.md) | `u16` | alchemy, dialogue | Selected item of the Call Bead spells ring (`menus/rings/`). |
+| `$7E:0CB9` | [`RING_CALL_BEAD_SPELLS_ITEMS`](knowledge/wram/RING_CALL_BEAD_SPELLS_ITEMS.md) | `u16[16]` | alchemy, dialogue | Ring item ids of the Call Bead spells ring (`menus/rings/`). |
+| `$7E:0CD9` | [`RING_CALL_BEAD_CALLERS_COUNT`](knowledge/wram/RING_CALL_BEAD_CALLERS_COUNT.md) | `u16` | dialogue | Item count of the Call Bead callers ring (`menus/rings/`). |
+| `$7E:0CDB` | [`RING_CALL_BEAD_CALLERS_CURSOR`](knowledge/wram/RING_CALL_BEAD_CALLERS_CURSOR.md) | `u16` | dialogue | Selected item of the Call Bead callers ring (`menus/rings/`). |
+| `$7E:0CDD` | [`RING_CALL_BEAD_CALLERS_ITEMS`](knowledge/wram/RING_CALL_BEAD_CALLERS_ITEMS.md) | `u16[8]` | dialogue | Ring item ids of the Call Bead callers ring (`menus/rings/`). |
 | `$7E:0CED` | [`SHOP_MENU_OPTIONS_ALIGN_PAD`](knowledge/wram/SHOP_MENU_OPTIONS_ALIGN_PAD.md) | `u8[32]` | dialogue, unused | 32-byte alignment gap ($7E:0CED..$7E:0D0C) preceding quest and alchemy menu state (unused to our knowledge). |
 | `$7E:0D0D` | [`SAVE_PROMPT_YES_NO_SELECTION`](knowledge/wram/SAVE_PROMPT_YES_NO_SELECTION.md) | `u16` | dialogue | Selected option index in Save Menu Yes/No overwrite confirmation prompt |
 | `$7E:0D0F` | [`QUEST_MENU_LATCHED_SELECTION`](knowledge/wram/QUEST_MENU_LATCHED_SELECTION.md) | `u16` | alchemy | Previously latched menu selection cursor index ($FFFF = unlatched) used for change detection in quest / alchemy menu ($8C:C180). |
@@ -298,7 +297,7 @@
 | `$7E:0E46` | [`APU_SOUND_LOAD_ALIGN_PAD`](knowledge/wram/APU_SOUND_LOAD_ALIGN_PAD.md) | `u8` | audio, unused | 1-byte alignment padding ($7E:0E46) between active BGM track and APU sound loading registers (unused to our knowledge). |
 | `$7E:0E47` | [`APU_BLOCKS_LEFT`](knowledge/wram/APU_BLOCKS_LEFT.md) | `u16` | audio | Remaining audio data transfer blocks during SPC700 sound loading. |
 | `$7E:0E49` | [`APU_DESC_CURSOR`](knowledge/wram/APU_DESC_CURSOR.md) | `u16` | audio, script | Index offset into audio sample block descriptor table. |
-| `$7E:0E4B` | [`RESIDENT_SOUNDBANK_ID`](knowledge/wram/RESIDENT_SOUNDBANK_ID.md) | `u16` | audio | Currently loaded song instrument soundbank ID in SPC700 RAM ($7E:0E4B..$7E:0E4C; checked before IPL sample streaming in $8C:8236). |
+| `$7E:0E4B` | [`RESIDENT_SOUNDBANK_ID`](knowledge/wram/RESIDENT_SOUNDBANK_ID.md) | `u16` | audio | Soundbank package resident in SPC700 RAM (low byte); the high byte holds the new id while load_song_soundbank ($8C:8236) streams it ($8C:8266), 0 again at $8C:828B. |
 | `$7E:0E4D` | [`ACTIVE_MUSIC_TRACK_ID`](knowledge/wram/ACTIVE_MUSIC_TRACK_ID.md) | `u16` | audio | Currently requested music track ID staged for playback dispatch ($7E:0E4D..$7E:0E4E; $8C:828F). |
 | `$7E:0E4F` | [`SOUND_EFFECT_ID`](knowledge/wram/SOUND_EFFECT_ID.md) | `u16` | audio, script | Sound effect ID parameter register staged for APU command byte 0x04 trigger ($7E:0E4F..$7E:0E50; $8C:831D). |
 | `$7E:0E51` | [`APU_TRANSFER_DEPTH`](knowledge/wram/APU_TRANSFER_DEPTH.md) | `u16` | audio | APU streaming transfer recursion / active depth counter ($7E:0E51..$7E:0E52; $8C:81D4). |
@@ -364,7 +363,7 @@
 | `$7E:0F38` | [`CAMERA_SUBPIXEL_ACC`](knowledge/wram/CAMERA_SUBPIXEL_ACC.md) | `u16` | map | Camera sub-pixel tracking fractional accumulator. |
 | `$7E:0F3A` | [`VRAM_DMA_LOCK`](knowledge/wram/VRAM_DMA_LOCK.md) | `u16` | graphics, system | Active transfer counter and lock word for deferred VRAM DMA queue ($7E:0F3A..$7E:0F3B; $80:8A86, $90:8E40). |
 | `$7E:0F3C` | [`CGRAM_DMA_LOCK`](knowledge/wram/CGRAM_DMA_LOCK.md) | `u16` | graphics, system | Active transfer counter and lock word for deferred CGRAM DMA queue ($7E:0F3C..$7E:0F3D; $80:8A40, $8C:D172). |
-| `$7E:0F3E` | [`ENTITY_PTR_BOY`](knowledge/wram/ENTITY_PTR_BOY.md) | `u16` | boy, entity | Entity Subsystem: Address pointer to the Boy's entity record in WRAM ($4E89 in play; the Dog's is $0F40). |
+| `$7E:0F3E` | [`ENTITY_PTR_BOY`](knowledge/wram/ENTITY_PTR_BOY.md) | `u16` | boy, entity, script | Pointer to the Boy's entity record ($7E:4E89), set at new game ($8F:80B9); the script expression sub-op `$50` (`boy()`). |
 | `$7E:0F40` | [`ENTITY_PTR_DOG`](knowledge/wram/ENTITY_PTR_DOG.md) | `u16` | dog, entity | Entity Subsystem: Address pointer to Companion (Dog) entity slot in WRAM (defaults to $4F37; initialized in $8F:8144) |
 | `$7E:0F42` | [`CAMERA_TARGET_ACTOR_PTR`](knowledge/wram/CAMERA_TARGET_ACTOR_PTR.md) | `entity` | boy, map | Pointer to primary actor entity record tracked by camera (points to Boy at $7E:4E89). |
 | `$7E:0F44` | [`VIEWPORT_SCROLL_Y`](knowledge/wram/VIEWPORT_SCROLL_Y.md) | `u16` | map | Vertical world coordinate of top-left camera viewport boundary. |
@@ -378,7 +377,10 @@
 | `$7E:0F54` | [`PROJECTILE_CLUSTER_TRACKING_DIST`](knowledge/wram/PROJECTILE_CLUSTER_TRACKING_DIST.md) | `u16` | weapon, system | Projectile cluster tracking distance threshold / accumulator ($90:D68F). |
 | `$7E:0F56` | [`PROJECTILE_CLUSTER_TRACKING_VELOCITY`](knowledge/wram/PROJECTILE_CLUSTER_TRACKING_VELOCITY.md) | `u16` | weapon, system | Projectile cluster tracking angular velocity step ($90:D68F). |
 | `$7E:0F58` | [`PROJECTILE_CLUSTER_TRACKING_RATE`](knowledge/wram/PROJECTILE_CLUSTER_TRACKING_RATE.md) | `u16` | weapon, system | Projectile cluster tracking acceleration / rate parameter ($90:D68F). |
-| `$7E:0F5A` | [`ROOM_PPU_MIRROR_ALIGN_GAP`](knowledge/wram/ROOM_PPU_MIRROR_ALIGN_GAP.md) | `u8[38]` | map, graphics, unused | 38-byte alignment gap ($7E:0F5A..$7E:0F7F) between projectile cluster tracking registers and room PPU screen mirrors (unused to our knowledge). |
+| `$7E:0F5A` | [`RING_DEBUG_COUNT`](knowledge/wram/RING_DEBUG_COUNT.md) | `u16` | unused | Item count of the debug ring (never filled in this release: its count stays 0, so the Boy's flow skips it) (never filled in this release). |
+| `$7E:0F5C` | [`RING_DEBUG_CURSOR`](knowledge/wram/RING_DEBUG_CURSOR.md) | `u16` | unused | Selected item of the debug ring (never filled in this release: its count stays 0, so the Boy's flow skips it). |
+| `$7E:0F5E` | [`RING_DEBUG_ITEMS`](knowledge/wram/RING_DEBUG_ITEMS.md) | `u16[16]` | unused | Ring item ids of the debug ring (never filled in this release: its count stays 0, so the Boy's flow skips it). |
+| `$7E:0F7E` | [`RING_DEBUG_PAD`](knowledge/wram/RING_DEBUG_PAD.md) | `u8[2]` | unused | Two bytes after the debug ring's buffer. |
 | `$7E:0F80` | [`MAP_TM_MIRROR`](knowledge/wram/MAP_TM_MIRROR.md) | `u8` | graphics, map | Main screen designation register mirror ($212C) loaded from room header byte ($90:8EE2). |
 | `$7E:0F81` | [`MAP_TS_MIRROR`](knowledge/wram/MAP_TS_MIRROR.md) | `u8` | graphics, map | Sub screen designation register mirror ($212D) loaded from room header byte ($90:8EE2). |
 | `$7E:0F82` | [`MAP_CGADSUB_MIRROR`](knowledge/wram/MAP_CGADSUB_MIRROR.md) | `u8` | graphics, map | Color math addition/subtraction designation register mirror ($2131) loaded from room header byte ($90:8EE2). |

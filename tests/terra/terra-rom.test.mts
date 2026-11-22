@@ -93,6 +93,18 @@ if (!rom) {
         assert.ok(ms < 10000, ms + ' ms');
     });
 
+    test('room names: every used room has one, each anchor names its own area, Ark’s house is in Crysta', () => {
+        const byId = new Map(catalog.rooms.map(r => [r.id, r as unknown as { area: string; name: string }]));
+        assert.ok(catalog.rooms.every(r => (r as unknown as { name: string }).name.length > 0));
+        const areaOf = (id: number) => byId.get(id)!.area;
+        assert.strictEqual(areaOf(0x00F), 'Crysta');
+        assert.strictEqual(byId.get(0x002)!.name, 'Overworld');
+        assert.strictEqual(byId.get(0x003)!.name, 'Underworld');
+        const anchors = terra.AREAS.map((a: { anchor: number }) => areaOf(a.anchor));
+        assert.strictEqual(new Set(anchors).size, terra.AREAS.length, 'two anchors in one area, or one area named twice');
+        assert.strictEqual(new Set(catalog.rooms.map(r => (r as unknown as { name: string }).name)).size, catalog.rooms.length, 'names are unique');
+    });
+
     test('room $00F (Ark’s house) as the loader builds it: layers, sizes, display registers (as in the running game)', () => {
         const r = terra.loadRoom(rom, 0x00F);
         assert.ok(r);

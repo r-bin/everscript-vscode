@@ -3,8 +3,10 @@
 // tab (src/games/evermore/rooms/webview/animation.js) and the Secret of Mana Maps panel.
 // Plain browser script: defines globals, loaded as a file or concatenated.
 //
-// A group is one animation: its frames (image URLs), how long each shows (ms), and
-// every rectangle it is drawn at (SVG units). A group drawn at several places is
+// A group is one animation: its frames (image URLs), how long each step shows (ms),
+// optionally which frame each step shows (`order`; else step k shows frame k), and
+// every rectangle it is drawn at (SVG units). Steps are found from the time since the
+// start, not by adding delays, so groups with the same loop never drift apart. A group drawn at several places is
 // one <image> in <defs> plus a <use> per place, so a frame change is one attribute
 // write however many cells share it.
 //
@@ -49,27 +51,26 @@ function mapAnimPlay(svg, groups, opts) {
         layer.appendChild(use);
       });
     }
-    var first = g.delays[0] || 120;
-    live.push({ el: el, frames: g.frames, delays: g.delays, i: 0, due: opts.randomPhase ? first * Math.random() : first });
+    var ends = [], total = 0;
+    g.delays.forEach(function (d) { total += d > 0 ? d : 120; ends.push(total); });
+    live.push({ el: el, frames: g.frames, order: g.order || null, ends: ends, total: total, k: 0,
+      phase: opts.randomPhase ? total * Math.random() : 0 });
   });
   var after = opts.after;
   if (after && after.parentNode === svg && after.nextSibling) svg.insertBefore(layer, after.nextSibling);
   else svg.appendChild(layer);
 
-  var raf = 0, last = 0;
+  var raf = 0, start = 0;
   function tick(now) {
     raf = 0;
-    var dt = last ? Math.min(now - last, 250) : 0;
-    last = now;
-    for (var k = 0; k < live.length; k++) {
-      var a = live[k];
-      a.due -= dt;
-      if (a.due > 0) continue;
-      a.i = (a.i + 1) % a.frames.length;
-      a.el.setAttribute('href', a.frames[a.i]);
-      // Add rather than assign, so a slow frame does not drift the whole cycle.
-      a.due += (a.delays[a.i] || 120);
-      if (a.due < 0) a.due = a.delays[a.i] || 120;
+    if (!start) start = now;
+    for (var n = 0; n < live.length; n++) {
+      var a = live[n], pos = (now - start + a.phase) % a.total;
+      var k = a.k && pos >= a.ends[a.k - 1] ? a.k : 0;   // forward from the shown step, else wrapped
+      while (k < a.ends.length - 1 && a.ends[k] <= pos) k++;
+      if (k === a.k) continue;
+      a.k = k;
+      a.el.setAttribute('href', a.frames[a.order ? a.order[k] : k % a.frames.length]);
     }
     raf = requestAnimationFrame(tick);
   }

@@ -9,22 +9,28 @@
 //   soe://rom/code/<name>/info.md            knowledge entry, place, calls, callers, WRAM, open work
 //   soe://rom/code/<name>/<name>.asm         the whole routine, asm comments infused (?comments=0: raw)
 //   soe://rom/code/<name>/<name>.c           its reconstructed C (?file=1: the whole file)
+//   soe://rom/code/<name>/<name>.pseudo.c    C from another source: a curated docs block or the snesrecomp lift
+//   soe://rom/code/<name>/routine.json       info.md as data: entry, calls, callers, WRAM, open work, versions
+//   soe://rom/code/<name>/lines.json         the instructions raw and named, with what each did in the CDL library (code-lines.ts)
 //   soe://rom/code/<address>                 old address path: a link to the routine's page
 
 import * as fs from 'fs';
 import * as path from 'path';
 import { dir, text, json, link, type Entry } from './nodes';
 import { asmListing, lineText } from './asm-view';
-import { getDecompiledC, cListing } from './decomp-view';
-import { catalog, findFunction, analyse } from './code-catalog';
+import { getDecompiledC, otherC, cListing } from './decomp-view';
+import { catalog, findFunction, analyse, callers } from './code-catalog';
 import type { Catalog, CodeFunction } from './code-catalog';
-import { select, todos, hex6 } from './code-search';
+import { select, todos, ramEntry, hex6, TODO_KINDS } from './code-search';
 import { indexPage, infoPage, asmFile, cFile, todoPage, wramPage, banksPage } from './code-markdown';
 import { REPO } from './code-c-index';
+import { routineLinesJson } from './code-lines';
+import type { CdlView } from '../../../platform/cdl/library-read';
 import { hiromFileOffset } from '../../../platform/snes/hirom';
 import type { MapsDeps } from './map-files';
 
-type CodeDeps = MapsDeps & { vanillaRom?(): Uint8Array | null };
+/** `cdl`: the CDL library recorded for a ROM (null: none), injected like the ROMs. */
+type CodeDeps = MapsDeps & { vanillaRom?(): Uint8Array | null; cdl?(rom: Uint8Array): CdlView | null };
 const PAGES = ['index.md', 'index.json', 'search.md', 'todo.md', 'wram.md', 'banks.md'];
 
 /** A bus address from an old `code/<address>` segment (6 hex digits, `$` and an extension allowed). */
@@ -52,20 +58,56 @@ function routineComments(cat: Catalog, fn: CodeFunction) {
     };
 }
 
-function functionDir(cat: Catalog, fn: CodeFunction, params: URLSearchParams, rest: string[]) {
+/** C from another source than reconstructed-c/ for `fn` (code-markdown's cFile shape), or a line saying there is none. */
+function pseudoFile(fn: CodeFunction): string {
+    const got = otherC(fn.at.addr ?? fn.vanilla);
+    if (!got) return `// ${fn.name} (${hex6(fn.vanilla)}): no C from another source (curated docs, snesrecomp lift).\n`;
+    return `// ${fn.name} — ${fn.entry.title}\n// Source: ${got.source} (${got.path})\n\n${got.code}\n`;
+}
+
+/** info.md as data, for panels (the Code tab): the entry, where it is, calls and callers by name, WRAM, open work, the versions there are. */
+function routineJson(cat: Catalog, fn: CodeFunction) {
+    const e = fn.entry, a = analyse(cat, fn);
+    const other = otherC(fn.at.addr ?? fn.vanilla);
+    const named = (t: number) => cat.byAddr.get(t) || cat.byAddr.get(t ^ 0x400000) || null;
+    return {
+        name: fn.name, title: e.title, kind: e.kind, category: e.category, confidence: e.confidence,
+        us: hex6(fn.vanilla), addr: fn.at.addr === null ? null : hex6(fn.at.addr), located: fn.at.how,
+        purpose: e.purpose, body: e.body, evidence: e.evidence, see: e.see, entry: e.file,
+        calls: (a?.calls || []).map(t => { const f = named(t); return { addr: hex6(t), name: f ? f.name : null, title: f ? f.entry.title : null }; }),
+        callers: callers(cat, fn).map(f => ({ name: f.name, title: f.entry.title })),
+        wram: (a?.wram || []).map(u => { const r = ramEntry(u.addr); return { addr: hex6(u.addr), access: [...u.access], viaDb: u.viaDb, name: r ? r.name : null, title: r ? r.title : null }; }),
+        fields: a?.fields || [], io: a?.io || [], instructions: a?.lines.length || 0, commented: a?.commented || 0,
+        todo: todos(cat, fn).map(t => ({ kind: t.kind, label: TODO_KINDS[t.kind], detail: t.detail })),
+        versions: {
+            asm: `${fn.name}.asm`,
+            c: fn.c ? { file: `${fn.name}.c`, source: `${fn.c.file}:${fn.c.from + 1}` } : null,
+            pseudo: other ? { file: `${fn.name}.pseudo.c`, source: `${other.source} (${other.path})` } : null,
+        },
+    };
+}
+
+function functionDir(cat: Catalog, fn: CodeFunction, params: URLSearchParams, rest: string[], deps?: CodeDeps) {
     const [leaf] = rest;
     if (leaf === undefined) {
         const entries: Entry[] = [
             ['info.md', 'file'],
+            ['routine.json', 'file'],
+            ['lines.json', 'file'],
             [fn.name + '.asm', 'file'],
             ['comments.json', 'file'],
             [fn.name + '.c', 'file'],
             [fn.name + '.ghidra.c', 'file'],
+            [fn.name + '.pseudo.c', 'file'],
         ];
         return dir(entries, () => infoPage(cat, fn));
     }
     if (rest.length > 1) return null;
     if (leaf === 'info.md' || leaf === 'index.md') return text(() => infoPage(cat, fn));
+    if (leaf === 'routine.json') return json(() => routineJson(cat, fn));
+    // Live: the CDL library grows while the game runs, so the file is never cached for long.
+    if (leaf === 'lines.json') return json(() => routineLinesJson(cat, fn, deps?.cdl ? deps.cdl(cat.rom) : null), true);
+    if (leaf === fn.name + '.pseudo.c') return text(() => pseudoFile(fn));
     if (leaf === fn.name + '.asm') {
         if (params.get('comments') !== '0') return text(() => asmFile(cat, fn));
         return text(() => (analyse(cat, fn)?.lines || []).map(l => lineText({ ...l, comment: undefined })).join('\n') + '\n');
@@ -77,7 +119,7 @@ function functionDir(cat: Catalog, fn: CodeFunction, params: URLSearchParams, re
         const whole = params.get('file') === '1' && fn.c ? fs.readFileSync(path.join(REPO, fn.c.file), 'utf8') : null;
         return text(() => cFile(fn, whole));
     }
-    if (leaf === fn.name + '.ghidra.c' || leaf === 'ghidra.c' || leaf === 'pseudocode.c' || leaf === fn.name + '.pseudo.c') {
+    if (leaf === fn.name + '.ghidra.c' || leaf === 'ghidra.c' || leaf === 'pseudocode.c') {
         return text(() => cListing(cat.rom, fn.at.addr ?? fn.vanilla));
     }
     return null;
@@ -122,14 +164,14 @@ function resolveCode(segments: string[], rom: Uint8Array, deps?: CodeDeps) {
         if (head === 'banks.md') return text(() => banksPage(cat));
     }
     const fn = findFunction(cat, head);
-    if (fn) return functionDir(cat, fn, params, rest);
+    if (fn) return functionDir(cat, fn, params, rest, deps);
     const bus = rest.length === 0 ? parseCodeAddress(head) : null;
     if (bus === null || hiromFileOffset(bus) >= rom.length) return null;
     const known = cat.list.find(f => f.vanilla === bus || hiromFileOffset(f.vanilla) === hiromFileOffset(bus));
     if (!known) return text(() => legacyPage(rom, bus, params));
     const leaf = params.get('asm') === '1' && params.get('c') !== '1' ? known.name + '.asm'
         : params.get('c') === '1' && params.get('asm') !== '1' ? known.name + '.c' : 'info.md';
-    return link(functionDir(cat, known, params, [leaf]), `soe://rom/code/${known.name}/${leaf}`);
+    return link(functionDir(cat, known, params, [leaf], deps), `soe://rom/code/${known.name}/${leaf}`);
 }
 
 export { resolveCode, parseCodeAddress };

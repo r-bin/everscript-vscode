@@ -71,6 +71,26 @@ export function collisionOf(rom: Rom, map: ManaMap, layer: 'A' | 'B' = 'A'): Map
     return { w, h, bytes };
 }
 
+/** c1 bit 4: a return cell, entering it takes the party back to its saved return point (a house's way out). */
+export function returnsParty(c1: number): boolean {
+    return (c1 & 0x10) !== 0;
+}
+
+/**
+ * The layer the party walks on in `map`, as far as the data shows: B when only layer B has
+ * return cells (the way out of a house, map `$101`: its walls are layer B's, layer A holds the
+ * furniture tops), else A. A load leaves the party's layer (`$7E:E00B` bit 7) as it was; the
+ * door that leads in sets it, and what its event does is not decoded.
+ */
+export function partyLayer(rom: Rom, map: ManaMap): 'A' | 'B' {
+    const has = (layer: 'A' | 'B') => {
+        const c = collisionOf(rom, map, layer).bytes;
+        for (let i = 1; i < c.length; i += 4) if (returnsParty(c[i])) return true;
+        return false;
+    };
+    return !has('A') && has('B') ? 'B' : 'A';
+}
+
 /** Floor class: 0 none, 1 level 1, 2 level 2, 3 wall (c0 values 4-7 count as none). */
 export function floorOf(c0: number): Floor {
     const v = c0 & 7;

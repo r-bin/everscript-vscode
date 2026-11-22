@@ -189,7 +189,7 @@ Four ceilings, all measured against the ROM:
 
 | Resource | Ceiling | Fullest vanilla room | Headroom |
 |---|---|---|---|
-| **Graphics slots** | ~264 | **255** — room `0x08` (237 Block 1 + 18 animated) | **9 slots** |
+| **Graphics slots** | 256 | **255** — room `0x08` (237 Block 1 + 18 animated) | **1 slot** |
 | **Tile families** | 7 loaded at once | 7 (74 rooms), 14 listed (18 rooms, swapped) | — |
 | **Metatile stamps** | no field limit | 2131 — room `0x37` | WRAM-bound |
 | **WRAM window** | ~32768 B | **32680 B** — room `0x65` (80×99, 2105 stamps) | **88 bytes** |
@@ -201,12 +201,12 @@ buffer at `$7F0000`.
 > That table gives the graphics high-water mark as 246. That is Block 1
 > alone (room `0x37`). Counting the animated graphics that share the same
 > slot space, the real maximum is **255** in room `0x08`, leaving nine
-> slots against the ~264 ceiling — a much tighter margin than 246 suggests.
+> slots against the 256 ceiling — a much tighter margin than 246 suggests.
 
 For scale, the room this page keeps using:
 
 ```
-room 0x34   graphics 92/264   stamps 175   wram 2048/32768
+room 0x34   graphics 92/256   stamps 175   wram 2048/32768
 ```
 
 Strongheart's Hut is a small room. It has room for roughly 27 more gourds
@@ -219,7 +219,7 @@ spends **before** it is committed, and the meter moves when you hover an
 object in the library:
 
 ```
-graphics  ████████░░░░░░░░░░░░░░░░  92 / 264      + 10  →  102
+graphics  ████████░░░░░░░░░░░░░░░░  92 / 256      + 10  →  102
 families  ███████                    7 / 7        + 1   →  OVER
 stamps    ░░░░░░░░░░░░░░░░░░░░░░░░ 175            + 6   →  181
 wram      █░░░░░░░░░░░░░░░░░░░░░░░ 2048 / 32768   + 48  →  2096
@@ -254,11 +254,11 @@ median family has 24 graphics; many have exactly 1.
 
 Once seven families are chosen, the graphics list shows what the index has
 **actually seen drawn** in one of them. For room `0x34`'s set
-(`35, 187, 58, 165, 149, 59, 166`) that is **157 graphics** — against ~264
+(`35, 187, 58, 165, 149, 59, 166`) that is **157 graphics** — against 256
 loadable slots.
 
 So the filter narrows the 6202 game-wide graphics to 157 candidates, which
-is the point. But note it is *not* the binding constraint: 157 < 264, so the
+is the point. But note it is *not* the binding constraint: 157 < 256, so the
 family choice, not the slot budget, is what limits a room's vocabulary in
 practice.
 
@@ -389,7 +389,7 @@ exactly what a stamped gourd looked like. So a cell stores
 
 and the destination rebuilds the word: `editSlotChr(adoptGraphic(graphic))
 | (familySlot + 1) << 10 | flags`. Both halves are budgeted — a family takes
-one of seven palette slots, a graphic one of ~264 Block 1 slots — and a cell
+one of seven palette slots, a graphic one of 256 Block 1 slots — and a cell
 that cannot get a family slot is refused by name rather than drawn wrong.
 Priority and the two flips are geometry, not identity, so they ride along
 untouched.

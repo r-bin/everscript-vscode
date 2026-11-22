@@ -70,6 +70,15 @@ export interface PaletteCycleSpec {
 }
 
 /**
+ * Frames between two shifts of a cycle: |rate|. `$90D58C` counts `$13F2` down once per
+ * main-loop pass and reloads it with |rate| at each shift; measured on the vanilla ROM a
+ * rate-13 slot shifts every 13 frames (12-15 around lag frames).
+ */
+export function paletteCycleFrames(rate: number): number {
+    return Math.max(1, Math.abs(rate));
+}
+
+/**
  * 16-bit bitmask of palette colour indices (1..15) rotated by a palette cycle.
  */
 export function paletteCycleMask(c: PaletteCycleSpec): number {
@@ -78,27 +87,29 @@ export function paletteCycleMask(c: PaletteCycleSpec): number {
 }
 
 /**
- * Build a room's 8 CGRAM sub-palettes with Section 4.3 colour cycles shifted at `step`.
+ * Build a room's 8 CGRAM sub-palettes with Section 4.3 colour cycles shifted `step` times
+ * (one count for every cycle, or one per cycle).
  */
 export function shiftCgramPalettes(
     rom: Uint8Array,
     tileFamilies: number[],
     cycles: readonly PaletteCycleSpec[],
-    step: number,
+    step: number | readonly number[],
 ): Rgba[][] {
     const cgram = buildRoomCgramPalettes(rom, tileFamilies).map((p) => p.slice());
-    for (const pc of cycles) {
+    cycles.forEach((pc, i) => {
         const p = pc.paletteIndex;
-        if (p < 1 || p > 7 || pc.span <= 1 || pc.rate === 0 || !cgram[p] || p - 1 >= tileFamilies.length) continue;
+        if (p < 1 || p > 7 || pc.span <= 1 || pc.rate === 0 || !cgram[p] || p - 1 >= tileFamilies.length) return;
         const orig = extractTileFamilyPalette(rom, tileFamilies[p - 1]);
         const span = pc.span;
         const start = pc.colorStart;
-        const shift = ((step % span) + span) % span;
+        const n = typeof step === 'number' ? step : step[i] ?? 0;
+        const shift = ((n % span) + span) % span;
         for (let c = 0; c < span; c++) {
             if (start + c >= 16) break;
             const srcIdx = pc.rate > 0 ? (c - shift + span) % span : (c + shift) % span;
             if (start + srcIdx < 16) cgram[p][start + c] = orig[start + srcIdx];
         }
-    }
+    });
     return cgram;
 }

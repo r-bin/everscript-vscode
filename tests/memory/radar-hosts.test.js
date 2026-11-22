@@ -36,7 +36,7 @@ function test(name, fn, needsRom) {
 /** A ctx that collects what the handler posts. */
 function ctx(extra) {
     const posted = [];
-    return { posted, post: (m) => posted.push(m), roomRom: () => ({ error: 'no room' }), manaRooms: null, ...extra };
+    return { posted, post: (m) => posted.push(m), roomRom: () => ({ error: 'no room' }), importedRooms: null, ...extra };
 }
 
 console.log('radar hosts:');

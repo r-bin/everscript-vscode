@@ -1,7 +1,7 @@
 ---
 addr: 8FB7D7
-size: 28
-end: 8FB7F2
+size: 8
+end: 8FB7DE
 kind: code
 category: 🧠
 name: attack_proc_status_strike

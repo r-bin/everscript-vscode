@@ -7,8 +7,8 @@ category: 🧠
 name: strike_sweep_filter
 title: Strike sweep — which entities a strike box may hit
 confidence: confirmed
-tags: [combat, strike, hit]
-evidence: ["disasm: $8F:B5FC-$8F:B611 (side = attacker +$10 bit 2 inverted; mask $5006, | $0020 when the attacker is not the Boy or Dog), $8F:B612-$8F:B61C (walk the entity list $3DDF, skip when (+$10 EOR side) & mask)", "emulator: room 0x38 booted through the intro hook: a Wimpy Flower's strikes swept the Boy but never reached $8F:B61E while his +$10 was $0124; with bit 5 cleared they hit (tools/routes/fight-in-game.mts, v0.336.0)"]
+tags: [combat, strike, hit, rng, rng.combat]
+evidence: ["disasm: $8F:B5FC-$8F:B611 (side = attacker +$10 bit 2 inverted; mask $5006, | $0020 when the attacker is not the Boy or Dog), $8F:B612-$8F:B61C (walk the entity list $3DDF, skip when (+$10 EOR side) & mask)", "emulator: room 0x38 booted through the intro hook: a Wimpy Flower's strikes swept the Boy but never reached $8F:B61E while his +$10 was $0124; with bit 5 cleared they hit (tools/routes/fight-in-game.mts, v0.336.0)", "disasm: $8F:B63A-$8F:B691: box test per target, r = the word at the target record +$0D: 2(|y + 16 + (+$44) - $48| - r) < $40 and 2(|x + (+$42) - $46| - r) < $3E (strike centre $46/$48, width $3E, height $40 from $90:87BA: attacker + dx, dy); then z + $4A < $460 and the plane +$18 against $44 unless either has bit $40 (recomp combat RNG mod, 2026-11-11: whiff distances from this test in room 0x38)"]
 see: [routines/melee_to_hit_roll.md, routines/attack_proc_melee_boy_kill_xp.md, routines/character_records.md]
 ---
 For every strike box, `$8F:B615` walks the entity list and skips a candidate on the attacker's own
@@ -22,3 +22,7 @@ Trap: starting the game straight in a room (the intro hook) skips the opening sc
 keeps `+$10` bit 5 — no enemy can hit him until it is cleared.
 
 The whole fight, its random rolls and the in-game check: `docs/entities/combat.md`.
+
+A strike that rolls nothing left no trace in WRAM: the recomp's combat RNG mod repeats this test at the
+frame's end to say how far a whiff fell short, or which gate stopped a strike that reached
+(docs/entities/combat.md §10).

@@ -35,3 +35,17 @@ How to use it: skill `code-vfs`. This file: where it is going and what is open.
 6. **Entries keyed by name.** Knowledge files are still named by US address
    (`knowledge/routines/script_op_39_3b_sleep.md`); the VFS already keys by `name:`. Renaming the files waits until
    other tools (`check-knowledge`, exports) read the `addr:` field only.
+7. **Ghidra pseudo-C in the Code tab.** The tab's Pseudo-C slot shows `<name>.pseudo.c`: a curated
+   docs block or the snesrecomp lift (`decomp-view.ts` `otherC`). Real Ghidra pseudocode is not
+   there: the local REA dossiers (`ghidra-analysis` skill) hold asm, callers and callees only, no
+   decompiler output. When an export exists, it reaches `soe://` through the planned library
+   (`static.json`), never a live Ghidra, and becomes one more source of `otherC`.
+8. **Entry widths without a CDL library.** `<name>.asm` and `lines.json` decode from 16-bit A/X (the reset
+   handler: 8-bit) unless a CDL library gives each instruction's widths. A routine entered with 8-bit X/Y
+   decodes as garbage without one: `nmi_sprite_tile_dma_upload` (the NMI handler runs `sep #$10` first)
+   shows `tsb $43`, `ora $21,x`. Fix: a routine's entry widths from its callers' state at the call (or the
+   library's `rets.bin` entry widths), kept in the catalog.
+9. **Names still missing in lines.json** (vanilla library, 2026-11-12: 96.7 % of the operands that ran
+   are named): stack slots (`$01,s`), records off X/Y spread over many ROM banks (`unknown_809751`),
+   ROM data no knowledge entry covers, and addresses built from immediates (`lda #$6C91` + `ldy #$7E`
+   into `A1T0L`/`A1B0` is `$7E6C91`).

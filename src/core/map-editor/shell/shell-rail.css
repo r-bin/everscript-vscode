@@ -170,6 +170,20 @@
   color:var(--rg-text-primary);
   font-weight:500;
 }
+/* A room's status (`data-status`, set by the game's page; its title says why): yellow, it works but differs from its
+ * source or spends past what the game does — a dot after the id; the label takes the colour only when it is severe
+ * (`data-severe`: the picture itself is wrong); red, it cannot be played or exported — label and dot. */
+.rg-rail li.rn-map[data-status="warn"][data-severe] .rn-map-label,
+.rg-rail li.rn-map[data-status="warn"][data-severe] .rn-label{color:var(--rg-warning)}
+.rg-rail li.rn-map[data-status="error"] .rn-map-label,
+.rg-rail li.rn-map[data-status="error"] .rn-label{color:var(--rg-error)}
+.rg-rail li.rn-map[data-status]::after{
+  content:'';flex-shrink:0;
+  width:6px;height:6px;border-radius:50%;
+}
+.rg-rail li.rn-map[data-status="warn"]::after{background:var(--rg-warning)}
+.rg-rail li.rn-map[data-status="error"]::after{border-radius:1px;background:var(--rg-error)}
+
 /* Room ids stay monospace — they are data, not chrome. */
 .rg-rail .rn-vid-tag,
 .rg-rail .rv-id{

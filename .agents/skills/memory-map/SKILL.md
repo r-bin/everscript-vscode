@@ -37,6 +37,8 @@ Every 64 KB file bank *n* appears twice: whole at `$(C0+n):0000–FFFF`, upper h
 - **ExHiROM (8 MB):** `tools/exhirom/convert.js`; layout and proof in `docs/exhirom/port.md`. New
   space is `0x400000–0x7FFFFF` (bus `$40–$7D`); `$00–$3F:8000+` is no longer the first 4 MB, so
   new code goes at `$80+`/`$C0+`.
+- **SA-1 (8 MB):** `tools/sa1/convert.mts`, `docs/sa1/port.md`. The bytes are there twice: LoROM-packed for
+  `$80–$BF:8000+` (file `0x200000+`), linear for `$C0–$FF` (file `0x400000+`). A patch must write both copies.
 - PAL releases move things: US addresses do not apply to them (`docs/evermore-releases.md`).
 
 ## WRAM (`$7E0000–$7FFFFF`, 128 KB zero-gap layout)
@@ -45,6 +47,8 @@ The WRAM memory map is split into two 64 KB bank tables with 100% byte continuit
 - Bank `$7E` (65,536 B): `src/games/evermore/localizations/data/wram-map.md` (mirror: `docs/disassembly/engine-core/wram-map.md`)
 - Bank `$7F` (65,536 B): `src/games/evermore/localizations/data/wram-map-7f.md` (mirror: `docs/disassembly/engine-core/wram-map-7f.md`)
 - Composite structs: `src/games/evermore/localizations/data/types.json` defines structured types (`EntityRecord`, `BoyStats`, `DogStats`, etc.) referenced directly in the tables.
+  A byte's field path: `getWramField` (wram-map.ts; follows `extends`, arrays and field sizes — a byte no field
+  covers has none, it is not the field before it).
 - **Validation tool:** `node tools/check-maps.mts` (`npm run check:memory-maps`) verifies zero gaps, byte continuity, ascending order, types, tag taxonomy, and exact 1:1 file parity with `docs/`.
 
 | Range | Role |

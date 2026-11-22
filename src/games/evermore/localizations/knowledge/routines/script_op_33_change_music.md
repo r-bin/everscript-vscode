@@ -12,3 +12,7 @@ evidence: ["disasm: vanilla VFS at $8C:D6D6 fetches the operand byte, sends $1A/
 see: [docs/disassembly/script-vm/opcode-33-change-music.md, routines/MUSIC_TRANSLATION_TABLE.md, routines/play_music_track.md]
 ---
 The operand byte is used directly as the byte offset into the signed word table at `$8C:8442`; the handler does not scale it. Negative entries leave the song unchanged after the preceding APU setup commands.
+
+The combo POC sends this same `$1A`, `$2A`/`$A0`, `$2C`/0 before it plays Evermore's track again on a resume
+(docs/combo/poc.md §4). What `$2A` and `$2C` set is not known yet; `$2C` also gets `($96 - $14BA) * 4` from
+`$80:C552`/`$80:CCF4`, and `$2A` a script argument from `$8C:E2A0`.

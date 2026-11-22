@@ -1,5 +1,5 @@
 // Ownership: the two bitstream compressors of the room write path — LZSS
-// ($8C98C9) and the 2D Markov grid ($8C9BD0). Pure.
+// ($8C98C9, ours and the vanilla one) and the 2D Markov grid ($8C9BD0). Pure.
 //
 // Ported from everscript/tools/encode_room.py. Each is the inverse of its
 // decoder in lzss.ts / markov.ts; encode.ts wraps them into blocks.
@@ -134,6 +134,91 @@ export function lzssCompress(data: Uint8Array, maxCandidates = 64): Uint8Array {
     // End of stream: a reference token with offset 0.
     bw.write(0, 1);
     bw.write(0, 16);
+    return bw.flush();
+}
+
+/**
+ * The LZSS stream the vanilla rooms were packed with, byte for byte (237 of the 241 vanilla blocks; the other four,
+ * Block 3 of rooms 0x0A, 0x16, 0x2D and 0x67, differ after the window wraps). Our own reconstruction, measured
+ * against the ROM (docs/map-format/lzss-vanilla.md): greedy, longest match from a binary search tree of every
+ * window position (window index 0 first, 17-byte keys), an equal-length node later on the search path replacing an
+ * earlier one, position 0xFFF never in the tree (its offset would encode as 0, the end marker); then the end
+ * token's flag and 12 zero offset bits, padded to a byte, without its length nibble.
+ */
+export function lzssCompressVanilla(data: Uint8Array): Uint8Array {
+    const N = WINDOW_SIZE, F = MAX_MATCH, NIL = N;
+    const text = new Uint8Array(N + F);
+    const left = new Int32Array(N + 1), right = new Int32Array(N + 257), parent = new Int32Array(N + 1);
+    right.fill(NIL, N + 1);
+    parent.fill(NIL, 0, N);
+    let matchLength = 0, matchPosition = 0;
+
+    const insert = (r: number): void => {
+        matchLength = 0;
+        if (r === N - 1) return;
+        let cmp = 1, p = N + 1 + text[r];
+        right[r] = left[r] = NIL;
+        for (;;) {
+            if (cmp >= 0) { if (right[p] !== NIL) p = right[p]; else { right[p] = r; parent[r] = p; return; } }
+            else { if (left[p] !== NIL) p = left[p]; else { left[p] = r; parent[r] = p; return; } }
+            let i = 1;
+            for (; i < F; i++) if ((cmp = text[r + i] - text[p + i]) !== 0) break;
+            if (i >= matchLength) { matchPosition = p; if ((matchLength = i) >= F) break; }
+        }
+        // A full-length match: the new position takes the old one's place in the tree.
+        parent[r] = parent[p]; left[r] = left[p]; right[r] = right[p];
+        parent[left[p]] = r; parent[right[p]] = r;
+        if (right[parent[p]] === p) right[parent[p]] = r; else left[parent[p]] = r;
+        parent[p] = NIL;
+    };
+    const remove = (p: number): void => {
+        if (parent[p] === NIL) return;
+        let q: number;
+        if (right[p] === NIL) q = left[p];
+        else if (left[p] === NIL) q = right[p];
+        else {
+            q = left[p];
+            if (right[q] !== NIL) {
+                do q = right[q]; while (right[q] !== NIL);
+                right[parent[q]] = left[q]; parent[left[q]] = parent[q];
+                left[q] = left[p]; parent[left[p]] = q;
+            }
+            right[q] = right[p]; parent[right[p]] = q;
+        }
+        parent[q] = parent[p];
+        if (right[parent[p]] === p) right[parent[p]] = q; else left[parent[p]] = q;
+        parent[p] = NIL;
+    };
+
+    const bw = new BitWriter();
+    let r = 0, s = F, len = 0, at = 0;
+    for (; len < F && at < data.length; len++) text[r + len] = data[at++];
+    insert(r);
+    while (len > 0) {
+        if (matchLength > len) matchLength = len;
+        if (matchLength < 2) {
+            matchLength = 1;
+            bw.write(1, 1); bw.write(text[r], 8);
+        } else {
+            bw.write(0, 1); bw.write((((matchPosition + 1) & 0xfff) << 4) | (matchLength - 2), 16);
+        }
+        const last = matchLength;
+        let i = 0;
+        for (; i < last && at < data.length; i++) {
+            const c = data[at++];
+            remove(s);
+            text[s] = c;
+            if (s < F - 1) text[s + N] = c;
+            s = (s + 1) & (N - 1); r = (r + 1) & (N - 1);
+            insert(r);
+        }
+        while (i++ < last) {
+            remove(s);
+            s = (s + 1) & (N - 1); r = (r + 1) & (N - 1);
+            if (--len) insert(r);
+        }
+    }
+    bw.write(0, 13);
     return bw.flush();
 }
 

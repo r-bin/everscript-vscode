@@ -149,7 +149,7 @@ export function remapWord(plan: CustomAnimationPlan, word: number): number {
 }
 
 /** Descriptors (delay, frame count, offset from the table), 0xFF, then `[delay, tileId]` per frame. */
-function section2Bytes(channels: CustomAnimationPlan['channels']): Uint8Array {
+export function section2Bytes(channels: ReadonlyArray<{ frames: number[]; delays: number[]; init?: number }>): Uint8Array {
     const out: number[] = [];
     let offset = channels.length * 4 + 1;
     for (const c of channels) {

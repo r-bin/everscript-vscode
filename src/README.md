@@ -23,10 +23,11 @@ All production code lives here. Each subdirectory is an ownership domain.
 | `games/evermore/data-tab/` | Data tab: ROM tables (XP per level, sine, boomerang orbit, every known table), every core enum and the character/map blobs, sprite palettes and map tile families |
 | `games/evermore/music/` | Music tab: the sound chip live from the emulator or playing a track in its own engine; voices, instruments, sound effects, ARAM |
 | `games/evermore/docs-tab/` | The radar's Docs and RNG tabs (alchemy reference, RNG) |
+| `games/evermore/code-tab/` | Code tab: every known routine, searchable; its asm with comments, callers and calls as links, its C and other-source C, all read from `soe://rom/code/` |
 | `games/evermore/routes/` | Routes tab: route files (`*.route.json`) as runs of steps per room, checked against the room scripts |
 | `games/evermore/scaling/` | Scaling/Alchemy tab: damage math, charts, state, webview assets |
 | `games/evermore/debugger/` | VS Code debugger for .evs scripts in the emulator: DAP session, compiler source map, step logic |
-| `games/evermore/imports/mana/` | The one bridge: a Mana map converted into a real Evermore room (cells, graphics, families, collision, step-on boxes) for the Rooms tab |
+| `games/evermore/imports/` | The bridges: a Mana map (`mana/`) or a Terranigma room (`terra/`) converted into a real Evermore room (cells, graphics, families, collision, triggers, objects) for the Rooms tab; `common/` their Evermore side, `index.ts` the one entry |
 | `games/mana/decoder/` | Secret of Mana maps: header, pieces, metatiles, characters, palettes, Mode 1 picture, areas (TypeScript, pure; nothing Evermore) |
 | `games/mana/resources/` | Read-only `som://` file system: Secret of Mana maps and areas as files |
 | `games/mana/maps/` | Secret of Mana Maps panel: area list and map pictures, read from `som://` |
@@ -48,6 +49,7 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 - `scripts-tab/` → libraries only (`script-model/`, `maps/`, `localizations/`, `simulation/`); sprites and music capabilities are injected by `games/evermore/extension.js`
 - `data-tab/` → libraries only (`maps/`, `localizations/`, the language data file); the character list is injected by `games/evermore/radar-open.js`
 - `routes/` → libraries only (`script-model/`, `localizations/`)
+- `code-tab/` → nothing in `src/`: it reads `soe://rom/code/` through the `read` `radar-open.ts` injects
 - `music/` → may use `localizations/`; never `emulator/` (the sound-chip stream is injected by `games/evermore/extension.js`)
 - `recorder/` → only `core/emulator/`; nothing imports it
 - `core/emulator/` → `platform/` only; no game (`emulator-knows-no-game`); a game hands in its part
@@ -58,7 +60,7 @@ Below, `language/`, `maps/`, … without a prefix are under `games/evermore/`.
 - `resources/` → may use `maps/`, `script-vm/`, `script-model/`, `simulation/`, `localizations/`; never `emulator/` (ROM and memory reads are injected by `games/evermore/extension.js`)
 - `platform/` → no `core/`, no game; `core/` → `platform/` only; a game never imports another game except through `games/<game>/imports/<other>/`
 - `games/terra/decoder/` → `platform/` and its own descriptor; `games/terra/resources/` → the decoder and `core/resources/`; `games/terra/maps/` → `terra://` only
-- `games/mana/decoder/` → nothing in `src/`; `games/mana/resources/` → the decoder only; `games/mana/maps/` → `som://` only; `games/evermore/imports/mana/` → the Mana decoder, Evermore `maps/` and `rom-readers.ts`; no Evermore domain uses any of them (only `extension.js` wires them)
+- `games/mana/decoder/` → nothing in `src/`; `games/mana/resources/` → the decoder only; `games/mana/maps/` → `som://` only; `games/evermore/imports/mana/` (`terra/`) → that game's decoder, `imports/common/`, Evermore `maps/` and `rom-readers.ts`; no Evermore domain uses any of them (only `extension.js` wires them, through `imports/index.ts`)
 - No circular dependencies allowed
 
 See `.depcruise.js` for machine-enforced rules.

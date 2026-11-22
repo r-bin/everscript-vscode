@@ -7,7 +7,7 @@ category: 🧠
 name: projectile_homing_trajectory_and_jitter_tick
 title: Adjusts projectile homing vectors towards active targets, injecting pseudo-random trajectory deviations
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, rng]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Adjusts projectile homing vectors towards active targets, injecting pseudo-random trajectory deviations.

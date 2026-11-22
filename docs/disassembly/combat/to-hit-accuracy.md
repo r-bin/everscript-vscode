@@ -8,8 +8,8 @@
 - **WRAM Core Addresses**:
   - Attacker slot offset `+0x42`: Attacker Hit Rate / weapon base accuracy.
   - Defender slot offset `+0x44`: Defender Physical Evade stat (`$0A3F`).
-  - Defender slot offset `+0x72`: Last attacker entity slot ID (for repeat hit rejection).
-  - Defender slot offset `+0x74`: Invulnerability frame countdown timer (initialized to 21 / `0x0015`).
+  - Defender slot offset `+0x36`: Last attacker entity slot ID (for repeat hit rejection).
+  - Defender slot offset `+0x38`: its countdown, set to 20 (`0x0014`) and cleared with `+0x36` once below 0 (`$8F:B00F`): 21 ticks. Previously written here as `+0x72`/`+0x74` set to 21; the code at `$8F:BA1A` writes `+$36`/`+$38` (docs/entities/combat.md §4, §10).
   - Defender slot offset `+0x76`: Pending damage accumulator (applied to HP via `$8F:C237`).
   - `$7E:2262` bit 0: Speed buff (boosts accuracy / hit chance).
 
@@ -23,7 +23,7 @@ When an attack hitbox (melee weapon slash or projectile) intersects an enemy or 
 flowchart TD
     Intersect["Hitbox Intersect Detected ($8F:B5F2)"] --> Cooldown{"Cooldown Check ($8F:BA1A)"}
     Cooldown -->|"Same Attacker & Timer > 0"| Revert["Ignore Hit (Invulnerable)"]
-    Cooldown -->|"Timer == 0 or New Attacker"| SetTimer["Set Timer = 21 Ticks ($0015) in Offset +0x74"]
+    Cooldown -->|"Timer == 0 or New Attacker"| SetTimer["Set +0x36 = attacker, timer +0x38 = 20 ($0014): locked 21 ticks"]
     
     SetTimer --> Accuracy["Calculate To-Hit: to_hit_evade_vs_hit_rate ($8F:B75A)"]
     Accuracy --> NetChance["Net Accuracy = Base Hit Rate - Target Evade"]
@@ -39,15 +39,15 @@ flowchart TD
 
 ### 1. 21-Frame Invulnerability Cooldown (`$8F:BA1A`)
 - Prevents multiple damage ticks during a single attack animation swing.
-- Tests defender offset `+0x72` (last attacker slot ID) and `+0x74` (cooldown frames remaining):
-  - If the attacker slot matches and `+0x74 > 0`, the hit is rejected without damage.
-  - Otherwise, records the new attacker slot in `+0x72` and resets the timer in `+0x74` to **21 frames** (`0x0015`).
+- The strike sweep (`$8F:B62B`) skips a target whose `+0x36` (last attacker) is this attacker, so no roll happens.
+  - `$8F:BA1A` records the attacker in `+0x36` and sets `+0x38` to 20 (`0x0014`); the target's tick clears both
+    once `+0x38` passes 0 (`$8F:B00F`), so the lock lasts **21 ticks**.
 
 ### 2. To-Hit Accuracy & Evade Verification (`$8F:B75A`)
 - Reads attacker Hit Rate from slot `+0x42` (typically 80%–95% depending on weapon).
 - Subtracts target Physical Evade from slot `+0x44` (`$7E:0A3F`).
-- Pulls a 16-bit pseudo-random value from `$80:859B`, scaled to $0..99$:
-  - If `RNG < Net Accuracy`, the attack hits.
+- Pulls a 16-bit pseudo-random value from `$80:859B` and keeps 15 bits (`& $7FFF`); the threshold is a word from the table at `$8F:BAAF` (row by evade, column by hit rate), not a percentage:
+  - If `RNG & $7FFF < threshold`, the attack hits (chance = threshold / 32768).
   - If `RNG >= Net Accuracy`, the attack misses: carry is cleared and the routine triggers the floating `"MISS"` sprite popup.
 
 ### 3. Pending Damage Accumulation (`$8F:C067`)

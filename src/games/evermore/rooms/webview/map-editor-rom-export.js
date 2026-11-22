@@ -10,8 +10,9 @@
 // exactly what the canvas drew — the draft's stamp where one was painted,
 // the blank room's empty stamp everywhere else.
 //
-// Custom maps only. A ROM room's slot is its own; writing a vanilla room's
-// draft into Brian's is a different feature with different questions.
+// Custom maps and converted rooms (romExportImported). A ROM room's slot is its
+// own; writing a vanilla room's draft into Brian's is a different feature with
+// different questions.
 //
 // Owns: _romExportBusy.
 
@@ -109,6 +110,7 @@ function editPlayRom() {
 
 function romExportSend(command, busyNote) {
   if (_romExportBusy) return;
+  if (romExportImported(command, busyNote)) return;
   var why = { text: '' };
   var draft = romExportPayload(why);
   if (!draft) { editNote(why.text); renderEditChrome(); return; }
@@ -118,6 +120,24 @@ function romExportSend(command, busyNote) {
   editNote(busyNote);
   renderEditChrome();
   vs.postMessage({ command: command, name: m ? m.name : 'custom map', draft: draft });
+}
+
+/**
+ * A converted room (rooms-imported.js) is built by the host from the converted map itself
+ * (rendering/rom-export-own.ts), entered at the Boy's marker. Changes made to it in the editor
+ * are not in that ROM: the note says so. Returns false for any other room.
+ */
+function romExportImported(command, busyNote) {
+  var d = editDraft();
+  if (!d || d.blank || d.customKey || !(d.roomId > 0x7e)) return false;
+  if (typeof vs === 'undefined' || !vs) return true;
+  var room = typeof _editPanelRoom !== 'undefined' && _editPanelRoom ? _editPanelRoom : null;
+  _romExportBusy = true;
+  editNote(busyNote + (d.undo && d.undo.length ? ' (the converted map as it is: changes made here are not in it)' : ''));
+  renderEditChrome();
+  vs.postMessage({ command: command === 'mapPlayRom' ? 'mapPlayImported' : 'mapExportImported', roomId: d.roomId,
+    name: room && room.name ? room.name : 'converted map', start: d.start ? { x: d.start.x, y: d.start.y } : null });
+  return true;
 }
 
 /** The host's answer (bootstrap.js routes `mapExportRomDone` here). */

@@ -121,7 +121,7 @@ function buildStampAnimations(rom: Uint8Array, room: RoomData, entries: Metatile
             for (let k = 0; k < n; k++) delays.push(lead.delays[(lead.at + k) % lead.frames.length] || 1);
         } else if (matchedCycle) {
             n = Math.min(MAX_STEPS, matchedCycle.span);
-            const d = Math.max(1, Math.abs(matchedCycle.rate)) * 3;
+            const d = maps.paletteCycleFrames(matchedCycle.rate);
             for (let k = 0; k < n; k++) delays.push(d);
         }
         if (n > 1) candidates.push({ i, e, n, delays });

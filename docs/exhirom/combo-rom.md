@@ -4,6 +4,8 @@ Status: 💡 **concept, nothing built.** The ExHiROM base it needs: [port.md](po
 Labels: *(hardware)* = generic SNES bus facts, *(repo)* = read in our code/docs,
 *(to verify)* = believed, not checked; check the partner's own ROM header before relying on it.
 Moved here from `docs/todo/romhacks-and-ports.md` §2.
+The Evermore + Mana combo on the SA-1 board, with Start switching the game (suspend/resume, no Mana
+relocation): [../combo/README.md](../combo/README.md). This page stays the ExHiROM concept.
 
 Legal: a combo image may only be built **at runtime from the user's own ROMs** (a converter
 like `tools/exhirom/convert.js`). No partner-game bytes, tables or layouts enter the repo, and

@@ -81,7 +81,9 @@ const read = async (node) => String(await node.read());
     assert(top.entries.length > 500, 'code/ lists every routine entry');
 
     const folder = resolveCode(['reset_handler'], rom);
-    assert.deepStrictEqual(folder.entries.map(e => e[0]), ['info.md', 'reset_handler.asm', 'comments.json', 'reset_handler.c', 'reset_handler.ghidra.c']);
+    assert.deepStrictEqual(folder.entries.map(e => e[0]), ['info.md', 'routine.json', 'reset_handler.asm', 'comments.json', 'reset_handler.c', 'reset_handler.ghidra.c', 'reset_handler.pseudo.c']);
+    const routine = JSON.parse(await read(resolveCode(['reset_handler', 'routine.json'], rom)));
+    assert(routine.name === 'reset_handler' && routine.us === '$808020' && routine.versions.asm === 'reset_handler.asm' && routine.versions.c, 'routine.json: info.md as data');
     const info = await read(resolveCode(['reset_handler', 'info.md'], rom));
     assert(info.includes('US $808020') && info.includes('## Open work'), 'info.md: place and open work');
 

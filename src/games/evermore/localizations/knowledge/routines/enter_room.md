@@ -7,7 +7,7 @@ category: 🧠
 name: enter_room
 title: Enter room: stop sound, reset room state, look up enter script, run frames until ready
 confidence: confirmed
-tags: [audio, map, script, system]
+tags: [audio, map, script, system, script-vm]
 evidence: ["disasm: called at $80:8C7F during cold boot and map transitions; silences APU via commands $1A/$1C, calls reset_per_room_state $90:8E90 and script_start_room_enter_script $8C:CE99, pre-rolls frames until $7E:22EA bits 3-5 are set, and starts boy/dog scripts via $8E:A091 (docs/disassembly/engine-core/room-enter.md)"]
 see: [docs/disassembly/engine-core/room-enter.md, docs/disassembly/engine-core/main-loop.md, src/games/evermore/localizations/knowledge/routines/reset_per_room_state.md, src/games/evermore/localizations/knowledge/routines/script_start_room_enter_script.md]
 ---

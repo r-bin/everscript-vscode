@@ -10,6 +10,7 @@ SNES facts and tools that know no game. Rules: [AGENTS.md](AGENTS.md). Design:
 | `roms/identify.ts` | Game + variant of a ROM file: SHA-1, then header, then the game's derived-ROM marker |
 | `roms/library.ts` | The ROM library (`roms.json` in global storage): add, select, base per game, `romFor` |
 | `snes/hirom.ts` | HiROM bus address ↔ file offset, little-endian reads |
+| `snes/io-registers.ts` | Hardware register names by address (`INIDISP`, `A1T3L`): PPU, APU ports, WRAM port, CPU, DMA |
 | `snes/opcodes-65816.ts` | The 65816 opcode matrix (mnemonic, mode, length, flow) |
 | `crc32.ts`, `png.ts`, `zip.ts` | CRC-32, an RGBA PNG encoder, a small zip reader/writer |
 | `source-dir.ts` | `sourceDir(__dirname)`: a compiled module's folder in `src/` (TS runs from `dist/`; the files it reads beside it stay in `src/`) |

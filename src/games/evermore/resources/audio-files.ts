@@ -2,7 +2,7 @@
 // music, sound effects, song descriptors, and assembled SNES SPC files. Pure. One song's
 // records, SPC and page are audio-songs.ts.
 
-import { MUSIC, SOUNDS } from '../localizations/sounds';
+import { MUSIC, SOUNDS, getSoundAnimations } from '../localizations/sounds';
 import { hexId, slugify } from './resource-uri';
 import { dir, file, json, text } from './nodes';
 import type { Entry } from './nodes';
@@ -181,6 +181,7 @@ function readSoundInfo(rom: Rom, sound: Sound) {
     const sfxWord = sound.id * 2 < 112 * 2 && SFX_TABLE + sound.id * 2 + 1 < rom.length
         ? rom[SFX_TABLE + sound.id * 2] | (rom[SFX_TABLE + sound.id * 2 + 1] << 8)
         : null;
+    const animData = getSoundAnimations().find((a) => a.id === sound.id);
 
     return {
         id: sound.id,
@@ -189,20 +190,39 @@ function readSoundInfo(rom: Rom, sound: Sound) {
         opcode: '0x30 (sound)',
         translationTableHex: '$0C:8362',
         translatedWord: sfxWord !== null ? '$' + hexId(sfxWord, 4) : null,
+        driverEffect: animData?.sfx ?? null,
+        animations: animData?.animations ?? [],
     };
 }
 
 function soundMarkdown(sound: Sound, rom: Rom) {
     const info = readSoundInfo(rom, sound);
-    return `# SFX 0x${hexId(sound.id, 2)}: ${sound.name}
-
-| Property | Value |
-|---|---|
-| ID | \`0x${hexId(sound.id, 2)}\` |
-| Name | ${sound.name} |
-| Opcode | \`0x30\` (\`sound\`) / animation \`0x2E\` |
-| Translated word | \`${info.translatedWord || '—'}\` |
-`;
+    const lines = [
+        `# SFX 0x${hexId(sound.id, 2)}: ${sound.name}`,
+        '',
+        '| Property | Value |',
+        '|---|---|',
+        `| ID | \`0x${hexId(sound.id, 2)}\` |`,
+        `| Name | ${sound.name} |`,
+        `| Opcode | \`0x30\` (\`sound\`) / animation \`0x2E\` |`,
+        `| Translated word | \`${info.translatedWord || '—'}\` |`,
+    ];
+    if (info.driverEffect !== null) {
+        lines.push(`| Driver effect | \`0x${hexId(info.driverEffect, 2)}\` |`);
+    }
+    lines.push('', '## Animations triggering this SFX', '');
+    if (info.animations.length > 0) {
+        for (const a of info.animations) {
+            const owners = a.owners.length
+                ? ' — ' + a.owners.map((o) => o.who + (o.what ? ' (' + o.what + ')' : '')).join(', ')
+                : '';
+            lines.push(`- **${a.label}** (record \`${a.record}\`)${owners}`);
+        }
+    } else {
+        lines.push('*No animations directly trigger this SFX.*');
+    }
+    lines.push('');
+    return lines.join('\n');
 }
 
 function soundsIndexMarkdown() {

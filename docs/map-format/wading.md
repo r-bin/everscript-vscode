@@ -1,7 +1,9 @@
 # Wading: half a character behind the scenery
 
-> Status: **found in the code, not yet seen in the game.** The engine and the sprite
-> art support it; no vanilla room uses it, and the plugin cannot place it yet.
+> Status: **found in the code, seen in the game** (v0.406.0): a converted Secret of Mana room
+> (`docs/mana/evermore-rooms.md`) puts nibble 4 on Mana's split cells, and in the bundled
+> snes9x core the Boy and the dog stand in Potos Falls' tall grass with their legs behind it.
+> No vanilla room uses it; OAM was not compared chunk by chunk yet.
 > Engine details: [sprite_priority.md](../entities/sprite_priority.md) ("The split").
 
 A character standing in water with only its upper body showing. Evermore can draw that

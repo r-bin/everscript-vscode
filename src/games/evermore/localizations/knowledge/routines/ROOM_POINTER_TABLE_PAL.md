@@ -7,7 +7,7 @@ category: 📋
 name: ROOM_POINTER_TABLE_PAL
 title: Room pointer table (PAL European variants)
 confidence: confirmed
-tags: [map-format, variant]
+tags: [map-format, variant, script-vm]
 evidence: ["variants.json: europe, germany, france, spain1, spain2 map_pointers table is at snes $A0:FDE5 (file 0x20FDE5)", "rom-readers.ts / maps/rom.ts: mapTableOffset resolves to 0x20FDE5 on PAL builds"]
 see: [routines/ROOM_POINTER_TABLE.md, docs/evermore-variants.md]
 ---

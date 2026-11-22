@@ -7,8 +7,8 @@ category: 🧠
 name: script_op_10_14_write_byte
 title: Script opcodes 0x10, 0x14 — write byte
 confidence: confirmed
-tags: [script-vm]
-evidence: ["disasm: vanilla VFS at $8C:D804 adds a u16 operand to $7E:2258, evaluates an expression, and stores its low byte", "dispatch: opcode table entries $8C:E8DD and $8C:E8E5 both target $8C:D804", "vm: restores 16-bit widths and returns carry set"]
+tags: [script-vm, reconstructed-c, g1-pass]
+evidence: ["disasm: vanilla VFS at $8C:D804 adds a u16 operand to $7E:2258, evaluates an expression, and stores its low byte", "dispatch: opcode table entries $8C:E8DD and $8C:E8E5 both target $8C:D804", "vm: restores 16-bit widths and returns carry set", "c: G1 passed (tools/c-to-rom/g1.mts): 21/21 reference states and 198/198 fuzzed states match vanilla ROM, mutation caught"]
 see: [docs/disassembly/script-vm/opcode-10-14-write-byte.md]
 ---
 The shared handler writes the low byte of an expression to `$7E:2258 + u16 offset`. Opcodes `0x10` and `0x14` use the same routine and continue in the same turn.

@@ -274,6 +274,7 @@ __MUSIC_JS__
 __SCRIPTS_JS__
 __DATA_JS__
 __ROUTES_JS__
+__CODE_JS__
 // Init active tab and selected map highlight. The old ROM tab is the Memory tab's ROM view now.
 (function(){
   var t=ACTIVE_TAB==='rom'?'radar':(ACTIVE_TAB||'radar');

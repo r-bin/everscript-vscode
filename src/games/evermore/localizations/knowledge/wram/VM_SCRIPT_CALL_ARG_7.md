@@ -2,7 +2,7 @@
 addr: $7E:0E8E
 name: VM_SCRIPT_CALL_ARG_7
 type: u16
-tags: [script]
+tags: [script, script-vm]
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---

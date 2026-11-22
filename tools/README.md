@@ -15,6 +15,7 @@ Node 26 runs the `.mts` files directly. Tools find a ROM through the ROM library
 | `recomp/` | The static recompilation ([README](recomp/README.md)) | `npm run recomp` |
 | `ghidra/` | Generates Ghidra / REA seed TSV and M/X context from CDL export | `npm run ghidra:seeds` |
 | `exhirom/` | Evermore as an 8 MB ExHiROM and its proof ([README](exhirom/README.md)) | `npm run exhirom` |
+| `open-evermore/` | Explode the ROM into a folder of named parts, implode it back in any layout with validation, prove the layout plays the same ([README](open-evermore/README.md), [docs](../docs/open-evermore/README.md)) | `node tools/open-evermore/open-evermore.mts explode\|implode\|prove` |
 | `table-hack/` | Content tables moved into the 4th MB and the proof ([README](table-hack/README.md)) | `npm run table-hack` |
 | `cdl/` | Replay a movie headless on our core, with the CDL recorder | `node tools/cdl/replay.js` |
 | `playbacks/` | Record the vanilla attract loop as a sample playback | `node tools/playbacks/record-attract.js` |

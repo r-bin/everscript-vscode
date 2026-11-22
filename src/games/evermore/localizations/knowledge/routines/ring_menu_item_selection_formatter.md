@@ -8,6 +8,6 @@ name: ring_menu_item_selection_formatter
 title: Consumable item ring menu description and inventory formatter
 confidence: likely
 tags: [ring-menu, items, inventory, window, ui]
-evidence: ["disasm: called by $8E:94C2 (ring_menu_item_open_entry); sets window bounds at $0351-$0359; calls $8C:AC8A and $8C:B647; appends consumable item description string at $8D:9F13 via $8C:9E03 (REA dossier 0x8d9db4)"]
+evidence: ["disasm: called by $8E:94C2 (ring_option_control_prefs); sets window bounds at $0351-$0359; calls $8C:AC8A and $8C:B647; appends consumable item description string at $8D:9F13 via $8C:9E03 (REA dossier 0x8d9db4)"]
 ---
 Constructs the item description window and inventory counter display when browsing consumable recovery items in the ring menu.

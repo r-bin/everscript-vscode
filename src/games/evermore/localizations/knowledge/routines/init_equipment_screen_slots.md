@@ -5,14 +5,12 @@ end: 8E9AC2
 kind: code
 category: 🧠
 name: init_equipment_screen_slots
-title: Initialize UI equipment selection slots ($7E:0814..$081A)
+title: Build the Boy's and the Dog's options rings
 confidence: verified
 tags: [ui, ring-menu, equipment, reconstructed-c, g1-pass]
-evidence: "[\"disasm: writes slot constants 0x16, 0x1A, 0x1C, 0x1E into $7E:0814, $7E:0816, $7E:0818, $7E:081A\", \"recomp: func_CE9A86_M0X0 in bank8e_v2.c; clean C in docs/disassembly/ui/equipment-stats.md\"]; G1 pass (3/3 reference states, 48/48 fuzzed states, mutation caught)"
-see: [routines/calc_equipped_armor_defense.md, routines/tbl_8E8000.md]
+evidence: ["disasm v0.455.0: lda #imm : sta $0814.. and $0838.."]
+see: [routines/calc_equipped_armor_defense.md, routines/RING_ITEM_POINTERS.md]
 ---
-Initializes the 4 equipment sub-ring category slots in WRAM:
-- `$7E:0814 = 0x16`: Helmets / Collars
-- `$7E:0816 = 0x1A`: Body Armor / Vests
-- `$7E:0818 = 0x1C`: Bracers / Gauntlets
-- `$7E:081A = 0x1E`: Accessories / Rings
+Fills `RING_BOY_OPTIONS` (Player Status, Action, Control Prefs, Window Edit, Targeting; Alchemy when a formula is known; Equipment when armour is held; Weapon Skill) and `RING_DOG_OPTIONS` (Player Status, Action, Control Prefs, Window Edit, Targeting; Equipment when a collar is held). The item ids are code immediates (Open Evermore: `menus/rings/`). The name stays for the reconstructed C.
+
+Previously believed: "Initialize UI equipment selection slots ($7E:0814..$081A)".

@@ -28,7 +28,7 @@ src/
     evermore/           decoder, soe:// provider, map adapter, emulator panels (ENTITIES,
                         ALCHEMY…), knowledge entries, names, language (grammar, theme, debugger),
                         script VM, table hack / ExHiROM support
-      imports/mana/     the Mana-to-Evermore bridge (was src/games/evermore/imports/mana)
+      imports/          the bridges into Evermore rooms: mana/, terra/ (common/ their Evermore side)
     mana/               decoder, som:// provider, map adapter, knowledge entries
 docs/platform/  docs/games/<game>/   mirror the code
 ```

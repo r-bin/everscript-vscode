@@ -22,3 +22,7 @@ there; the handler itself stays where it is. The ExHiROM build copies the stub t
 ## Notes
 Previously believed: "the first 17 bytes of the NMI handler run through bank `$00`". The 17 bytes are
 really 13 bytes of the reset entry and the 4-byte NMI `JML`.
+
+Pad 1 is read in the NMI body at `$80:848F` (`LDA $4218`, A 16-bit, then `BRA $84A0`, where it is stored to
+`$0EC6` and its new presses to `$0104`), only when `$4016` bit 0 says a pad is plugged in; pad 2 at `$80:849A`.
+The combo POC hooks that read (docs/combo/poc.md; MesenCE read callbacks, 2026-11-15).

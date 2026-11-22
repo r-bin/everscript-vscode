@@ -5,6 +5,8 @@
 
 import { renderItemIcon, lootIconId, alchemyIconId, iconEntry, ALCHEMY_FORMULAS, ICON_ID_LAST, encodePng, decodeRoom, renderRoomComposite, MAX_ROOMS } from '../maps';
 import { lootRewardName, flagName } from '../script-model';
+import { alchemyModel } from '../scripts-tab/model/alchemy';
+import compiler from '../language/data/index.json';
 import { stringText } from '../localizations';
 import { slugify, hexId } from './resource-uri';
 import { gallery, href } from './autoindex';
@@ -143,29 +145,365 @@ function iconPng(rom: Rom, iconId: number | null) {
     return file(() => encodePng(renderItemIcon(rom, iconId)!));
 }
 
+const WEAPON_ICON_NAMES: Record<number, string> = {
+    0x0028: 'Bone Crusher',
+    0x002a: 'Gladiator Sword',
+    0x002c: 'Crusader Sword',
+    0x002e: 'Neutron Blade',
+    0x0030: "Spider's Claw",
+    0x0032: 'Bronze Axe',
+    0x0034: 'Knight Basher',
+    0x0036: 'Atom Smasher',
+    0x0038: 'Horn Spear',
+    0x003a: 'Bronze Spear',
+    0x003c: 'Lance',
+    0x003e: 'Laser Lance',
+    0x0040: 'Bazooka',
+    0x0042: 'Bazooka (Thunder Ball)',
+    0x0044: 'Bazooka (Particle Bomb)',
+    0x0046: 'Bazooka',
+};
+
+const PORTRAIT_ICON_NAMES: Record<number, string> = {
+    0x00f0: 'Fire Eyes Portrait',
+    0x00f2: 'Horace Highwater Portrait',
+    0x00f4: 'Queen Bluegarden Portrait',
+    0x00f6: 'Professor Ruffleberg Portrait',
+};
+
+function iconCategory(id: number): string {
+    if (id <= 0x0026) return 'ui';
+    if (id <= 0x0046) return 'weapon';
+    if (id <= 0x008c) return 'alchemy';
+    if (id <= 0x009c) return 'consumable';
+    if (id === 0x009e) return 'system';
+    if (id <= 0x00ee) return 'armor';
+    if (id <= 0x00f6) return 'portrait';
+    if (id <= 0x0116) return 'alchemy_unused';
+    if (id <= 0x0142) return 'ingredient';
+    return 'unknown';
+}
+
+function iconLabel(rom: Rom, id: number, entry: ReturnType<typeof iconEntry>): { label: string; uses: string[] } {
+    if (WEAPON_ICON_NAMES[id]) {
+        return { label: WEAPON_ICON_NAMES[id], uses: [WEAPON_ICON_NAMES[id]] };
+    }
+    if (PORTRAIT_ICON_NAMES[id]) {
+        return { label: PORTRAIT_ICON_NAMES[id], uses: [PORTRAIT_ICON_NAMES[id]] };
+    }
+    if (id === 0x009e) {
+        return { label: 'Pouch / Money Bag', uses: ['Pouch'] };
+    }
+    if (id >= 0x0118 && id <= 0x0142) {
+        for (let i = 0; i < 0x20; i++) {
+            if (lootIconId(rom, 0x0200 + i) === id) {
+                const name = lootRewardName(0x0200 + i);
+                if (name) return { label: name, uses: [name] };
+            }
+        }
+        const name = lootRewardName(0x0200 + entry.index);
+        if (name) return { label: name, uses: [name] };
+    }
+    if (id >= 0x008e && id <= 0x009c) {
+        for (let i = 0; i < 0x20; i++) {
+            if (lootIconId(rom, 0x0800 + i) === id) {
+                const name = lootRewardName(0x0800 + i);
+                if (name) return { label: name, uses: [name] };
+            }
+        }
+        const name = lootRewardName(0x0800 + entry.index);
+        if (name) return { label: name, uses: [name] };
+    }
+    if (id >= 0x00a0 && id <= 0x00ee) {
+        for (let i = 0; i < 0x40; i++) {
+            if (lootIconId(rom, 0x0400 + i) === id) {
+                const name = lootRewardName(0x0400 + i);
+                if (name) return { label: name, uses: [name] };
+            }
+        }
+        const name = lootRewardName(0x0400 + Math.floor(entry.index / 2));
+        if (name) return { label: name, uses: [name] };
+    }
+    if (id >= 0x0048 && id <= 0x008c) {
+        const formulaIdx = Math.floor(entry.index / 2);
+        const name = flagName(ALCHEMY_KNOWN + (formulaIdx >> 3), formulaIdx & 7);
+        if (name) return { label: name, uses: [name] };
+    }
+    if (id >= 0x00f8 && id <= 0x0116) {
+        const formulaIdx = Math.floor(entry.index / 2);
+        const name = flagName(ALCHEMY_KNOWN + (formulaIdx >> 3), formulaIdx & 7);
+        if (name) return { label: name, uses: [name] };
+    }
+    const enums = (compiler.enums as unknown as Record<string, { name: string; value: string }[]>).RING_MENU_ICON || [];
+    const hexVal = '0x' + hexId(id, 4);
+    const hit = enums.find((e) => e.value.toLowerCase() === hexVal.toLowerCase());
+    const enumLabel = hit ? hit.name.replace(/_/g, ' ') : `Icon 0x${hexId(id, 4)}`;
+    return { label: enumLabel, uses: hit ? [hit.name] : [] };
+}
+
+function iconModel(rom: Rom, id: number) {
+    const e = iconEntry(rom, id);
+    const cat = iconCategory(id);
+    const { label, uses } = iconLabel(rom, id, e);
+    const enums = (compiler.enums as unknown as Record<string, { name: string; value: string }[]>).RING_MENU_ICON || [];
+    const hexVal = '0x' + hexId(id, 4);
+    const enumEntry = enums.find((x) => x.value.toLowerCase() === hexVal.toLowerCase());
+    return {
+        id,
+        hex: hexId(id, 4),
+        file: ICONS + iconName(id),
+        label,
+        category: cat,
+        enumName: enumEntry ? enumEntry.name : null,
+        entry: '$' + hexId(e.entry, 6),
+        record: '$' + hexId(e.record, 4),
+        palette: '$' + hexId(e.palette, 4),
+        index: e.index,
+        uses,
+    };
+}
+
+function singleIconMarkdown(rom: Rom, id: number) {
+    const m = iconModel(rom, id);
+    const lines = [
+        `# Icon 0x${m.hex}: ${m.label}`,
+        '',
+        '| Property | Value |',
+        '|---|---|',
+        `| ID | \`0x${m.hex}\` (#${m.id}) |`,
+        `| Name | ${m.label} |`,
+        `| Category | \`${m.category}\` |`,
+        `| Enum | \`${m.enumName ? 'RING_MENU_ICON.' + m.enumName : '—'}\` |`,
+        `| Entry Address | \`${m.entry}\` |`,
+        `| Animation Record | \`${m.record}\` |`,
+        `| Palette | \`${m.palette}\` |`,
+        `| Category Index | ${m.index} |`,
+        '',
+        `![Icon 0x${m.hex}](${iconName(id)})`,
+        '',
+        '## Uses',
+        '',
+    ];
+    if (m.uses.length) {
+        for (const u of m.uses) lines.push(`- **${u}**`);
+    } else {
+        lines.push('*No specific item or formula associations known.*');
+    }
+    lines.push('');
+    return lines.join('\n');
+}
+
+function iconsIndexMarkdown(rom: Rom) {
+    const ids = drawableIcons(rom);
+    const models = ids.map((id) => iconModel(rom, id));
+    const lines = [
+        '# soe://rom/assets/icons/',
+        '',
+        `${models.length} ring menu icons in the ROM table at \`$CE8000\`.`,
+        '',
+        '| Icon | ID | Name | Category | Record | Palette | Uses |',
+        '|---|---|---|---|---|---|---|',
+        ...models.map((m) => `| [![${m.hex}.png](${m.hex}.png)](${m.hex}.png) | [${m.hex}](${m.hex}/info.md) | ${m.label} | \`${m.category}\` | \`${m.record}\` | \`${m.palette}\` | ${m.uses.join(', ')} |`),
+        '',
+    ];
+    return lines.join('\n');
+}
+
 function icons(rom: Rom, name?: string, leaf?: string) {
-    if (name === undefined) return dir(drawableIcons(rom).map((i): Entry => [iconName(i), 'file']));
-    const m = /^([0-9a-f]{1,4})\.png$/i.exec(name);
-    return m && leaf === undefined ? iconPng(rom, parseInt(m[1], 16)) : null;
+    if (name === undefined) {
+        const ids = drawableIcons(rom);
+        const entries: Entry[] = [
+            ['index.json', 'file'],
+            ['index.md', 'file'],
+            ...ids.map((i): Entry => [iconName(i), 'file']),
+            ...ids.map((i): Entry => [hexId(i, 4), 'dir']),
+        ];
+        return dir(entries, () => iconsIndexMarkdown(rom));
+    }
+    if (name === 'index.json') {
+        return json(() => drawableIcons(rom).map((i) => iconModel(rom, i)));
+    }
+    if (name === 'index.md') {
+        return text(() => iconsIndexMarkdown(rom));
+    }
+
+    const m = /^([0-9a-f]{1,4})(?:\.(png|json|md))?$/i.exec(name);
+    if (!m) return null;
+    const id = parseInt(m[1], 16);
+    if (!drawableIcons(rom).includes(id)) return null;
+    const ext = m[2];
+
+    if (ext === 'png') {
+        return leaf === undefined ? iconPng(rom, id) : null;
+    }
+    if (ext === 'json') {
+        return leaf === undefined ? json(() => iconModel(rom, id)) : null;
+    }
+    if (ext === 'md') {
+        return leaf === undefined ? text(() => singleIconMarkdown(rom, id)) : null;
+    }
+
+    if (leaf === undefined) {
+        const entries: Entry[] = [
+            ['info.json', 'file'],
+            ['info.md', 'file'],
+            ['icon.png', 'file'],
+        ];
+        return dir(entries, () => singleIconMarkdown(rom, id));
+    }
+    if (leaf === 'info.json') return json(() => iconModel(rom, id));
+    if (leaf === 'info.md') return text(() => singleIconMarkdown(rom, id));
+    if (leaf === 'icon.png' || leaf === `${hexId(id, 4)}.png`) return iconPng(rom, id);
+
+    return null;
 }
 
 // ── items and alchemy: one directory per named entry ─────────────────────
 
-/** Entries `{ id, slug, label, iconId }`; a directory per entry, found by slug or hex id. */
-function itemDir(rom: Rom, title: string, entries: ItemEntry[], name: string | undefined, leaf: string | undefined, describe: (e: ItemEntry) => unknown) {
-    const hasIcon = (e: ItemEntry) => e.iconId !== null && drawableIcons(rom).includes(e.iconId);
-    if (name === undefined) {
-        return dir(entries.map((e): Entry => [e.slug, 'dir']), () => [
-            `# ${title}`, '', `${entries.length} entries. Each has \`info.json\`; \`icon.png\` links to [icons/](../icons/index.md).`, '',
-            ...gallery(entries.filter(hasIcon).map(e => ({ image: `${e.slug}/icon.png`, label: e.slug, target: `${e.slug}/info.json` }))),
-            ...(entries.some(e => !hasIcon(e)) ? ['Without an icon: ' + entries.filter(e => !hasIcon(e)).map(e => `[${e.slug}](${href(e.slug)}/info.json)`).join(', '), ''] : []),
-        ].join('\n'));
+interface ItemModel {
+    name: string;
+    category: string;
+    rewardId?: string;
+    formula?: number;
+    knownFlag?: string;
+    block?: string;
+    records?: { record: number; recHex: string; effect: boolean }[];
+    icon: ReturnType<typeof iconInfo>;
+}
+
+function singleItemMarkdown(kind: string, entry: ItemEntry, model: ItemModel): string {
+    const lines = [
+        `# ${entry.label} (${kind})`,
+        '',
+        '| Property | Value |',
+        '|---|---|',
+        `| Name | ${entry.label} |`,
+        `| Category | \`${kind}\` |`,
+        `| Reward ID | \`${model.rewardId}\` |`,
+    ];
+    if (model.icon) {
+        lines.push(
+            `| Icon ID | \`0x${model.icon.id}\` |`,
+            `| Icon Entry | \`${model.icon.entry}\` |`,
+            `| Animation Record | \`${model.icon.record}\` |`,
+            `| Palette | \`${model.icon.palette}\` |`,
+            '',
+            `![${entry.label}](icon.png)`,
+            '',
+            `See [Icon 0x${model.icon.id}](../icons/${model.icon.id}/info.md).`,
+        );
+    } else {
+        lines.push('| Icon | *None* |');
     }
-    const e = entries.find(x => x.slug === name || hexId(x.id, 4) === name);
+    lines.push('');
+    return lines.join('\n');
+}
+
+function singleAlchemyMarkdown(entry: ItemEntry, model: ItemModel): string {
+    const lines = [
+        `# Alchemy Formula: ${entry.label}`,
+        '',
+        '| Property | Value |',
+        '|---|---|',
+        `| Name | ${entry.label} |`,
+        `| Formula Index | ${model.formula} |`,
+        `| Known Flag | \`$${model.knownFlag}\` |`,
+        `| Logic Block | \`${model.block || '—'}\` |`,
+    ];
+    if (model.icon) {
+        lines.push(
+            `| Icon ID | \`0x${model.icon.id}\` |`,
+            `| Animation Record | \`${model.icon.record}\` |`,
+            `| Palette | \`${model.icon.palette}\` |`,
+            '',
+            `![${entry.label}](icon.png)`,
+            '',
+            `See [Icon 0x${model.icon.id}](../icons/${model.icon.id}/info.md).`,
+        );
+    } else {
+        lines.push('| Icon | *None* |');
+    }
+    lines.push('');
+    lines.push('## Animation Records', '');
+    if (model.records && model.records.length) {
+        lines.push(
+            'Animation records dispatched by this formula when cast:',
+            '',
+            '| Record | Hex | Effect Signal | Sprite Asset |',
+            '|---|---|---|---|',
+            ...model.records.map((r) =>
+                `| ${r.record} | \`${r.recHex}\` | ${r.effect ? '`effect_done` ($5D)' : '—'} | [Record ${r.recHex}](../sprites/${r.recHex.slice(1).padStart(6, '0')}/info.md) |`
+            ),
+            '',
+        );
+    } else {
+        lines.push('*No animation records decoded for this formula block.*', '');
+    }
+    return lines.join('\n');
+}
+
+/** Entries `{ id, slug, label, iconId }`; a directory per entry, found by slug or hex id. */
+function itemDir(
+    rom: Rom,
+    title: string,
+    entries: ItemEntry[],
+    name: string | undefined,
+    leaf: string | undefined,
+    describe: (e: ItemEntry) => ItemModel,
+    toMarkdown: (e: ItemEntry, m: ItemModel) => string,
+) {
+    const hasIcon = (e: ItemEntry) => e.iconId !== null && drawableIcons(rom).includes(e.iconId);
+    const indexMd = () => [
+        `# ${title}`, '', `${entries.length} entries. Each has \`info.json\` and \`info.md\`; \`icon.png\` links to [icons/](../icons/index.md).`, '',
+        '| Icon | Name | ID / Flag | Record | Palette |',
+        '|---|---|---|---|---|',
+        ...entries.map((e) => {
+            const m = describe(e);
+            const iconCol = hasIcon(e) ? `[![${e.slug}](${e.slug}/icon.png)](${e.slug}/icon.png)` : '—';
+            const idCol = m.rewardId || (m.formula !== undefined ? `#${m.formula} (\`$${m.knownFlag}\`)` : '—');
+            const recCol = m.icon ? `\`${m.icon.record}\`` : '—';
+            const palCol = m.icon ? `\`${m.icon.palette}\`` : '—';
+            return `| ${iconCol} | [${e.label}](${e.slug}/info.md) | ${idCol} | ${recCol} | ${palCol} |`;
+        }),
+        '',
+    ].join('\n');
+
+    if (name === undefined) {
+        const dirEntries: Entry[] = [
+            ['index.json', 'file'],
+            ['index.md', 'file'],
+            ...entries.map((e): Entry => [e.slug, 'dir']),
+        ];
+        return dir(dirEntries, indexMd);
+    }
+    if (name === 'index.json') {
+        return json(() => entries.map(describe));
+    }
+    if (name === 'index.md') {
+        return text(indexMd);
+    }
+
+    const m = /^(.+?)(?:\.(json|md))?$/i.exec(name);
+    const rawName = m ? m[1] : name;
+    const ext = m ? m[2] : undefined;
+
+    const e = entries.find(x => x.slug === rawName || hexId(x.id, 4) === rawName);
     if (!e) return null;
-    if (leaf === undefined) return dir([...(hasIcon(e) ? [['icon.png', 'link'] as Entry] : []), ['info.json', 'file'] as Entry]);
+    const model = describe(e);
+
+    if (ext === 'json') return leaf === undefined ? json(() => model) : null;
+    if (ext === 'md') return leaf === undefined ? text(() => toMarkdown(e, model)) : null;
+
+    if (leaf === undefined) {
+        return dir([
+            ...(hasIcon(e) ? [['icon.png', 'link'] as Entry] : []),
+            ['info.json', 'file'] as Entry,
+            ['info.md', 'file'] as Entry,
+        ], () => toMarkdown(e, model));
+    }
     if (leaf === 'icon.png') return link(iconPng(rom, e.iconId), ICONS + iconName(e.iconId!));
-    if (leaf === 'info.json') return json(() => describe(e));
+    if (leaf === 'info.json') return json(() => model);
+    if (leaf === 'info.md') return text(() => toMarkdown(e, model));
     return null;
 }
 
@@ -181,22 +519,29 @@ function items(rom: Rom, kind: string, name?: string, leaf?: string) {
         category: kind,
         rewardId: '$' + hexId(e.id, 4),
         icon: iconInfo(rom, e.iconId),
-    }));
+    }), (e, m) => singleItemMarkdown(kind, e, m));
 }
 
 function alchemy(rom: Rom, name?: string, leaf?: string) {
     const entries: ItemEntry[] = [];
+    const alch = alchemyModel(rom);
     for (let n = 0; n < ALCHEMY_FORMULAS; n++) {
         const flag = ALCHEMY_KNOWN + (n >> 3), bit = n & 7;
         const label = flagName(flag, bit);
         if (label) entries.push({ id: n, slug: slugify(label), label, flag: `${hexId(flag, 4)}.${bit}`, iconId: alchemyIconId(rom, n) });
     }
-    return itemDir(rom, 'soe://rom/assets/alchemy/', entries, name, leaf, e => ({
-        name: e.label,
-        formula: e.id,
-        knownFlag: e.flag,
-        icon: iconInfo(rom, e.iconId),
-    }));
+    return itemDir(rom, 'soe://rom/assets/alchemy/', entries, name, leaf, e => {
+        const f = alch.formulas[e.id];
+        return {
+            name: e.label,
+            category: 'alchemy',
+            formula: e.id,
+            knownFlag: e.flag,
+            block: f ? f.blockHex : undefined,
+            records: f ? f.records.map((r) => ({ record: r.record, recHex: r.recHex, effect: r.effect })) : [],
+            icon: iconInfo(rom, e.iconId),
+        };
+    }, (e, m) => singleAlchemyMarkdown(e, m));
 }
 
 function iconInfo(rom: Rom, iconId: number | null) {
@@ -211,23 +556,106 @@ function iconInfo(rom: Rom, iconId: number | null) {
 // ── strings ──────────────────────────────────────────────────────────────
 
 function strings(rom: Rom, name?: string, leaf?: string) {
-    if (leaf !== undefined) return null;
+    const stringMarkdown = (idx: number, s: string | null) => [
+        `# String $${hexId(idx, 4)}`,
+        '',
+        '| Property | Value |',
+        '|---|---|',
+        `| Index | \`${idx}\` (\`$${hexId(idx, 4)}\`) |`,
+        `| Table Key Offset | \`$${hexId(idx * 3, 6)}\` |`,
+        '| Master Key Table | `$11D000` (Bank `$C1`) |',
+        '',
+        '## Text',
+        '',
+        '```',
+        s !== null ? s : '(no ROM available)',
+        '```',
+        '',
+        `[${hexId(idx, 4)}.json](${hexId(idx, 4)}.json) | [${hexId(idx, 4)}.txt](${hexId(idx, 4)}.txt)`,
+        '',
+    ].join('\n');
+
+    const indexMarkdown = () => {
+        const top = Math.min(STRING_COUNT, 200);
+        return [
+            '# soe://rom/assets/strings/',
+            '',
+            `${STRING_COUNT} in-game strings, master key table at \`$11D000\` (Bank \`$C1\`).`,
+            '',
+            '| Index | Hex | Preview | Links |',
+            '|---|---|---|---|',
+            ...Array.from({ length: top }, (_, i) => {
+                const txt = stringText(rom, i);
+                const preview = txt !== null ? cell(txt.slice(0, 60)) : '—';
+                return `| ${i} | [\`$${hexId(i, 4)}\`](${hexId(i, 4)}.md) | ${preview} | [txt](${hexId(i, 4)}.txt) · [json](${hexId(i, 4)}.json) |`;
+            }),
+            STRING_COUNT > top ? `\n*... and ${STRING_COUNT - top} more strings (see individual files).*` : '',
+            '',
+        ].join('\n');
+    };
+
     if (name === undefined) {
-        const names = Array.from({ length: STRING_COUNT }, (_, i) => hexId(i, 4) + '.txt');
-        return dir(names.map((n): Entry => [n, 'file']), () => [
-            '# soe://rom/assets/strings/', '', `${STRING_COUNT} in-game strings, table at \`$11D000\`.`, '',
-            '| Index | Text |', '|---|---|',
-            ...names.map((n, i) => `| [${n.slice(0, 4)}](${n}) | ${cell(stringText(rom, i))} |`),
-        ].join('\n') + '\n');
+        const dirEntries: Entry[] = [
+            ['index.json', 'file'],
+            ['index.md', 'file'],
+            ...Array.from({ length: STRING_COUNT }, (_, i): Entry => [hexId(i, 4) + '.txt', 'file']),
+        ];
+        return dir(dirEntries, indexMarkdown);
     }
-    const m = /^([0-9a-f]{1,4})(\.txt)?$/i.exec(name);
-    const index = m ? parseInt(m[1], 16) : -1;
+
+    if (name === 'index.json') {
+        if (leaf !== undefined) return null;
+        return json(() => ({
+            count: STRING_COUNT,
+            tableAddress: '$11D000',
+            romLoaded: !!rom,
+            sample: Array.from({ length: Math.min(STRING_COUNT, 50) }, (_, i) => ({
+                index: i,
+                hex: '$' + hexId(i, 4),
+                text: stringText(rom, i),
+            })),
+        }));
+    }
+
+    if (name === 'index.md') {
+        if (leaf !== undefined) return null;
+        return text(indexMarkdown);
+    }
+
+    const m = /^([0-9a-f]{1,4})(?:\.(json|txt|md))?$/i.exec(name);
+    if (!m) return null;
+    const index = parseInt(m[1], 16);
     if (index < 0 || index >= STRING_COUNT) return null;
-    return text(() => {
-        const s = stringText(rom, index);
-        if (s === null) throw new Error(`string ${hexId(index, 4)} does not decode`);
-        return s + '\n';
-    });
+
+    const str = rom ? stringText(rom, index) : null;
+    const requested = leaf || m[2];
+
+    if (requested === 'txt') {
+        return text(() => (str !== null ? str : '') + '\n');
+    }
+    if (requested === 'json' || requested === 'info.json') {
+        return json(() => ({
+            index,
+            hex: '$' + hexId(index, 4),
+            keyOffset: '$' + hexId(index * 3, 6),
+            tableAddress: '$11D000',
+            text: str,
+        }));
+    }
+    if (requested === 'md' || requested === 'info.md') {
+        return text(() => stringMarkdown(index, str));
+    }
+
+    if (leaf === undefined && !m[2]) {
+        return dir([
+            ['info.json', 'file'],
+            ['info.md', 'file'],
+            [`${hexId(index, 4)}.txt`, 'file'],
+            [`${hexId(index, 4)}.json`, 'file'],
+        ], () => stringMarkdown(index, str));
+    }
+
+    return null;
 }
 
 export { resolveAssets };

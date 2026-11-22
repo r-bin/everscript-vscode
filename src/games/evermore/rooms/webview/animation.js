@@ -30,9 +30,10 @@ function stopRoomAnimation(){
  * Images go into the SVG so they share the map's coordinate system and follow
  * pan and zoom for free. They sit above the map image, which means a baked
  * collision marking on an animated tile is covered while this is on — switch
- * animation off to see it. Each group starts at a different point in its cycle:
- * real channels carry their own phase, and without this every torch in a room
- * flickers in lockstep, which reads as one animation rather than many.
+ * animation off to see it. Every group runs on one clock from the moment it is
+ * shown, as the game starts every channel and cycle at room load: a group's
+ * steps already hold its channels' and cycles' phases (maps/animation-groups.ts),
+ * and starting groups at random points tore one water surface into blocks.
  */
 function applyRoomAnimation(anim){
   _lastRoomAnim=anim||null;
@@ -49,9 +50,9 @@ function applyRoomAnimation(anim){
   if(!filtered.length)return;
   // Metatile units are 2 SVG units; the map image uses the same scale.
   var groups=filtered.map(function(g){
-    return {frames:g.frames,delays:g.delays,at:[{x:g.x*2,y:g.y*2,w:g.w*2,h:g.h*2}]};
+    return {frames:g.frames,delays:g.delays,order:g.order,at:[{x:g.x*2,y:g.y*2,w:g.w*2,h:g.h*2}]};
   });
-  _animPlayer=mapAnimPlay(svg,groups,{id:'rg-animlayer',imageClass:'rg-anim',randomPhase:true,
+  _animPlayer=mapAnimPlay(svg,groups,{id:'rg-animlayer',imageClass:'rg-anim',
     after:svg.querySelector('#rg-img')});
 }
 

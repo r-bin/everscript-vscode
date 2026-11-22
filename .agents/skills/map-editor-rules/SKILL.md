@@ -21,7 +21,7 @@ Format detail lives in `map-format` and `docs/map-format/`. This skill is what t
 | Budget | Limit | What spends it |
 |---|---|---|
 | **Tile families** | **7** | A palette slot. The loader takes seven at a time, from entry `MAP_PALETTE` (`$7E2437`, 0 on load): entries past the seventh are **alternate sets** a script switches to (22 vanilla rooms). The draft keeps only the first set; the Info tab's Header sub-tab previews the others (map-editor-family-sets.js) as a **view**: nothing written, nothing on the history |
-| Graphics (Block 1) | 264 slots | Adopting a graphic the room did not already load |
+| Graphics (Block 1) | 256 slots (a 10-bit character field; `budget.ts`) | Adopting a graphic the room did not already load |
 | Stamp dictionary | 8 bytes per stamp | Every *distinct* `{canopy, terrain, collision}` combination |
 | Grid + dictionary | 32768-byte WRAM window | Both together — a big grid leaves less dictionary |
 | Step / B triggers | 6 bytes per entry | Each trigger, in its own table |
@@ -171,7 +171,7 @@ for anyway:
   state 0 — and what counts as unused is `map-construction` §3–§4.
 - **Family names.** Families are ROM ids with an area, not `GRASS`/`STONE`. Do not
   invent friendly names to match a mock.
-- **Ceilings.** The Info tab bars only attested ones: 7 families, 264 graphics, the
+- **Ceilings.** The Info tab bars only attested ones: 7 families, 256 graphics, the
   32 KB WRAM window. The mock's "Meta tiles /128" and "triggers /16" are its
   placeholders — stamps and triggers are counts, with no bar. Trigger tables are
   16-bit byte-length prefixed and `$8FAC84` walks them with a 16-bit index

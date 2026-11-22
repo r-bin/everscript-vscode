@@ -5,9 +5,10 @@
 // blocks and leave the same palette and display registers (a room's display mode comes from its own
 // property stream, $86:955C) — and, for a room that keeps graphics from before, the same room is
 // loaded first (room.ts contextRooms). That can only over-split (two keys, one picture), never merge two different pictures.
-// Room names are not decoded: rooms are listed by id, in groups of 64 ids.
+// Rooms are listed by id, in groups of 64 ids; each also carries our name for it (names.ts).
 import { readRoomBusAddress, isRoomSlotUsed, isBaseTerraRom, TERRA_ROOM_COUNT } from './rom';
 import { contextRooms, headerRun } from './room';
+import { nameRooms } from './names';
 
 export interface TerraRoomEntry {
     id: number;
@@ -25,6 +26,8 @@ export interface TerraRoomEntry {
     context: number[];
     /** Rooms with the same key show the same picture. */
     key: string;
+    /** The area it belongs to and its own name (names.ts); `guess`: the area's name describes the picture. */
+    area: string; name: string; guess: boolean;
 }
 
 export interface TerraGroup {
@@ -84,9 +87,11 @@ export function roomCatalog(rom: Uint8Array): TerraCatalog {
             id, hex: hex3(id), script: readRoomBusAddress(rom, id) ?? 0,
             sections: run.sections, sets: run.sets,
             w: own ? Math.max(sizes[0], sizes[2]) : 0, h: own ? Math.max(sizes[1], sizes[3]) : 0,
-            context, key: '',
+            context, key: '', area: '', name: '', guess: false,
         });
     }
+    const names = nameRooms(rom, rooms.map(r => r.id));
+    for (const r of rooms) Object.assign(r, names.get(r.id));
     for (const r of rooms) r.key = [r.id, ...r.context].map(k => keyOf(rom, k)).join('+');
     const byKey = new Map<string, number[]>();
     for (const r of rooms) if (r.w) {

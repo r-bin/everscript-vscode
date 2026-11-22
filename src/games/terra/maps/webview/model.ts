@@ -48,7 +48,7 @@ export interface CellTypeRule {
 }
 
 /** A row of `terra://rom/rooms/index.json`. */
-export interface RoomEntry { id: number; hex: string; script: number; sections: number[]; sets: number[]; w: number; h: number; context: number[]; key: string }
+export interface RoomEntry { id: number; hex: string; script: number; sections: number[]; sets: number[]; w: number; h: number; context: number[]; key: string; area?: string; name?: string; guess?: boolean }
 
 /** A group of `terra://rom/groups/index.json`. */
 export interface GroupData { name: string; pictures: number[][]; noMap: number[] }
@@ -125,15 +125,15 @@ export function variantsOf(pictures: number[][], id: number): number[] {
     return (pictures.find(p => p.includes(id)) ?? [id]).slice().sort((a, b) => a - b);
 }
 
-/** The rail: per group of ids, one row per picture named by its first room, then the rooms without a map. */
+/** The rail: per group of ids, one row per picture named by its first room (our name for it, terra/decoder/names.ts). */
 export function railAreas(groups: GroupData[], rooms: Map<number, RoomEntry>) {
     return groups.map(g => ({
         area: g.name,
         rooms: g.pictures.map(p => {
             const r = rooms.get(p[0]);
             const size = r ? r.w + '×' + r.h : '';
-            return { name: 'Room $' + hex(p[0], 3) + (p.length > 1 ? ' +' + (p.length - 1) : ''), tag: size,
-                attrs: { room: p[0], rooms: p.join(' '), hexes: p.map(i => hex(i, 3).toLowerCase()).join(' ') } };
+            return { name: (r?.name || 'Room $' + hex(p[0], 3)) + (p.length > 1 ? ' +' + (p.length - 1) : ''), tag: size,
+                attrs: { room: p[0], rooms: p.join(' '), hexes: p.map(i => [hex(i, 3).toLowerCase(), (rooms.get(i)?.name || '').toLowerCase()].filter(Boolean).join(' ')).join(' ') } };
         }),
     }));
 }

@@ -36,6 +36,11 @@ The Scripts tab's **Music** view annotates a verified subset of track records an
 
 ---
 
+### 1.4 Porting to another driver
+Is AKAO (Square's FF4–FF6 / Chrono Trigger driver) a target? Researched: feasible for samples and, with work, notes, but a driver swap with all 90 SFX rewritten and no committable driver. Findings and open questions: `docs/disassembly/audio/akao-vs-wolfgang.md`.
+
+---
+
 ## 2. Music Tab Sequence & Piano Roll Visualization
 
 Once the sequence bytecode is decoded, extend the Radar Music panel:
@@ -44,4 +49,21 @@ Once the sequence bytecode is decoded, extend the Radar Music panel:
 - **Live Playhead Indicator:** Highlight the exact sequence byte currently read by the SPC driver in real time (via zero-page track pointers or ARAM read telemetry).
 - **Control Flow Visuals:** Display sequence command chips, track loop points, and branch jumps as visual arcs connecting loop boundaries.
 - **Interactive ARAM Map:** 64 KB memory grid highlighting active driver code, sample tables, and active sound buffers with glowing phosphor fades on access.
+
+---
+
+## 3. MSU-1 CD-Quality Streaming Audio Enhancement
+
+> Status: 🟢 Implemented & Verified (`tools/msu1/convert.mts`, `tools/msu1/msu1.asm`, `tests/msu1/msu1.test.mts`)  
+> Full Architecture & Track Manifest: [`docs/msu1/README.md`](../msu1/README.md)
+
+### 3.1 Mechanism
+- Expands the 3.0 MB FastROM HiROM ROM to 4.0 MB.
+- Hooks `play_music_track` at `$8C:828F` (`JML $FE6000` + `NOP`).
+- At `$FE:6000`, verifies MSU-1 coprocessor registers (`$00:2002`..`$00:2007` == `"S-MSU1"`).
+- Polls audio busy (bit 6 of `$00:2000`) and missing track (bit 3).
+- If track is missing or MSU-1 hardware absent, jumps seamlessly to `$8C:8294` to run the vanilla SPC700 music driver.
+- When present, silences the SPC music driver (`APU $1A/0`), sets volume (`$00:2006 = $FF`), reads the loop table at `$FE:6100` (`$03` loop, `$01` one-shot), and starts playback via `$00:2007`.
+- Frees ~24 KB of SPC700 ARAM, removing the need for dynamic soundbank swaps and enabling all 71 sound effects to fit into ARAM simultaneously.
+
 

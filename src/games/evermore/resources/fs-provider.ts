@@ -24,6 +24,7 @@ import { intoMount, pageLinks } from './page-links';
 import { missingRomText } from '../../../platform/roms/library';
 import type { VfsNode, Entry } from './nodes';
 import type { MapsDeps } from './map-files';
+import type { CdlView } from '../../../platform/cdl/library-read';
 
 type Rom = Uint8Array;
 /** What the provider is given by the extension (see the constructor). */
@@ -34,6 +35,8 @@ interface Deps {
     readMemory(bus: number, len: number): Promise<Uint8Array>;
     emulatorStatus(): Promise<object>;
     getLogs?: Parameters<typeof resolveLogs>[1];
+    /** The CDL library recorded for a ROM, or null (soe://rom/code/<name>/lines.json). */
+    cdl?(rom: Uint8Array): CdlView | null;
 }
 /** A resolved node and the ROM that decides how long its bytes are cached. */
 interface Routed { node: VfsNode | null; rom: Rom | null }

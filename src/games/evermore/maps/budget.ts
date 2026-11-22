@@ -9,12 +9,14 @@ import { RoomData } from './room';
 /**
  * Graphics slots reachable through a tilemap word.
  *
- * A word's `chr` field is 10 bits and `chr -> slot` is
- * `floor(chr/0x20)*8 + floor((chr%0x20)/2)`, so slots 0..263 can be named.
- * The fullest vanilla room is `0x08` at **255** (237 Block 1 + 18 animated),
- * which leaves nine.
+ * A word's `chr` field is 10 bits: 1024 characters, and a 16x16 graphic takes four (slot s at
+ * `floor(s/8)*0x20 + (s%8)*2`, +1, +0x10, +0x11), so slots 0..255. `chr -> slot` is read as
+ * `floor(chr/0x20)*8 + floor((chr%0x20)/2)`, which gives 256..263 for characters 0x3F0-0x3FF, but those
+ * are the lower halves of slots 248..255: a slot 256 would start at character 0x400, past the field
+ * (a converted room that used it drew another graphic in another palette, 2026-11). The fullest vanilla
+ * room is `0x08` at **255** (237 Block 1 + 18 animated), which leaves one.
  */
-export const MAX_GRAPHICS = 264;
+export const MAX_GRAPHICS = 256;
 
 /** Background palette slots. Hard: the loader clamps to 7 at `$90D037`. */
 export const MAX_FAMILIES = 7;

@@ -62,8 +62,8 @@ The jump table at `$8C:D029` indexes handlers by thread state byte (`+$03`):
 | `2` | `$8C:D09C` | Active / Running | Always continues execution at `pc` |
 | `4` | `$8C:D037` | Sleeping | Frame counter `$0B19` $\ge$ deadline (`+0x05`/`+0x07`) |
 | `6` | `$8C:D04A` | Entity Busy Wait | Entity busy mask (`+0x05` & `+0x09`) becomes non-zero |
-| `8` | `$8C:D05C` | Dialog Box Wait | Dialog box state `$2429` $\ne$ `+0x05` |
-| `10`| `$8C:D086` | Actor Walk Wait | Entity walk step `$107E,x` matches target `$10CE,x` |
+| `8` | `$8C:D05C` | Step-on Trigger Wait | Active trigger script id `$2429` $\ne$ `+0x05` |
+| `10`| `$8C:D086` | Record Settle Wait | Byte `$107E,x` equals `$10CE,x` for `x = +0x05` (text box or room object, open) |
 | `12`| `$8C:D065` | Camera Settle | Camera coordinates DP `$BF` and `$C1` stop moving |
 
 #### Mode 4: Sleep Timer Handler (`$8C:D037`)
@@ -78,13 +78,13 @@ The jump table at `$8C:D029` indexes handlers by thread state byte (`+$03`):
 > [View in VFS: soe://rom/code/8CCFFD](soe://rom/code/8CCFFD?asm=1&c=0)
 
 
-#### Mode 8: Dialog / Text Box Wait (`$8C:D05C`)
+#### Mode 8: Step-on Trigger Wait (`$8C:D05C`)
 > **Interactive 65816 Assembly**:
 > Centralized comments infused at runtime.
 > [View in VFS: soe://rom/code/8CCFFD](soe://rom/code/8CCFFD?asm=1&c=0)
 
 
-#### Mode 10: Actor Walk Target Reached (`$8C:D086`)
+#### Mode 10: Record Settle Wait (`$8C:D086`)
 > **Interactive 65816 Assembly**:
 > Centralized comments infused at runtime.
 > [View in VFS: soe://rom/code/8CCFFD](soe://rom/code/8CCFFD?asm=1&c=0)

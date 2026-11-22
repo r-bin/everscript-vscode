@@ -27,6 +27,9 @@ flowchart TD
     Patches --> Balance["Balance & Overhaul"]
     Patches --> Bugfixes["Bugfixes & Engine Repairs"]
     Patches --> Debug["Developer & Tooling"]
+    Patches --> Audio["Audio & Media Streaming"]
+
+    Audio --> MSU1["MSU-1 CD Audio Streaming<br/>($8C:828F Hook, $FE:6000 Kernel, 4.0 MB)"]
 
     CoOp --> P2["FuSoYa 2-Player Edition v1.02<br/>(Bank $F0 Kernel, Joypad Hook)"]
     CoOp --> ABSwap["mziab A/B Button Swap v1.00<br/>(SNES Menu Standard)"]
@@ -63,6 +66,7 @@ As a result, most patches target specific, well-known design pain points:
 | **Game-Breaking Buff Bugs** (Atlas save exploit, 5th buff freeze) | Assassin17 Atlas Fix / Everscript `five_status_effects_fix.asm` | Fixes wear-off routine (`$91B7FA`) to clean up evicted status rather than incoming status. |
 | **Overpowered Level 3 Weapon Charge** (4x multiplier ignores defense) | Ninakoru 1.1 / MKDH 25th Anniv | Reduces L2/L3 multipliers (e.g. L2: 1.75x, L3: 2.75x) to prevent boss one-shots. |
 | **Disabled Developer Debug Features** | XaserLE Debug Menu v1.0–v1.3 | Restores developer ring menu at `$CEA3EA`, adding noclip, stat maxing, and map warps. |
+| **Room Transition Audio Lag & 4-bit Synthesizer** | MSU-1 CD Audio Streaming (`tools/msu1`) | Intercepts `$8C:828F`, streams 44.1 kHz stereo audio via `$00:2000`–`$00:2007`, removes soundbank transfer stalls. |
 
 ---
 

@@ -7,7 +7,7 @@ category: 🧠
 name: companion_idle_sniff_and_scratch_random_dice_roll
 title: Directional steering and wander heading updater with RNG decimation
 confidence: verified
-tags: [reconstructed-c, g1-pass]
+tags: [reconstructed-c, g1-pass, rng]
 evidence: ["reconstructed-c/8F/8FAB92_companion_idle_sniff_and_scratch_random_dice_roll.c passes Gate G1 (31/31 reference states, 492/492 fuzzed, mutation caught)"]
 ---
 Directional steering and wander heading updater with RNG decimation.

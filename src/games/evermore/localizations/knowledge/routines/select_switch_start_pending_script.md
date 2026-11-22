@@ -7,7 +7,7 @@ category: 🧠
 name: select_switch_start_pending_script
 title: Select handler, pending-switch branch (part of $8C:F17C)
 confidence: confirmed
-tags: [entity, script]
+tags: [entity, script, script-vm]
 evidence: ["disasm: inside select_switch_character ($8C:F17C): Y = $0F42, tests +$10 bit $20; when clear calls $8C:CE5C with X = $0EB2 and stores $FFFF to $0EB2"]
 see: [routines/select_switch_character.md, docs/disassembly/script-vm/combat-target-filter.md]
 ---

@@ -1,0 +1,468 @@
+// The ring menu kinds (docs/open-evermore/resources.md §menus): what each ring item is, which items each ring shows,
+// the rings a flow cycles through (Up/Down), and what pressing an item does. All of it sits in bank $8E between code and
+// is read by fixed addresses or code immediates, so implode writes it in place; a name string stays at its home.
+//
+// Facts used (knowledge routines/RING_*.md, *_ACTIONS.md, ring_*_loop.md, v0.455.0):
+//   ring items  $8E:8000 162 words (ring item id = 2·id) → the 8-byte entry in bank $8E ($8E:8144-$8653, not in id
+//               order; the pointers stay in _base/): +0 the name, a plain NUL-terminated ASCII string in bank $C4 (every
+//               ring loop prints it with $8C:9E03, bank #$C4; weapon records, formula and ingredient names point at the
+//               same strings, so a name is written where it was); +2 the icon, an animation record in bank $C4 ($8E:AEBC);
+//               +4 its palette in bank $D0; +6 the index, which the ring that shows the item reads: an action table's
+//               entry (×2, consumables ×1: the loop doubles it) or a weapon, armour or ingredient number
+//   rings       ring id = 2·id into three tables: $8E:9920 the WRAM buffer (+0 count, +2 cursor, +4 16 item ids; DP $95),
+//               $8E:9944 the loop (JSR ($9944,x) at $8E:A20E), $8E:9968 flags copied to $05AB; 18 rings, code at $8E:998C
+//               after the flows. The options rings and the Call Bead rings are filled by `lda #imm : sta` sites (ITEM_SITES)
+//   flows       $8E:998C-$99C9: records of a count and that many ring ids; code ($8E:A34F, $8E:E515, …) and the shop tables
+//               $CC:E37B / $CC:F037 hold their addresses, so each keeps its place and its length
+//   actions     handler tables (handler-tables.mts), by the index of the item pressed: options $8E:A444 (ring_options_loop),
+//               consumables $8E:A873 (ring_items_loop, X = 2·index), formulas $8E:A777 (ring_alchemy_loop), Call Bead callers
+//               $8E:99CA (ring_call_bead_callers_loop), their spells $8E:AD43 (ring_call_bead_spells_loop)
+// Names: a ring item is named from its own text in the ROM (no game text in this file), with its category as prefix.
+import { createRequire } from 'node:module';
+import type { Codec, Item, Write } from '../../codec.mts';
+import { ENUM, enumFile } from '../../enum.mts';
+import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
+import type { Tree } from '../../tree.mts';
+import { handlerTable } from './handler-tables.mts';
+import { hexText, parseHex, routines } from './readers.mts';
+
+const require = createRequire(import.meta.url);
+const { encodePng } = require('../../../../dist/platform/png');
+const { renderItemIcon } = require('../../../../dist/games/evermore/maps/item-icons');
+const KNOWLEDGE = require('../../../../dist/games/evermore/localizations/knowledge');
+
+const word = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
+const GROUP = 'menus';
+
+// ── what pressing an item does ──
+export const OPTION_ACTIONS = 'option_actions', ITEM_ACTIONS = 'item_actions', ALCHEMY_ACTIONS = 'alchemy_actions', CALLER_ACTIONS = 'caller_actions', SPELL_ACTIONS = 'spell_actions';
+
+export const optionActionsCodec = handlerTable({
+    kind: OPTION_ACTIONS, at: 0x0EA444, group: GROUP,
+    why: 'ring_options_loop jumps by JSR ($A444,x) with X = the pressed item\'s index (2·id); 9 words, code from $8E:A456',
+    entries: [
+        ['status_boy', 'the Boy\'s full-screen status ($8D:A0E9, $8D:A6F6)'],
+        ['status_dog', 'the Dog\'s full-screen status'],
+        ['weapon_skill', 'the weapon skill screen ($8D:896C)'],
+        ['action', 'the Action screen: how the companion fights ($8D:82F0, $8D:862A)'],
+        ['control_prefs', 'the Control Prefs screen ($8D:9DB4, $8D:9FB6)'],
+        ['window_edit', 'the Window Edit screen ($8D:9B2A, $8D:9CD1)'],
+        ['equipment', 'the armour rings: switches to the flow `equipment`'],
+        ['targeting', 'the target cursor ($8C:88CC); the chosen entity is kept in $144F'],
+        ['alchemy', 'the alchemy screen ($8D:C321, $8D:C803)'],
+    ],
+});
+
+export const itemActionsCodec = handlerTable({
+    kind: ITEM_ACTIONS, at: 0x0EA873, group: GROUP,
+    why: 'ring_items_loop jumps by JSR ($A873,x) with X = 2·the pressed item\'s index; 9 words, code from $8E:A885',
+    entries: [
+        ['petals', 'pick a target and use it'], ['nectar', 'pick a target and use it'], ['honey', 'pick a target and use it'],
+        ['dog_biscuit', 'pick a target and use it'], ['wings', 'pick a target and use it'], ['essence', 'pick a target and use it'],
+        ['pixie_dust', 'pick a target and use it'],
+        ['call_bead', 'fills the ring `call_bead_callers` and switches to the flow `call_bead_callers`'],
+        ['pouch', 'opens the pouch screen'],
+    ],
+});
+
+/** The formulas in index order (2·formula is what an alchemy ring item holds and what the learned bits count). */
+const FORMULAS = ['acid_rain', 'atlas', 'barrier', 'call_up', 'corrosion', 'crush', 'cure', 'defend', 'double_drain', 'drain',
+    'energize', 'escape', 'explosion', 'fireball', 'fire_power', 'flash', 'force_field', 'hard_ball', 'heal', 'lance', 'laser',
+    'levitate', 'lightning_storm', 'miracle_cure', 'nitro', 'one_up', 'reflect', 'regrowth', 'revealer', 'revive', 'slow_burn',
+    'speed', 'sting', 'stop', 'super_heal'];
+export const alchemyActionsCodec = handlerTable({
+    kind: ALCHEMY_ACTIONS, at: 0x0EA777, group: GROUP,
+    why: 'ring_alchemy_loop jumps by JSR ($A777,x) with X = the formula item\'s index (2·formula); 36 words, code from $8E:A7BF',
+    entries: [...FORMULAS.map(n => [n, `casts ${n.replace(/_/g, ' ')}`] as [string, string]), ['unused_46', 'no formula has this index']],
+});
+
+export const callerActionsCodec = handlerTable({
+    kind: CALLER_ACTIONS, at: 0x0E99CA, group: GROUP,
+    why: 'ring_call_bead_callers_loop jumps by JSR ($99CA,x) ($8E:990E) with X = the caller item\'s index; 4 words, code from $8E:99D2',
+    entries: [
+        ['fire_eyes', 'fills the ring `call_bead_spells` with Fire Eyes\' spells (rings/call_bead_spells.json)'],
+        ['horace', 'fills the ring `call_bead_spells` with Horace\'s spells'],
+        ['camellia', 'fills the ring `call_bead_spells` with Camellia\'s spells'],
+        ['professor', 'fills the ring `call_bead_spells` with the Professor\'s spells'],
+    ],
+});
+
+export const spellActionsCodec = handlerTable({
+    kind: SPELL_ACTIONS, at: 0x0EAD43, group: GROUP,
+    why: 'ring_call_bead_spells_loop jumps by JSR ($AD43,x) with X = the spell item\'s index; 18 words, code from $8E:AD67',
+    entries: ['life_spark', 'heat_wave', 'storm', 'flare', 'time_warp', 'first_aid', 'confound', 'regenerate', 'aura', 'shock_wave',
+        'shield', 'plague', 'hypnotize', 'disrupt', 'restore', 'electra_bolt', 'unused_20', 'unused_22']
+        .map(n => [n, n.startsWith('unused') ? 'no spell has this index' : `casts ${n.replace(/_/g, ' ')}`] as [string, string]),
+});
+
+// ── ring items ──
+export const RING_ITEMS = 'ring_items';
+const POINTERS = 0x0E8000, ENTRIES = 0x0E8144, ITEM_COUNT = 162, ENTRY = 8, NAME_BANK = 0x040000, PALETTE_BANK = 0xD0;
+
+/**
+ * What the ring that shows an item reads its index as, by the item's id range (the ranges the builders and loops use):
+ * an action kind (the index is `scale`·its id there, written as `field`), or a plain number.
+ */
+interface Category { prefix: string; first: number; last: number; actions?: string; field?: string; scale?: number }
+const CATEGORIES: Category[] = [
+    { prefix: 'debug', first: 0x00, last: 0x14 },
+    { prefix: 'option', first: 0x16, last: 0x26, actions: OPTION_ACTIONS, field: 'action', scale: 2 },
+    { prefix: 'weapon', first: 0x28, last: 0x40 },
+    { prefix: 'ammo', first: 0x42, last: 0x46 },
+    { prefix: 'alchemy', first: 0x48, last: 0x8C, actions: ALCHEMY_ACTIONS, field: 'formula', scale: 2 },
+    { prefix: 'item', first: 0x8E, last: 0x9E, actions: ITEM_ACTIONS, field: 'action', scale: 1 },
+    { prefix: 'armour', first: 0xA0, last: 0xEE },
+    { prefix: 'caller', first: 0xF0, last: 0xF6, actions: CALLER_ACTIONS, field: 'action', scale: 2 },
+    { prefix: 'spell', first: 0xF8, last: 0x116, actions: SPELL_ACTIONS, field: 'action', scale: 2 },
+    { prefix: 'ingredient', first: 0x118, last: 0x142 },
+];
+const categoryOf = (id: number) => CATEGORIES.find(c => 2 * id >= c.first && 2 * id <= c.last)!;
+/** Two options share a text; their index says whose. */
+const SAME_TEXT: Record<number, string> = { [0x16 / 2]: 'option_player_status_boy', [0x18 / 2]: 'option_player_status_dog' };
+
+const entryAt = (rom: Uint8Array, id: number) => POINTERS & 0xFF0000 | word(rom, POINTERS + 2 * id);
+function textAt(rom: Uint8Array, at: number): string {
+    let s = '';
+    for (let i = at; rom[i] !== 0; i++) {
+        if (rom[i] < 0x20 || rom[i] > 0x7E) throw new Error(`ring_items: the name at $C4:${hexText(at & 0xFFFF, 4)} has byte $${rom[i].toString(16)}; explode would lose it`);
+        s += String.fromCharCode(rom[i]);
+    }
+    return s;
+}
+
+/** The names explode gives ring items (from their own text); set by the first explode, read by defaultName. */
+let NAMES: string[] = [];
+export function nameRingItems(rom: Uint8Array): string[] {
+    if (NAMES.length) return NAMES;
+    const names: string[] = [], seen = new Set<string>();
+    for (let id = 0; id < ITEM_COUNT; id++) {
+        const c = categoryOf(id), text = textAt(rom, NAME_BANK | word(rom, entryAt(rom, id))).replace(/^Debug: /, '');
+        let n = SAME_TEXT[id] ?? `${c.prefix}_${text.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')}`.slice(0, 80);
+        for (let k = 2; seen.has(n); k++) n = `${n.replace(/_\d+$/, '')}_${k}`;
+        seen.add(n); names.push(n);
+    }
+    return NAMES = names;
+}
+
+const nameKey = (n: string) => `${RING_ITEMS}/${n}.name`;
+
+interface RingItem { text: string; icon: number; palette: number; index: number }
+
+/** A ring item file → its entry, or the reason it is not one; `ids` resolves an action by name (absent: left as it is). */
+function readItem(v: any, id: number, ids?: Map<string, Map<string, number>>): RingItem | string {
+    if (typeof v?.name !== 'string' || !/^[\x20-\x7E]*$/.test(v.name)) return '/name: the text, printable ASCII';
+    const icon = parseHex(v.icon, 0xFFFF), pal = parseHex(v.palette, 0xFFFF, PALETTE_BANK);
+    if (icon === null) return '/icon: an animation record in bank $C4, "$xxxx"';
+    if (pal === null) return '/palette: 16 colours in bank $D0, "$D0:xxxx"';
+    const c = categoryOf(id);
+    let index: number | null = Number.isInteger(v.index) && v.index >= 0 && v.index <= 0xFFFF ? v.index : null;
+    if (c.field && v[c.field] !== undefined) {
+        const k = ids?.get(c.actions!)?.get(v[c.field]);
+        if (ids && k === undefined) return `/${c.field}: "${v[c.field]}" is no entry of ${c.actions}`;
+        index = k === undefined ? null : k * c.scale!;
+        if (!ids) return { text: v.name, icon, palette: pal, index: -1 };
+    }
+    if (index === null) return c.field ? `/${c.field}: an entry of ${c.actions} (or /index, a number)` : '/index: a number 0-65535';
+    return { text: v.name, icon, palette: pal, index };
+}
+
+export const ringItemsCodec: Codec = {
+    kind: RING_ITEMS, version: 1, path: RING_ITEMS, folder: `${GROUP}/${RING_ITEMS}`,
+    defaultName: id => NAMES[id] ?? `${RING_ITEMS}_${(2 * id).toString(16).padStart(3, '0')}`,
+
+    // The entry compares by its index (an action by name and by number are equal); the preview is for the reader.
+    canonical(path, bytes, ctx) {
+        if (path.endsWith('.png')) return null;
+        if (path === `${RING_ITEMS}/${ENUM}`) return [path, bytes];
+        const v = JSON.parse(readText(bytes)), id = ctx?.ids.get(RING_ITEMS)?.get(path.slice(RING_ITEMS.length + 1, -'.json'.length));
+        const item = id === undefined ? null : readItem(v, id, ctx?.ids);
+        return [path, json(item && typeof item !== 'string' ? item : v)];
+    },
+
+    explode(rom, name) {
+        nameRingItems(rom);
+        const files: Tree = new Map(), names: string[] = [], pool = [], homes = [];
+        for (let id = 0; id < ITEM_COUNT; id++) {
+            const n = name(RING_ITEMS, id), e = entryAt(rom, id) & 0x3FFFFF, c = categoryOf(id);
+            names.push(n);
+            const at = NAME_BANK | word(rom, e), text = textAt(rom, at), index = word(rom, e + 6);
+            const v: Record<string, unknown> = { name: text, icon: hexText(word(rom, e + 2), 4), palette: hexText(word(rom, e + 4), 4, PALETTE_BANK) };
+            const k = c.scale ? index / c.scale : -1;
+            if (c.field && Number.isInteger(k) && k < (c.actions === ALCHEMY_ACTIONS ? 36 : 18)) v[c.field] = name(c.actions!, k);
+            else v.index = index;
+            files.set(`${RING_ITEMS}/${n}.json`, json(v));
+            const img = renderItemIcon(rom, 2 * id);
+            if (img) files.set(`${RING_ITEMS}/${n}.png`, new Uint8Array(encodePng(img.width, img.height, img.data)));
+            pool.push({ start: at, end: at + text.length + 1 });
+            homes.push({ key: nameKey(n), at, length: text.length + 1, sha1: sha1(rom.slice(at, at + text.length + 1)) });
+        }
+        files.set(`${RING_ITEMS}/${ENUM}`, enumFile({ kind: RING_ITEMS, limit: ITEM_COUNT, names, why: 'ring item id = 2·id into the 162 pointers at $8E:8000; code follows the entries ($8E:8654)' }));
+        return { files, pool, tables: [{ start: ENTRIES, end: ENTRIES + ENTRY * ITEM_COUNT }], homes };
+    },
+
+    names({ tree, findings }) {
+        const names = new Set<string>();
+        for (const path of tree.keys()) {
+            if (!path.startsWith(RING_ITEMS + '/') || path === `${RING_ITEMS}/${ENUM}` || path.endsWith('.png')) continue;
+            const m = new RegExp(`^${RING_ITEMS}/([^/]+)\\.json$`).exec(path);
+            if (m) names.add(m[1]); else findings.warning('unknown-file', path, '', 'a ring item is <name>.json (and a preview <name>.png); ignored');
+        }
+        return names;
+    },
+
+    encode(ctx, names) {
+        const items: Item[] = [], ids = ctx.ids.get(RING_ITEMS) ?? new Map<string, number>();
+        const homes = [...ctx.base.homes].filter(([k]) => k.startsWith(`${RING_ITEMS}/`) && k.endsWith('.name'));
+        for (const n of names) {
+            const path = `${RING_ITEMS}/${n}.json`, id = ids.get(n);
+            if (!NAME_RE.test(n)) { ctx.findings.error('bad-name', path, '', `"${n}": snake_case, at most 80 characters`); continue; }
+            if (id === undefined || id >= ITEM_COUNT) { ctx.findings.error('id-over-limit', path, '', `the game has ${ITEM_COUNT} ring items (their pointers at $8E:8000 are followed by code)`); continue; }
+            let item: RingItem | string;
+            try { item = readItem(JSON.parse(readText(ctx.tree.get(path)!)), id, ctx.ids); } catch (e) { ctx.findings.error('parse-error', path, '', (e as Error).message); continue; }
+            if (typeof item === 'string') { const [p, ...why] = item.split(': '); ctx.findings.error('invalid-value', path, p, why.join(': ')); continue; }
+            // Renamed: the home of the same id (homes are in id order).
+            const home = ctx.base.homes.get(nameKey(n)) ?? homes[id]?.[1];
+            if (!home) { ctx.findings.error('no-room', path, '/name', 'no name string of this ring item in the base; a new ring item has no room'); continue; }
+            if (item.text.length + 1 > home.length) { ctx.findings.error('no-room', path, '/name', `at most ${home.length - 1} characters: the name is written where it was (weapon records, formula and ingredient names point at the same text)`); continue; }
+            const bytes = new Uint8Array(home.length);
+            for (let i = 0; i < item.text.length; i++) bytes[i] = item.text.charCodeAt(i);
+            items.push({ key: nameKey(n), file: path, bytes, rule: { above: home.at, below: home.at + home.length, bankOffset: home.at & 0xFFFF } });
+        }
+        return items;
+    },
+
+    tables(ctx, placed) {
+        const ids = ctx.ids.get(RING_ITEMS);
+        if (!ids) return [];
+        const table = new Uint8Array(ENTRY * ITEM_COUNT);
+        for (const [n, id] of ids) {
+            if (id >= ITEM_COUNT) continue;
+            const item = readItem(JSON.parse(readText(ctx.tree.get(`${RING_ITEMS}/${n}.json`)!)), id, ctx.ids), at = placed.get(nameKey(n));
+            if (typeof item === 'string' || at === undefined) continue;
+            const slot = word(ctx.base.image, POINTERS + 2 * id) - (ENTRIES & 0xFFFF);
+            [at & 0xFFFF, item.icon, item.palette, item.index].forEach((w, k) => table.set([w & 0xFF, w >> 8], slot + 2 * k));
+        }
+        if (ids.size !== ITEM_COUNT) ctx.findings.error('missing-file', `${RING_ITEMS}/${ENUM}`, '', `all ${ITEM_COUNT} ring items: each has its entry`);
+        return [{ at: ENTRIES, bytes: table, file: `${RING_ITEMS}/${ENUM}` }] satisfies Write[];
+    },
+};
+
+// ── rings ──
+export const RINGS = 'rings';
+const BUFFERS = 0x0E9920, LOOPS = 0x0E9944, FLAGS = 0x0E9968, RING_COUNT = 18, LOOP_ROUTINES = routines(0x8E);
+const RING_NAMES = ['boy_options', 'boy_alchemy', 'boy_weapons', 'debug', 'boy_items', 'dog_options', 'shop_0c', 'shop_0e', 'shop_10',
+    'shop_12', 'call_bead_spells', 'call_bead_callers', 'armour_body', 'armour_helm', 'armour_gloves', 'armour_collar', 'shop_20', 'bazooka_ammo'];
+const WRAM: { name: string; addr: number }[] = KNOWLEDGE.entries('wram');
+const wramName = (at: number) => WRAM.find(e => e.addr === (0x7E0000 | at))?.name ?? hexText(at, 4, 0x7E);
+const wramAt = (text: unknown): number | null => {
+    const e = WRAM.find(x => x.name === text);
+    const at = e ? (e.addr >> 16 === 0x7E ? e.addr & 0xFFFF : null) : parseHex(text, 0xFFFF, 0x7E);
+    return at !== null && at < 0x2000 ? at : null;
+};
+
+/** Where code fills a ring with fixed items: the `lda #imm` (opcode $A9) at each file offset, and when it is used. */
+interface Site { at: number; when: string; caller?: string }
+const ALWAYS = 'always';
+const ITEM_SITES: Record<string, Site[]> = {
+    boy_options: [
+        { at: 0x0E9A86, when: ALWAYS }, { at: 0x0E9A8C, when: ALWAYS }, { at: 0x0E9A92, when: ALWAYS }, { at: 0x0E9A98, when: ALWAYS },
+        { at: 0x0E9A9E, when: ALWAYS }, { at: 0x0E9AB8, when: 'a formula is known (ALCHEMY_KNOWN_FLAGS $2258-$225C)' },
+        { at: 0x0E9AD1, when: 'an armour is held ($231D-$233F)' }, { at: 0x0E9AD9, when: ALWAYS },
+    ],
+    dog_options: [
+        { at: 0x0E9AF5, when: ALWAYS }, { at: 0x0E9AFB, when: ALWAYS }, { at: 0x0E9B01, when: ALWAYS }, { at: 0x0E9B07, when: ALWAYS },
+        { at: 0x0E9B0D, when: ALWAYS }, { at: 0x0E9B24, when: 'a collar is held ($2341-$2343)' },
+    ],
+    boy_items: [{ at: 0x0E9B87, when: 'the pouch holds something ($8C:C3F8, $8C:C41B); the consumables held follow ($C4:5AAE)' }],
+    call_bead_callers: [
+        { at: 0x0E8D0F, when: ALWAYS }, { at: 0x0E8D24, when: '$225C bit 7' }, { at: 0x0E8D38, when: '$225D bit 0' }, { at: 0x0E8D4C, when: '$225D bit 1' },
+    ],
+    call_bead_spells: [
+        ...[0x0E9CEB, 0x0E9CF1, 0x0E9CF7, 0x0E9CFD].map(at => ({ at, when: ALWAYS, caller: 'fire_eyes' })),
+        ...[0x0E9D16, 0x0E9D1C, 0x0E9D22].map(at => ({ at, when: ALWAYS, caller: 'horace' })),
+        { at: 0x0E9D34, when: '$22DB bit 7', caller: 'horace' }, { at: 0x0E9D48, when: '$22DB bit 6', caller: 'horace' },
+        ...[0x0E9D64, 0x0E9D6A, 0x0E9D70, 0x0E9D76].map(at => ({ at, when: ALWAYS, caller: 'camellia' })),
+        ...[0x0E9D8F, 0x0E9D95, 0x0E9D9B].map(at => ({ at, when: ALWAYS, caller: 'professor' })),
+    ],
+    bazooka_ammo: [0x0E9A43, 0x0E9A56, 0x0E9A69].map((at, k) => ({ at, when: `ammo held ($${(0x2345 + k).toString(16).toUpperCase()})` })),
+};
+/** How the other rings are filled, for the reader. */
+const FILLED: Record<string, string> = {
+    boy_alchemy: 'the formulas put on the ring ($0AD2, 9 slots) through $C4:5BAF', boy_weapons: 'each weapon owned, its ring item from its weapon record (+$1E)',
+    debug: 'nothing in this release (its count stays 0, so the flow `boy` skips it)', armour_body: 'each armour held through $C4:5ABE',
+    armour_helm: 'each armour held through $C4:5ABE', armour_gloves: 'each armour held through $C4:5ABE', armour_collar: 'each collar held through $C4:5ABE',
+    shop_0c: 'the shop\'s stock ($0B95)', shop_0e: 'the shop\'s stock ($0B95)', shop_10: 'the shop\'s stock ($0B95)', shop_12: 'the shop\'s stock ($0B95)', shop_20: 'the shop\'s stock ($0B95)',
+};
+
+function readRing(v: any): { buffer: number; loop: number; flags: number } | string {
+    const buffer = wramAt(v?.buffer), loop = LOOP_ROUTINES.at(v?.loop), flags = parseHex(v?.flags, 0xFFFF);
+    if (buffer === null) return '/buffer: a WRAM name (knowledge wram/) or "$7E:xxxx" below $2000 (the loops read it through a 16-bit pointer)';
+    if (loop === null) return `/loop: a routine of bank $8E by name, or "$8E:xxxx"`;
+    if (flags === null) return '/flags: "$xxxx"';
+    return { buffer, loop, flags };
+}
+
+/** The item each site of a ring writes, in site order, as the file says (null when it does not say one per site). */
+function siteItems(v: any, ring: string): unknown[] | null {
+    const sites = ITEM_SITES[ring];
+    if (!sites) return [];
+    const list = ring === 'call_bead_spells'
+        ? sites.map((s, k) => v?.items_by_caller?.[s.caller!]?.[sites.slice(0, k).filter(x => x.caller === s.caller).length]?.item)
+        : sites.map((_, k) => v?.items?.[k]?.item);
+    const count = ring === 'call_bead_spells' ? Object.values(v?.items_by_caller ?? {}).reduce((a: number, l: any) => a + (Array.isArray(l) ? l.length : 0), 0) : Array.isArray(v?.items) ? v.items.length : 0;
+    return count === sites.length && list.every(x => typeof x === 'string') ? list : null;
+}
+
+export const ringsCodec: Codec = {
+    kind: RINGS, version: 1, path: RINGS, folder: `${GROUP}/${RINGS}`,
+    defaultName: id => RING_NAMES[id] ?? `ring_${(2 * id).toString(16).padStart(2, '0')}`,
+
+    // What implode reads: the three table words and the fixed items; `what`, `when`, `filled_from` are for the reader.
+    canonical(path, bytes) {
+        if (path === `${RINGS}/${ENUM}`) return [path, bytes];
+        const v = JSON.parse(readText(bytes)), n = path.slice(RINGS.length + 1, -'.json'.length), r = readRing(v);
+        return [path, json({ ring: typeof r === 'string' ? v : r, items: siteItems(v, RING_NAMES.includes(n) ? n : '') })];
+    },
+
+    explode(rom, name) {
+        nameRingItems(rom);
+        const files: Tree = new Map(), names: string[] = [], tables = [];
+        const itemName = (at: number) => {
+            if (rom[at] !== 0xA9) throw new Error(`rings: $${(0xC00000 | at).toString(16).toUpperCase()} is not the lda #imm this codec knows; another release?`);
+            const v = word(rom, at + 1);
+            if (v & 1 || v >= 2 * ITEM_COUNT) throw new Error(`rings: $${(0xC00000 | at).toString(16).toUpperCase()} loads $${v.toString(16)}, no ring item id`);
+            tables.push({ start: at + 1, end: at + 3 });
+            return name(RING_ITEMS, v / 2);
+        };
+        for (let id = 0; id < RING_COUNT; id++) {
+            const n = name(RINGS, id), ring = RING_NAMES[id];
+            names.push(n);
+            const v: Record<string, unknown> = { buffer: wramName(word(rom, BUFFERS + 2 * id)), loop: LOOP_ROUTINES.name(word(rom, LOOPS + 2 * id)), flags: hexText(word(rom, FLAGS + 2 * id), 4) };
+            const sites = ITEM_SITES[ring];
+            if (ring === 'call_bead_spells') {
+                const by: Record<string, unknown[]> = {};
+                for (const s of sites) (by[s.caller!] ??= []).push({ item: itemName(s.at), when: s.when });
+                v.items_by_caller = by;
+            } else if (sites) v.items = sites.map(s => ({ item: itemName(s.at), when: s.when }));
+            if (FILLED[ring]) v.filled_from = FILLED[ring];
+            files.set(`${RINGS}/${n}.json`, json(v));
+        }
+        for (const t of [BUFFERS, LOOPS, FLAGS]) tables.push({ start: t, end: t + 2 * RING_COUNT });
+        files.set(`${RINGS}/${ENUM}`, enumFile({ kind: RINGS, limit: RING_COUNT, names, why: 'ring id = 2·id into $8E:9920 (buffer), $8E:9944 (loop) and $8E:9968 (flags), 18 words each; the flows follow ($8E:998C)' }));
+        return { files, pool: [], tables, homes: [] };
+    },
+
+    names({ tree, findings }) {
+        const names = new Set<string>();
+        for (const path of tree.keys()) {
+            if (!path.startsWith(RINGS + '/') || path === `${RINGS}/${ENUM}`) continue;
+            const m = new RegExp(`^${RINGS}/([^/]+)\\.json$`).exec(path);
+            if (m) names.add(m[1]); else findings.warning('unknown-file', path, '', 'a ring is <name>.json; ignored');
+        }
+        return names;
+    },
+
+    encode(ctx, names) {
+        const ids = ctx.ids.get(RINGS) ?? new Map<string, number>(), items = ctx.ids.get(RING_ITEMS);
+        for (const n of names) {
+            const path = `${RINGS}/${n}.json`, id = ids.get(n);
+            if (id === undefined || id >= RING_COUNT) { ctx.findings.error('id-over-limit', path, '', `the game has ${RING_COUNT} rings (code follows their tables)`); continue; }
+            let v: any;
+            try { v = JSON.parse(readText(ctx.tree.get(path)!)); } catch (e) { ctx.findings.error('parse-error', path, '', (e as Error).message); continue; }
+            const r = readRing(v);
+            if (typeof r === 'string') { const [p, ...why] = r.split(': '); ctx.findings.error('invalid-value', path, p, why.join(': ')); }
+            const ring = RING_NAMES[id], list = siteItems(v, ring);
+            if (list === null) { ctx.findings.error('invalid-value', path, ring === 'call_bead_spells' ? '/items_by_caller' : '/items', `${ITEM_SITES[ring].length} items, each { "item": <ring item> }: code writes them one by one, so their number is fixed`); continue; }
+            list.forEach((x, k) => { if (items && !items.has(x as string)) ctx.findings.error('unknown-reference', path, '/items', `"${x}" (item ${k + 1}) is no ring item`); });
+        }
+        return [];
+    },
+
+    tables(ctx) {
+        const ids = ctx.ids.get(RINGS), items = ctx.ids.get(RING_ITEMS);
+        if (!ids) return [];
+        const writes: Write[] = [], words = [BUFFERS, LOOPS, FLAGS].map(() => new Uint8Array(2 * RING_COUNT));
+        for (const [n, id] of ids) {
+            if (id >= RING_COUNT) continue;
+            const path = `${RINGS}/${n}.json`, v = JSON.parse(readText(ctx.tree.get(path)!)), r = readRing(v);
+            if (typeof r !== 'string') [r.buffer, r.loop, r.flags].forEach((w, k) => words[k].set([w & 0xFF, w >> 8], 2 * id));
+            const ring = RING_NAMES[id];
+            (siteItems(v, ring) ?? []).forEach((x, k) => {
+                const item = items?.get(x as string);
+                if (item !== undefined) writes.push({ at: ITEM_SITES[ring][k].at + 1, bytes: Uint8Array.of((2 * item) & 0xFF, (2 * item) >> 8), file: path });
+            });
+        }
+        if (ids.size !== RING_COUNT) ctx.findings.error('missing-file', `${RINGS}/${ENUM}`, '', `all ${RING_COUNT} rings: each has its table words`);
+        [BUFFERS, LOOPS, FLAGS].forEach((at, k) => writes.push({ at, bytes: words[k], file: `${RINGS}/${ENUM}` }));
+        return writes;
+    },
+};
+
+// ── ring flows ──
+export const RING_FLOWS = 'ring_flows';
+const FLOWS = 0x0E998C, FLOWS_END = 0x0E99CA;
+const FLOW_NAMES = ['boy', 'dog', 'shop_0c', 'shop_0e', 'shop_10', 'shop_12', 'shop_20', 'call_bead_callers', 'equipment', 'collar', 'call_bead_spells', 'bazooka_ammo'];
+/** How many rings each flow lists: the records are packed and each is read by its address, so this is the layout. */
+const FLOW_COUNTS = [5, 1, 1, 1, 1, 1, 1, 1, 4, 1, 1, 1];
+const FLOW_AT = FLOW_COUNTS.map((_, i) => FLOWS + FLOW_COUNTS.slice(0, i).reduce((a, c) => a + 2 + 2 * c, 0));
+
+export const ringFlowsCodec: Codec = {
+    kind: RING_FLOWS, version: 1, path: RING_FLOWS, folder: `${GROUP}/${RING_FLOWS}`,
+    defaultName: id => FLOW_NAMES[id] ?? `flow_${id}`,
+
+    canonical(path, bytes) {
+        if (path === `${RING_FLOWS}/${ENUM}`) return [path, bytes];
+        return [path, json({ rings: JSON.parse(readText(bytes)).rings })];
+    },
+
+    explode(rom, name) {
+        if (FLOW_AT.some((at, i) => word(rom, at) !== FLOW_COUNTS[i])) throw new Error('ring_flows: the records at $8E:998C are not the ones this codec knows; another release?');
+        const files: Tree = new Map(), names: string[] = [];
+        FLOW_AT.forEach((at, id) => {
+            const n = name(RING_FLOWS, id);
+            names.push(n);
+            files.set(`${RING_FLOWS}/${n}.json`, json({ rings: Array.from({ length: FLOW_COUNTS[id] }, (_, k) => name(RINGS, word(rom, at + 2 + 2 * k) / 2)), what: 'Up/Down cycles through these rings in this order; one whose count is 0 is skipped' }));
+        });
+        files.set(`${RING_FLOWS}/${ENUM}`, enumFile({ kind: RING_FLOWS, limit: FLOW_NAMES.length, names, why: 'the flows are packed at $8E:998C-$99C9 and code and bank $CC hold each one\'s address, so each keeps its place and its length' }));
+        return { files, pool: [], tables: [{ start: FLOWS, end: FLOWS_END }], homes: [] };
+    },
+
+    names({ tree, findings }) {
+        const names = new Set<string>();
+        for (const path of tree.keys()) {
+            if (!path.startsWith(RING_FLOWS + '/') || path === `${RING_FLOWS}/${ENUM}`) continue;
+            const m = new RegExp(`^${RING_FLOWS}/([^/]+)\\.json$`).exec(path);
+            if (m) names.add(m[1]); else findings.warning('unknown-file', path, '', 'a flow is <name>.json; ignored');
+        }
+        return names;
+    },
+
+    encode(ctx, names) {
+        const ids = ctx.ids.get(RING_FLOWS) ?? new Map<string, number>(), rings = ctx.ids.get(RINGS);
+        for (const n of names) {
+            const path = `${RING_FLOWS}/${n}.json`, id = ids.get(n);
+            if (id === undefined || id >= FLOW_COUNTS.length) { ctx.findings.error('id-over-limit', path, '', `the game has ${FLOW_COUNTS.length} flows (packed, each read by its address)`); continue; }
+            let v: any;
+            try { v = JSON.parse(readText(ctx.tree.get(path)!)); } catch (e) { ctx.findings.error('parse-error', path, '', (e as Error).message); continue; }
+            if (!Array.isArray(v.rings) || v.rings.length !== FLOW_COUNTS[id]) { ctx.findings.error('invalid-value', path, '/rings', `${FLOW_COUNTS[id]} ring${FLOW_COUNTS[id] === 1 ? "" : "s"}: the flows are packed and each is read by its address, so a flow keeps its length`); continue; }
+            v.rings.forEach((r: unknown, k: number) => { if (rings && !rings.has(r as string)) ctx.findings.error('unknown-reference', path, `/rings/${k}`, `"${r}" is no ring`); });
+        }
+        return [];
+    },
+
+    tables(ctx) {
+        const ids = ctx.ids.get(RING_FLOWS), rings = ctx.ids.get(RINGS);
+        if (!ids) return [];
+        const bytes = new Uint8Array(FLOWS_END - FLOWS);
+        for (const [n, id] of ids) {
+            if (id >= FLOW_COUNTS.length) continue;
+            const list: unknown[] = JSON.parse(readText(ctx.tree.get(`${RING_FLOWS}/${n}.json`)!)).rings ?? [], at = FLOW_AT[id] - FLOWS;
+            bytes.set([FLOW_COUNTS[id], 0], at);
+            list.slice(0, FLOW_COUNTS[id]).forEach((x, k) => { const ring = rings?.get(x as string) ?? 0; bytes.set([(2 * ring) & 0xFF, (2 * ring) >> 8], at + 2 + 2 * k); });
+        }
+        if (ids.size !== FLOW_COUNTS.length) ctx.findings.error('missing-file', `${RING_FLOWS}/${ENUM}`, '', `all ${FLOW_COUNTS.length} flows: they are packed`);
+        return [{ at: FLOWS, bytes, file: `${RING_FLOWS}/${ENUM}` }] satisfies Write[];
+    },
+};
+
+export const MENU_KINDS = [ringItemsCodec, ringsCodec, ringFlowsCodec, optionActionsCodec, itemActionsCodec, alchemyActionsCodec, callerActionsCodec, spellActionsCodec];

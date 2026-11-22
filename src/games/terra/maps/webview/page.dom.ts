@@ -79,7 +79,7 @@ interface PageState { room: number | null; prefs: Record<string, unknown>; view:
             }
             const variants = variantsOf(pictures, id);
             editor = openEditor({
-                entry: { id, hex: r.hex, name: 'Room $' + hex(id, 3), variants },
+                entry: { id, hex: r.hex, name: (r.name || 'Room') + ' · $' + hex(id, 3), variants },
                 data: data as RoomData, base: init.terraBase || '', st: state.view, save, rules: init.cellTypes || [],
                 openRoom: (other: number) => { const li = rowFor(other); if (li) select(li, other); },
             });

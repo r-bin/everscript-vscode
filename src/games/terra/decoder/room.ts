@@ -8,11 +8,16 @@
 //   $083A/$083C  layer 0/1 metatile table     512 metatiles × 4 tile words (top-left, top-right, bottom-left, bottom-right)
 //   $0836/$0838  layer 0/1 VRAM tilemap word address (which BG shows the layer: BGnSC $2107-$210A)
 //   $7F:0600     the palette the frame upload copies to CGRAM (256 colours); after the load the room change
-//                copies colour 32 into colour 0, the backdrop ($8D:8C52)
+//                copies colour 32 into colour 0, the backdrop ($8D:8C52), and its palette helpers write their first
+//                frame (animation.ts; room `$212`'s lava colours are never seen: the helper's blue is)
+//   $0874/$0876  the camera's left / top limit in pixels   $0878/$087A  right / bottom ($86:9371, called by the loader at
+//                $86:874F, from the word at $99:C57A + room × 2; $FF: layer 0's size)   $0866  224 or 256: the camera stops
+//                at bottom − $0866, so the screen (224 lines) ends at bottom − $0866 + 224 ($87:9008)
 // A map word is the metatile (bits 0-8) and the cell type (bits 9-13, $80:DA28), filled in from a
 // per-metatile table by $86:9332; bit 15 is set while a character stands on the cell ($80:BEC2).
 import { isBaseTerraRom, isRoomSlotUsed, TERRA_ROOM_COUNT } from './rom';
 import { newTerraBus, runRoomLoader, type LoaderRun, type TerraBus } from './loader';
+import { roomHelpers, paletteFrames, PALETTE_HELPER } from './animation';
 
 export interface TerraLayer {
     /** 0 or 1: which of the loader's two layers. */
@@ -52,9 +57,20 @@ export interface TerraRoom {
     run: LoaderRun;
     /** The rooms loaded first, oldest first, because this one keeps parts of what was loaded before it. */
     context: number[];
+    /** What the screen can show, in 16 px cells: the camera's limits as the loader sets them (docs/terra/README.md §3.11). */
+    camera: { x: number; y: number; w: number; h: number };
 }
 
 const rw = (w: Uint8Array, a: number) => w[a] | (w[a + 1] << 8);
+/** The SNES screen's height in lines. */
+const SCREEN_LINES = 224;
+
+/** The cells the screen can show: the camera's limits ($0874-$087A) and how far it stops short of the bottom ($0866). */
+function readCamera(bus: TerraBus): TerraRoom['camera'] {
+    const w = bus.wram, stop = rw(w, 0x0866) || SCREEN_LINES;
+    const x = rw(w, 0x0874), y = rw(w, 0x0876), right = rw(w, 0x0878), bottom = rw(w, 0x087A) - stop + SCREEN_LINES;
+    return { x: x >> 4, y: y >> 4, w: Math.max(0, (right - x) >> 4), h: Math.max(0, (bottom - y) >> 4) };
+}
 
 /**
  * What a room must have loaded (itself or before it) to be drawn: background characters (VRAM written below word
@@ -167,7 +183,14 @@ export function loadRoom(rom: Uint8Array, id: number): TerraRoom | null {
         const palette = new Uint16Array(256);
         for (let i = 0; i < 256; i++) palette[i] = rw(bus.wram, 0x10600 + i * 2) & 0x7FFF;
         palette[0] = palette[32];      // the room change copies colour 32 to the backdrop after the load ($8D:8C52)
-        return { id, layers: readLayers(bus), vram: bus.vram.slice(), palette, ppu: readPpu(bus), run, context };
+        // The room change then starts the room's helpers ($80:F3F1); the palette ones copy their first frame before the
+        // first picture is shown (animation.ts). Only those every story state starts: the others belong to another picture.
+        for (const h of roomHelpers(rom, id)) {
+            if (!h.always || h.script !== PALETTE_HELPER) continue;
+            const [f] = paletteFrames(rom, h.param);
+            if (f) f.colours.forEach((c, k) => { if (f.first + k) palette[f.first + k] = c; });
+        }
+        return { id, layers: readLayers(bus), vram: bus.vram.slice(), palette, ppu: readPpu(bus), run, context, camera: readCamera(bus) };
     } catch {
         return null;
     }

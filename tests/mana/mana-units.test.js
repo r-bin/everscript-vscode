@@ -164,5 +164,20 @@ test('isManaRom checks the internal title', () => {
     assert.ok(!mana.isManaRom(rom));
 });
 
+test('colour rotations are read off a trace; a colour that does anything else is left over', () => {
+    // Palette 1 colours 2-4 move up every 4 frames; palette 2 colour 1 flashes.
+    const cgram = new Uint16Array(128);
+    cgram[0x12] = 10; cgram[0x13] = 20; cgram[0x14] = 30; cgram[0x21] = 5;
+    const steps = [], vals = [10, 20, 30];
+    for (let k = 1; k <= 4; k++) {
+        const colours = new Map([[0x12, vals[(3 - k % 3) % 3]], [0x13, vals[(4 - k % 3) % 3]], [0x14, vals[(5 - k % 3) % 3]]]);
+        if (k === 2) colours.set(0x21, 99);
+        steps.push({ frame: k * 4, chars: new Map(), colours });
+    }
+    const trace = { length: 32, vram: new Uint8Array(0), cgram, steps, chars: new Set(), colours: new Set([0x12, 0x13, 0x14, 0x21]) };
+    assert.deepStrictEqual(mana.paletteRotations(trace), {
+        rotations: [{ palette: 1, first: 2, count: 3, period: 4, direction: 1 }], others: [0x21] });
+});
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

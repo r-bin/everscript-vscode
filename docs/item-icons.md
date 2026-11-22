@@ -42,8 +42,8 @@ ring menu stores per slot (`RING_MENU.ITEM_n`).
 | `0x008e`–`0x009c` | Consumables: petal, nectar, honey, biscuit, wings, essence, pixie dust, call bead |
 | `0x009e` | Pouch |
 | `0x00a0`–`0x00ee` | Armour: 12 chest, 12 helm, 12 glove, 4 collar |
-| `0x00f0`–`0x00f6` | Portraits: Fire Eyes, Horace, Queen, Professor |
-| `0x00f8`–`0x0116` | Alchemy, remaining 16 formulas |
+| `0x00f0`–`0x00f6` | The four Call Bead callers |
+| `0x00f8`–`0x0116` | The 16 Call Bead spells, four per caller (Open Evermore `menus/rings/call_bead_spells.json`) |
 | `0x0118`–`0x0142` | Ingredients, alphabetical: ash … wax, acorn |
 
 The everscript enum marks the ingredient block `// glitchy: offset`. The ROM
@@ -66,7 +66,7 @@ an animation record (`0x00`/`0x04`, `0x12`/`0x24`, `0x16`/`0x18`).
 
 | Offset | Size | Meaning |
 |---|---|---|
-| `+0` | u16 | Name: a pointer to the item's name text (not plain text in bank `$CE`; goes through the game's text encoding, unread here) |
+| `+0` | u16 | Name: the offset of a plain NUL-terminated ASCII string in bank `$C4` (the ring loops print it; Open Evermore `menus/ring_items/`) |
 | `+2` | u16 | **Animation record**, an offset into `$C40000`, same as a character's `anim_stand` |
 | `+4` | u16 | **Palette**, an address in bank `$D0` |
 | `+6` | u16 | **Item index** within the category (see [joining a reward to its icon](#joining-a-reward-to-its-icon)) |

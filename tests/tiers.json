@@ -18,12 +18,19 @@
   "tests/memory/ui.test.js",
   "tests/memory/scaling-rom.test.js",
   "tests/memory/rom-map-parity.test.js",
+  "tests/memory/assets-documentation.test.js",
   "tests/memory/mcp-server.test.js",
   "tests/mana/mana-units.test.js",
   "tests/mana/mana-cpu.test.js",
   "tests/mana/mana-editor-core.test.js",
   "tests/mana/mana-editor-props.test.js",
   "tests/terra/terra-maps-model.test.mts",
+  "tests/imports/redraw.test.mts",
+  "tests/imports/status.test.mts",
+  "tests/open-evermore/enum-layout.test.mts",
+  "tests/open-evermore/formats.test.mts",
+  "tests/open-evermore/implode.test.mts",
+  "tests/msu1/msu1.test.mts",
   "tests/debugger/emulator-audio.test.mts",
   "tests/debugger/emulator-gamepad.test.mts",
   "tests/debugger/debugger.test.js",
@@ -69,15 +76,19 @@
   "tests/mana/mana-rom.test.js",
   "tests/mana/mana-evermore.test.js",
   "tests/terra/terra-rom.test.mts",
+  "tests/open-evermore/g0.test.mts",
+  "tests/terra/terra-evermore.test.js",
   "tests/debugger/rom-history.test.js"
  ],
  "dom": [
   "tests/memory/map-editor-dom.test.js",
-  "tests/memory/rooms-rail-dom.test.js", "tests/memory/room-variants-dom.test.js",
+  "tests/memory/rooms-rail-dom.test.js",
+  "tests/memory/room-variants-dom.test.js",
   "tests/memory/rom-tab.test.js",
   "tests/memory/scripts-tab.test.js",
   "tests/memory/data-tab.test.js",
   "tests/memory/routes-tab.test.js",
+  "tests/memory/code-tab.test.mts",
   "tests/mana/mana-panel-dom.test.js",
   "tests/mana/mana-map-editor-dom.test.js",
   "tests/mana/mana-editor-cells-dom.test.js",
@@ -87,7 +98,9 @@
   "tests/debugger/recorder.test.js",
   "tests/debugger/host-watch.test.js",
   "tests/debugger/click-walk.test.js",
-  "tests/debugger/ui-log.test.js"
+  "tests/debugger/ui-log.test.js",
+  "tests/terra/terra-editor-dom.test.js",
+  "tests/open-evermore/tree-editor-dom.test.mts"
  ],
  "emulator": [
   "tests/memory/music-tab.test.js",
@@ -99,7 +112,10 @@
   "tests/debugger/mesen-movie.test.js",
   "tests/debugger/cdl-values.test.js",
   "tests/debugger/tas-states.test.js",
-  "tests/debugger/tas-verify.test.js"
+  "tests/debugger/tas-verify.test.js",
+  "tests/mana/mana-play.test.js",
+  "tests/terra/terra-play.test.js",
+  "tests/open-evermore/in-game.test.mts"
  ],
  "manual": {
   "tests/debugger/emulator-runtime.test.js": "stale: waits for ss-hook-btn / ss-hook-all-btn and the pause/resume buttons removed in v0.219.0"

@@ -38,6 +38,7 @@ async function main() {
     const url = (p: string) => 'file://' + p;
     const init = { supported: true, rooms: JSON.parse(read('rooms/index.json')!.toString()), groups: JSON.parse(read('groups/index.json')!.toString()),
         cellTypes: JSON.parse(read('cell-types.json')!.toString()), terraBase: url(base) + '/' };
+    const nameOf = (id: number) => `${init.rooms.find((r: { id: number }) => r.id === id).name} · $${id.toString(16).toUpperCase().padStart(3, '0')}`;
     const page = path.join(tmp, 'page.html');
     fs.writeFileSync(page, pageHtml(url, { cspSource: "file: 'self'", nonce: 'n1', init }));
 
@@ -91,7 +92,7 @@ async function main() {
             pill: [...document.querySelectorAll('[data-edit-tool]')].map(b => (b as HTMLElement).dataset.editTool),
             chips: [...document.querySelectorAll('.rg-view-filters .rdf')].map(b => b.textContent), picker: !!document.getElementById('tm-picker') };
     });
-    check('a room opens on the canvas card with its picture (512×1024 for $00F)', opened.name === 'Room $00F' && /00f\.png$/.test(opened.href)
+    check('a room opens on the canvas card with its picture (512×1024 for $00F)', opened.name === nameOf(0x00F) && /00f\.png$/.test(opened.href)
         && JSON.stringify(opened.size) === '[512,1024]', opened);
     check('the pill (Select, Pick), the filter bar (BG1, BG2, Cell types, Collision, Objects, Triggers, Grid) and the dock (Tile, Collision, Object, Trigger, Info) with the metatile picker',
         opened.pill.join() === 'select,pick' && opened.chips.join() === 'BG1,BG2,Cell types,Collision,Objects,Triggers,Grid'
@@ -144,7 +145,7 @@ async function main() {
         && /room \$010 at 384,336/.test(hit.text), { exits, ...hit, text: hit.text.slice(0, 200) });
     await p.click('.rg-object-expanded [data-open-room="16"]');
     await p.waitForTimeout(800);
-    check('an exit’s button opens the room it leads to', await p.$eval('.rd-name', el => el.textContent) === 'Room $010');
+    check('an exit’s button opens the room it leads to', await p.$eval('.rd-name', el => el.textContent) === nameOf(0x010));
     const openById = async (id: number) => {
         await p.evaluate(r => { document.querySelector('li.rn-map[data-room="' + r + '"]')?.closest('li.rn-area')?.classList.remove('collapsed'); }, id);
         await p.click('li.rn-map[data-room="' + id + '"]');
@@ -200,7 +201,7 @@ async function main() {
     await p.click('#rg-variant-bar [data-terra-room="' + variants[1] + '"]');
     await p.waitForTimeout(800);
     const name2 = await p.$eval('.rd-name', el => el.textContent);
-    check('a variant opens that room', name2 === 'Room $' + Number(variants[1]).toString(16).toUpperCase().padStart(3, '0'), name2);
+    check('a variant opens that room', name2 === nameOf(Number(variants[1])), name2);
     const before = await p.$eval('.rg-view-filters [data-toggle="grid"]', el => el.classList.contains('on'));
     await p.click('.rg-view-filters [data-toggle="grid"]');
     const after = await p.$eval('.rg-view-filters [data-toggle="grid"]', el => el.classList.contains('on'));

@@ -7,7 +7,7 @@ category: 🧠
 name: room_lighting_torchlight_flicker_rng_jitter
 title: Computes pseudo-random jitter offsets for room torchlight, fireplace, and lantern window masks
 confidence: guess
-tags: [unverified, rea-partial-read]
+tags: [unverified, rea-partial-read, rng]
 evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Computes pseudo-random jitter offsets for room torchlight, fireplace, and lantern window masks.

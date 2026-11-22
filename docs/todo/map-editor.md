@@ -57,9 +57,6 @@
   ([../map-format/wading.md](../map-format/wading.md)).
 
 ### 2.5 Palette-Cycle Preview
-- **Status: 🟡 feature gap**
-- Room palette-cycle descriptors are read and shown as bytes, but the map preview remains static. Add a
-  decoded inspector and a play/pause preview that cycles the affected palette colours without changing
-  map geometry or tile-animation state. Trace exact tick timing, span/wrap semantics, and the colour-buffer
-  to CGRAM mapping before claiming exact game parity. Details and examples:
-  [palette-cycling-preview.md](palette-cycling-preview.md).
+- **Status: 🟢 done** (v0.404.0: game timing, |rate| frames per shift, `$90D58C`)
+- Cycles play in the map and the Palette animation sub-tab. What is left (a third cycle per palette,
+  script-started OBJ cycles, editing beyond the rate): [palette-cycling-preview.md](palette-cycling-preview.md).

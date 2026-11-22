@@ -79,7 +79,7 @@ interface Category { first: number; last: number; scale: number }
 const INGREDIENTS: Category = { first: 0x0118, last: 0x0142, scale: 1 };
 const CONSUMABLES: Category = { first: 0x008e, last: 0x009c, scale: 1 };
 const ARMOUR: Category = { first: 0x00a0, last: 0x00ee, scale: 2 };
-/** The 35 formulas the game ships; `0x00f8`–`0x0116` are 16 more it never grants. */
+/** The 35 formulas the game ships; `0x00f8`–`0x0116` are the 16 Call Bead spells (knowledge RING_ITEMS). */
 const ALCHEMY: Category = { first: 0x0048, last: 0x008c, scale: 2 };
 
 /** Reward id high byte → category, as `LOOT_REWARD` numbers them. */

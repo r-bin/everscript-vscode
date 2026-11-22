@@ -279,4 +279,6 @@ function renderEditChrome() {
   }
   renderEditLayer(_mtPalette, _editComposed, _editOrigin);
   renderEditPanels();
+  // The open room's rail colour follows its checks (rooms-rail.js).
+  if (typeof railMarkOpenRoom === 'function') railMarkOpenRoom();
 }

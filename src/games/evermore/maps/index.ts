@@ -16,7 +16,7 @@ export type {
     TriggerRecord,
 } from './room';
 
-export { MAX_ROOMS, MAP_LIST_ADDR, mapTableOffset, snesToRom, read16, read24, roomBlobOffset, hex } from './rom';
+export { MAX_ROOMS, MAP_LIST_ADDR, mapTableOffset, snesToRom, romFileOffset, read16, read24, roomBlobOffset, hex } from './rom';
 export {
     identifyEvermoreVariant,
     toVariantId,
@@ -76,9 +76,9 @@ export type { Entity, DriftVector, SpriteDepth } from './collision';
 export { parseGrassSwapSection, findCuttableGrassTiles, checkTableInvariants } from './cuttable-grass';
 export type { GrassSwapTable, GrassRecord } from './cuttable-grass';
 
-export { extractTileFamilyPalette, buildRoomCgramPalettes, paletteCycleMask, shiftCgramPalettes } from './palette';
+export { extractTileFamilyPalette, buildRoomCgramPalettes, paletteCycleMask, paletteCycleFrames, shiftCgramPalettes } from './palette';
 export type { Rgba, PaletteCycleSpec } from './palette';
-export { decompressTile16x16, decodeTilePixels, tileColorMask } from './chr';
+export { decompressTile16x16, decodeTile, decodeTilePixels, encodeTile, encodeTilePixels, tileColorMask, tileGraphicOffset } from './chr';
 export { renderVramLayer, compositeLayers, renderRoomComposite, renderRoomForeground, renderRoomLayers, opaqueMask, hiddenTileMask, scale2x } from './render';
 export type { PixelBuffer, RenderOptions, LayerHalves } from './render';
 export { encodePng, encodePngDataUri } from './png';

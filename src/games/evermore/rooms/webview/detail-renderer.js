@@ -122,6 +122,11 @@ function renderRoomDetail(room){
   if(_mtPalette&&!mtPaletteFits(room))_mtPalette=null;
   if(room.custom)customBindDraft(room);
   else if(!editDraft()||editDraft().customKey||editDraft().roomId!==roomVanillaIdNum(room))editReset(roomVanillaIdNum(room));
+  // A converted room is entered at the Boy's marker when played (map-editor-start.js); the host picks where first.
+  if(room.imported&&!room.custom&&editDraft()){
+    if(room.startSprite!==undefined)_startSprite=room.startSprite||null;
+    if(!editDraft().start&&room.start)editDraft().start={x:room.start.x,y:room.start.y};
+  }
   if(editDraft())editDraft().locked=filterCtx.locked;
   bindEditControls(panel,room);
   setupEditGestures();

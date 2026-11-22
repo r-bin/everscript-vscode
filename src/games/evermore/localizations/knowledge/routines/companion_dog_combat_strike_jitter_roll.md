@@ -9,6 +9,6 @@ title: Companion dog strike timer and randomized attack variance ($91:B3E2)
 confidence: confirmed
 evidence: ["disasm: increments charge counter (<$60); checks timer (<$62) against 120 frames ($78); rolls RNG via $80:859B; adds base 4; executes strike via $91:B621; clears timer (<$62)"]
 see: ["routines/random_number_generator.md","routines/entity_apply_strike_if_not_moving.md"]
-tags: ["dog","combat","strike","ai","rng"]
+tags: ["dog", "combat", "strike", "ai", "rng"]
 ---
 Dog strike interval timer and attack trigger. Increments counter `(<$60)`. When timer `(<$62)` reaches 120 frames (2 seconds), rolls RNG (`$80:859B`) between 4 and 11, triggers combat strike via `func_91B621`, and clears timer.

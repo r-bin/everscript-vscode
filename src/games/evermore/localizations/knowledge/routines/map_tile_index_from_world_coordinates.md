@@ -8,7 +8,7 @@ name: map_tile_index_from_world_coordinates
 title: Converts 16-bit world pixel coordinates (X, Y) into a linear tilemap collision grid offset
 confidence: guess
 tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+evidence: ["disasm (whole routine, v0.399.36): it does NOT return a tile offset. It turns $2E/$30 into tile column/row, then walks two ring lists of 8-bit slot links ($96A5/$9727 with flags at $95A5, then $AB18/$AB7A with flags at $AA58): each slot in the window is moved to the head of its list and its flag byte set to $FF. Looks like a cache-slot invalidation or refresh for the visible window; the name is wrong, not yet renamed", "disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
 ---
 Low confidence — Converts 16-bit world pixel coordinates (X, Y) into a linear tilemap collision grid offset.
 

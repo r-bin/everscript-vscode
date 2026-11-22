@@ -6,7 +6,7 @@ name: CAMERA_TARGET_ACTOR_PTR
 title: Entity the camera follows
 lifetime: room
 confidence: guess
-tags: [widescreen, widescreen.camera, widescreen.cutscene]
+tags: [widescreen, widescreen.camera, widescreen.cutscene, script-vm]
 evidence: ["disasm: $90:94AB reads entity +$1A (x) and +$1C (y) through this pointer when CAMERA_TARGET is negative (REA/Ghidra spike, v0.201.7)"]
 see: [knowledge/wram/CAMERA_SCRIPTED_TARGET_X.md]
 ---

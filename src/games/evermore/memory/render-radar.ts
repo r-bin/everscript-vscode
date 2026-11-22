@@ -13,6 +13,7 @@ import { buildMusicTabHtml } from '../music';
 import { buildScriptsTabHtml } from '../scripts-tab';
 import { buildDataTabHtml } from '../data-tab';
 import { buildRoutesTabHtml } from '../routes';
+import { buildCodeTabHtml } from '../code-tab';
 import * as radarWebview from './webview';
 import { shellFrameHtml } from '../../../core/map-editor/shell/frame';
 
@@ -114,7 +115,7 @@ function renderRadarHtml(
         '\nvar SPRITES_ANIMATIONS=' + JSON.stringify(spritesBundle?.animations || []).replace(/<\/script>/gi, '<\\/script>') + ';' +
         '\nvar SPRITES_STAT_NAMES=' + JSON.stringify(spritesBundle?.statNames || {}).replace(/<\/script>/gi, '<\\/script>') + ';';
 
-    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs: radarWebview.romJs, musicJs: radarWebview.musicJs, scriptsJs: radarWebview.scriptsJs, dataJs: radarWebview.dataJs, routesJs: radarWebview.routesJs, wramJs: radarWebview.wramJs });
+    const js = radarWebview.buildMainJs({ jsData, roomsData, scalingData, spritesData, roomsJs, scalingJs, spritesJs, docsJs, rngJs, romJs: radarWebview.romJs, musicJs: radarWebview.musicJs, scriptsJs: radarWebview.scriptsJs, dataJs: radarWebview.dataJs, routesJs: radarWebview.routesJs, codeJs: radarWebview.codeJs, wramJs: radarWebview.wramJs });
 
     // ── Rooms tab HTML ──────────────────────────────────────────────────────
     const roomsTabHtml =
@@ -160,6 +161,7 @@ function renderRadarHtml(
         '<button class="tab" data-tab="scripts">\ud83d\udcdc Scripts</button>' +
         '<button class="tab" data-tab="data">\ud83d\uddc3 Data</button>' +
         '<button class="tab" data-tab="routes">\ud83e\udded Routes</button>' +
+        '<button class="tab" data-tab="code" title="Every known routine: asm with comments, callers and calls, its C">\ud83e\udde9 Code</button>' +
         '</div>' +
         // Memory: one tab, six address spaces under its own bar (memory/webview/wram-view.dom.ts).
         '<div class="tab-pane mem-pane" data-tab="radar">' +
@@ -189,6 +191,7 @@ function renderRadarHtml(
         buildScriptsTabHtml() +
         buildDataTabHtml() +
         buildRoutesTabHtml() +
+        buildCodeTabHtml() +
         '<script>' + js + '<\/script></body></html>';
 }
 

@@ -184,6 +184,18 @@ bare `END` at `$92A42F` (`map-editor-rom-export.js`). It fires but does
 nothing visible. It also starts and ends inside one frame, so the emulator's
 script trace, which compares slots once per frame, never shows it.
 
+## A converted map (a room with its own graphics)
+
+A converted Secret of Mana room (`docs/mana/evermore-rooms.md`) borrows nothing from a vanilla
+room: it brings its own graphics and colours. `rooms/rendering/rom-export-own.ts` builds its ROM
+with the same entry patches (`patchEntry`, `verifyEntry` in `rom-export.ts`), and places its
+parts where the game can reach them: graphics in bank `$F0` with the highest vanilla graphic ids
+repointed at them (the pointer offset `3·id` is 16-bit, and the table cannot grow), colours over
+the highest vanilla families (`32·id + $C322`, 16-bit, bank `$9C`). Its check decodes the result
+and draws it with the editor's renderer: every cell, every pixel, the palette cycles and the
+channel count must equal the editor's room. `tests/mana/mana-play.test.js` boots it and compares
+the game's screen with the editor's picture.
+
 ## Not exported (yet)
 
 - Script bodies: a trigger can only name an existing vanilla mapscript id.

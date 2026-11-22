@@ -9,6 +9,7 @@ Usage (record → export → `build.sh` → `recomp.sh`): `docs/reverse-engineer
 |---|---|
 | `library.ts` | Per-ROM library `<globalStorage>/cdl-library/<sha1>/`; mergeable files, atomic flush |
 | `library-ext.ts` | Library streams for recomp / decomp / layout ports: `bus.cdl`, `bus-sites.bin`, `rom-cycles.bin` (cycles are summed deltas), `rets.bin` (call stack outcomes, exit widths), `regs.bin` (DB / D / Y), `bases.bin` (pointer bases), `wram-code.*`, `aram.cdl`; decoded views `retsList` / `regsByPc` / `basesByPc` |
+| `library-read.ts` | `readLibrary(root, rom)`: a library loaded once for reading (again when its manifest changes) with a per-instruction view (`at(pc)`: xrefs, counts, DB / D); the Code tab's `lines.json` |
 | `rom-map.ts` | ROM offset ⇄ bus address (canonical HiROM `$C0+`, LoROM `$80+:8000`) |
 | `xref-index.ts` | Functions, callers, enclosing function, accessors per address, labels |
 | `disasm.ts` | Decode one instruction with recorded M/X; format Asar text that reassembles byte-exact |
@@ -73,6 +74,8 @@ The webview half is `../cdl-view.ts` (tab, tick / drain), `../cdl-strips.ts` (RO
 - Script attribution: the host finds the interpreter's opcode fetch by byte pattern
   (`lda [$82] / inc $82 / and #$FF / asl / tax / jsr ($xxxx,x)`, SoE: ROM `$0CD0A6`);
   `everscript.cdl.scriptExcludes` keeps scratch / slot memory out.
+- An interrupt's vector fetch (ROM `$FFE0-$FFFF`) is recorded as a read of the instruction it
+  interrupted: readers of per-instruction xrefs leave those out (`code-lines.ts`).
 - New library files are optional: older libraries load unchanged and gain them on the
   next flush (`wram.flags` is derived from the WRAM xrefs until then).
 

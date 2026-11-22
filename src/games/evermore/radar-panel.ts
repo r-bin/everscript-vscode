@@ -16,7 +16,7 @@ import { renderRadarHtml } from './memory/render-radar';
 import { readAllCharacters, buildAnimationCatalog, characterThumbs, behaviourNames, attackProcNames } from './sprites';
 import { radarReadMemoryMap, radarDetectScope, radarAnalyzeScope } from './memory/scope-analysis';
 import { getWramMapEntries } from './localizations/wram-map';
-import type { createManaRooms } from './imports/mana';
+import type { ImportedRooms } from './imports';
 
 type RadarMap = ReturnType<typeof radarReadMemoryMap>;
 type RadarEnums = Parameters<typeof renderRadarHtml>[12];
@@ -58,7 +58,7 @@ interface RadarState {
     byteScriptFocus: string;
     spritesBundle: SpritesBundle | null;
     mapExportChannel: vscode.OutputChannel | null;
-    manaRooms: ReturnType<typeof createManaRooms> | null;
+    importedRooms: ImportedRooms | null;
 }
 
 const radar: RadarState = {
@@ -87,7 +87,7 @@ const radar: RadarState = {
     // Secret of Mana maps as Evermore rooms (imports/mana): the Rooms tab lists them under the vanilla
     // rooms when a Mana ROM is found beside the Evermore one. Set in activate(), where the Mana ROM
     // accessor is made.
-    manaRooms: null,
+    importedRooms: null,
 };
 
 function getMapExportChannel() {
@@ -252,9 +252,7 @@ const ROOMS_UI_PREFS_KEY = 'everscript.roomsUi';
 /** The rail groups of converted rooms, [] when there are none. */
 function radarImportedRooms() {
     try {
-        const areas = radar.manaRooms ? radar.manaRooms.railGroups() : [];
-        return areas.length ? [{ key: 'mana', label: 'Secret of Mana', areas,
-            title: 'Secret of Mana maps converted to Evermore rooms: tiles, families, collision, step-on events' }] : [];
+        return radar.importedRooms ? radar.importedRooms.groups() : [];
     } catch { return []; }
 }
 
@@ -270,7 +268,7 @@ function radarRoomRom(roomId: unknown) {
         const romBuf = romReaders.loadRomBuffer(ws, '');
         return romBuf ? { romBuf, roomId: id } : { error: platform.missingRomText('evermore') };
     }
-    const hit = radar.manaRooms && radar.manaRooms.resolveRoom(id);
+    const hit = radar.importedRooms && radar.importedRooms.resolveRoom(id);
     return hit ? { romBuf: hit.rom, roomId: hit.roomId } : { error: 'invalid room id' };
 }
 

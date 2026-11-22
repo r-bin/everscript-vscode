@@ -98,6 +98,14 @@ test('map 128 animates the 38 characters and 13 colours the game animates', () =
     assert.strictEqual(mana.traceAnimation(rom, mana.readHeader(rom, 176)), null);
 });
 
+test('map 128 rotates two runs of colours: palette 6 up every 6 frames, palette 7 down every 4', () => {
+    // The same trace as above: each run's colours take their neighbour's value at each shift.
+    const t = mana.traceAnimation(rom, mana.loadMap(rom, 128).header);
+    assert.deepStrictEqual(mana.paletteRotations(t), { rotations: [
+        { palette: 6, first: 11, count: 5, period: 6, direction: 1 },
+        { palette: 7, first: 8, count: 8, period: 4, direction: -1 }], others: [] });
+});
+
 test('map 128 collision: walls, level-2 floors, a few level-1 and shared floors', () => {
     const m = mana.loadMap(rom, 128);
     const c = mana.collisionOf(rom, m);
