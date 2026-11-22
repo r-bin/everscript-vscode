@@ -19,7 +19,7 @@ const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 /** Where a kind lives in the tree when not at the top (folders.mts). */
-const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts/global', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes' };
+const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts/global', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -116,6 +116,23 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(rules(t => editJson(t, 'graphics/hud/hud.json', h => { h.boxes.boy.column = 30; })), ['invalid-value graphics/hud/hud.json#/boxes/boy/column']);
     console.log('  ✓ script lines name rooms, objects, own animations, flags, attach scripts, fonts, animation modes and cell values; a font width, a glyph, a HUD column and a HUD tile edit land and round-trip; a column off screen is an error');
 
+    // Ring menus (written in place): a name in its own bytes, an option's action, an options-ring slot, a flow.
+    const menus = new Map(tree);
+    editJson(menus, 'menus/ring_items/option_equipment.json', v => { v.name = 'Gear'; v.action = 'alchemy'; });
+    editJson(menus, 'menus/rings/boy_options.json', v => { v.items[4].item = 'option_equipment'; });
+    editJson(menus, 'menus/ring_flows/boy.json', v => { v.rings = ['boy_items', 'boy_alchemy', 'boy_weapons', 'debug', 'boy_options']; });
+    const mb = implode(menus, GAME, KINDS);
+    assert.deepStrictEqual(mb.findings.list.filter(f => f.severity === 'error'), []);
+    assert.deepStrictEqual([...mb.image!.subarray(0x0467CD, 0x0467D6)], [0x47, 0x65, 0x61, 0x72, 0, 0, 0, 0, 0], '"Gear" where "Equipment" was, the rest zero');
+    assert.deepStrictEqual([mb.image![0x0E81D2], mb.image![0x0E9A9F], mb.image![0x0E998E], mb.image![0x0E9996]], [0x10, 0x20, 0x08, 0x00], 'the action index, the slot\'s immediate, the flow\'s first and last ring');
+    assert.deepStrictEqual(rules(t => {
+        editJson(t, 'menus/ring_items/option_targeting.json', v => { v.name = 'Targeting all'; });
+        editJson(t, 'menus/ring_items/option_action.json', v => { v.action = 'no_such_action'; });
+        editJson(t, 'menus/rings/dog_options.json', v => { v.items.pop(); });
+        editJson(t, 'menus/ring_flows/dog.json', v => { v.rings.push('boy_items'); });
+    }).sort(), ['invalid-value menus/ring_flows/dog.json#/rings', 'invalid-value menus/ring_items/option_action.json#/action', 'invalid-value menus/rings/dog_options.json#/items', 'no-room menus/ring_items/option_targeting.json#/name']);
+    console.log('  ✓ ring menus: a name in its own bytes, an action by name, an options-ring item and a flow land in place; a longer name, an unknown action, a slot less and a flow longer are errors');
+
     // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
     const edited = new Map(tree);
     editJson(edited, meta, m => { const c: string = m.list[0].collision; m.list[0].collision = c.includes('front') ? c.replace(' front', '') : c + ' front'; });
@@ -211,7 +228,7 @@ if (!path || !existsSync(path)) {
     const g = implode(grown, GAME, KINDS);
     assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
-    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16], ['fonts', 2], ['hud', 22], ['animation_modes', 6]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
+    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16], ['fonts', 2], ['hud', 22], ['animation_modes', 6], ['ring_items', 162], ['rings', 18], ['ring_flows', 12], ['option_actions', 9], ['item_actions', 9], ['alchemy_actions', 36], ['caller_actions', 4], ['spell_actions', 18]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
     console.log('  ✓ a new tile, string and table script: each table grows and moves, the round trip holds; limits at the engine\'s');
 
     // The table kinds of the table hack: a new animation, character (a record and an ENEMY id) and sprite blocks grow

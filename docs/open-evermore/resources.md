@@ -478,6 +478,56 @@ lowercased (`once`, `once_freeze`, `loop`, `freeze`, `pause`) and `clear_script_
 compiler does not name (the skeleton ship in the Desert of Doom uses it). Scripts write the mode by these names.
 The table is written in place (code follows it).
 
+## menus — the ring menus *(built, v0.455.0)*
+
+Everything sits in bank `$8E` between code and is read by fixed addresses or code immediates, so it is written in
+place; counts are fixed. Facts: knowledge `RING_ITEMS`, `RING_BUFFERS`, `RING_LOOPS`, `RING_FLOWS`, `*_ACTIONS`,
+`ring_*_loop`, `RING_<ring>_COUNT` (corrected v0.455.0: the old names called the armour rings key items and spells,
+the Call Bead rings formula actions and shop options, and ids `$F8`-`$116` unused formulas).
+
+```
+menus/ring_items/<item>.json    { name, icon, palette, index | action | formula }; <item>.png a preview (derived)
+menus/rings/<ring>.json         { buffer, loop, flags, items | items_by_caller (code immediates), filled_from (derived) }
+menus/ring_flows/<flow>.json    { rings: [...] }: what Up/Down cycles through, in order
+menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (option, item, alchemy, caller, spell)
+```
+
+- **ring items** (162, `$8E:8000` → 8-byte entries `$8E:8144`): `name` is the text the ring prints, a plain ASCII
+  string in bank `$C4`. Weapon records, formula and ingredient names point at the same strings, so a name changes the
+  item everywhere and is written where it was: at most its vanilla length (`no-room`). `icon` an animation record
+  (`$C4`), `palette` 16 colours (`$D0`). The index is what the ring that shows the item reads: by id range it is an
+  `action` (options → `option_actions`, consumables → `item_actions`, Call Bead callers → `caller_actions`, their
+  spells → `spell_actions`), a `formula` (`alchemy_actions`: also the number the learned bits and levels use) or a
+  plain `index` (weapon, ammo, armour ×2, ingredient). Names from the item's own text (`weapon_bone_crusher`).
+- **rings** (18): ring id → buffer (WRAM name), loop (routine name), flags. The two options rings, the Call Bead
+  callers and each caller's spells, the bazooka ammo and the Pouch are code immediates (`lda #imm : sta`): `items`
+  lists them in order with `when` (derived), so they can be swapped but their number is fixed. The other rings are
+  built from inventory through tables in `$C4` (`filled_from`). Shop rings are `shop_<id>`, not yet told apart.
+- **ring flows** (12, `$8E:998C`): each keeps its length (packed; code and `$CC:E37B`/`$CC:F037` hold their addresses).
+- **actions**: handler tables in bank `$8E` (`handler-tables.mts`), each followed by code.
+- **Proven** (v0.455.0): G0 alone and with every kind; seeds 1 and 2026 round-trip (same bytes: nothing moves). In
+  game (`10-11_08-20-51` recording, Y at frame 17200 opens the Boy's options ring, B confirms): every name in capitals
+  shows on the ring; "Player Status" with `action: control_prefs` opens Control Prefs; `window_edit` in the first
+  options slot shows there.
+- **Next.** The `$C4` tables that turn inventory into ring items (consumables `$C4:5AAE`, armour `$C4:5ABE`, formulas
+  `$C4:5BAF`, ingredients `$C4:5B10`, weapon records +`$1E`) as references by name; moving names (needs every reader
+  of a name string); `when` conditions as data (code today); shop rings named from `$0E6C`.
+
+### Full-screen menus *(explored, not a kind)*
+
+Each options action fades out, runs an init and a loop in bank `$8D` and fades back (Action `$8D:82F0`/`$862A`,
+Control Prefs `$9DB4`/`$9FB6`, Window Edit `$9B2A`/`$9CD1`, Alchemy `$C321`/`$C803`, status `$A0E9`/`$A6F6`); the
+`$8D` routine names still describe other screens. The screen's background is verified (8bpp tiles, palette, tilemap,
+`$8C:B797`). Before a kind: per screen, read the init for its tilemap, tiles and palette uploads (resources), the
+loop for the text it formats (WRAM fields shown: a table of `{ at, field, format }` only where the code reads them
+from data, otherwise derived and read-only) and the buttons it tests on `$0104` (immediates, like the HUD columns).
+
+### HUD layout *(open)*
+
+`graphics/hud/hud.json` already holds the tiles, palettes, the box and each box's column. Open: the rows (immediates
+at many sites), the HP digits' and gauge's cells and the WRAM each reads (`docs/disassembly/ui/field-hud.md`), as a
+`placement` list of `{ what, at, reads }` where code holds them as immediates.
+
 ## characters, animations, sprite blocks *(built, 2026-11-20)*
 
 The table hack's tables (`tools/table-hack/`, moved and proven there), now resources:

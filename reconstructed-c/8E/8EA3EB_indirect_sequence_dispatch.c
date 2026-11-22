@@ -1,5 +1,5 @@
 /*
- * Routine: $8E:A3EB (walk_indirect_sequence_with_dispatch)
+ * Routine: $8E:A3EB (ring_options_loop)
  * Bank: $8E (ROM offset: $0EA3EB)
  * Source: docs/disassembly/engine-core/record-iteration-dispatch.md
  */
@@ -53,7 +53,7 @@ static uint16_t current_dispatch_index(void) {
     return read_word_from_data_bank((uint16_t)(y + 4u));
 }
 
-void walk_indirect_sequence_with_dispatch(void) {
+void ring_options_loop(void) {
     for (;;) {
         prepare_sequence_iteration();
 

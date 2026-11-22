@@ -31,7 +31,7 @@ interface Table {
     group?: string;
 }
 
-function handlerTable(t: Table): Codec {
+export function handlerTable(t: Table): Codec {
     const DIR = t.kind, BANK = 0x80 | (t.at >> 16), COUNT = t.entries.length, HANDLERS = routines(BANK);
     const bank = `$${BANK.toString(16).toUpperCase()}`;
     return {

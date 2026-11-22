@@ -1,5 +1,7 @@
 # Ring Menu Icon VRAM Streaming & Cache Subsystem
 
+> **Superseded** by [ring-menu.md](ring-menu.md) (v0.455.0): the categories, WRAM names and descriptor layout on this page are wrong; the knowledge entries are corrected.
+
 ## Overview
 When the player or companion opens the ring menu or navigates between categories (Weapons, Alchemy Formulas, Consumable Items, Rare Key Items), the UI engine dynamically streams 16x16 pixel icon graphics and allocates palettes into CGRAM.
 

@@ -382,7 +382,7 @@
           "soe://rom/code/script_op_7f_name_entry/info.md",
           "soe://rom/code/script_op_63_select_alchemy/info.md",
           "soe://rom/code/status_menu_open_dog_entry/info.md",
-          "soe://rom/code/ring_menu_options_open_entry/info.md"
+          "soe://rom/code/ring_option_alchemy/info.md"
         ],
         "source": "SecretOfEvermoreRecomp docs/widescreen/ (2026-11-09)"
       },

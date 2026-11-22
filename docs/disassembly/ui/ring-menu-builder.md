@@ -1,5 +1,7 @@
 # Ring Menu Populator & Circular Layout Engine
 
+> **Superseded** by [ring-menu.md](ring-menu.md) (v0.455.0): the categories, WRAM names and descriptor layout on this page are wrong; the knowledge entries are corrected.
+
 - **ROM Locations**:
   - `ring_menu_category_populator`: `$8E:9DF9` – `$8E:9EBD`
   - `ring_menu_circular_layout_spawn`: `$8E:9EE2` – `$8E:9F25`

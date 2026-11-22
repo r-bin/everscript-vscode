@@ -57,6 +57,8 @@ update the table.
 - **No sample reaches free play.** The user's recordings
   `Secret of Evermore (U) [!]_2026-10-11_08-20-51` (control from frame 15869, room `$46`) and
   `…_2026-10-07_11-40-27` (from 18290) do, both after many Start presses on the title and intro.
+  No recording opens a ring menu; in the first, replay to frame 17200 and hold Y (`0x4000`) 10 frames: the
+  Boy's options ring opens, B (`0x8000`) confirms (frame 16600 and earlier: input does nothing yet).
 - **A determinism control.** Run the original twice on the same playback; both traces must be
   identical before any other comparison means anything.
 

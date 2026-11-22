@@ -1,5 +1,7 @@
 # Ring Menu Item Icon Loader & Circular Sprite Layout
 
+> **Superseded** by [ring-menu.md](ring-menu.md) (v0.455.0): the categories, WRAM names and descriptor layout on this page are wrong; the knowledge entries are corrected.
+
 **Addresses**:
 - `ring_menu_render_frame`: `$8E:AE85` – `$8E:AEBB`
 - `ring_menu_load_item_icons`: `$8E:AEBC` – `$8E:AEF4`
