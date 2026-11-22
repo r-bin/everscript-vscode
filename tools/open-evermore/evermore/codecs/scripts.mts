@@ -223,10 +223,13 @@ export const scriptsCodec: Codec = {
         const quiet = ctx && { ...ctx, findings: { error() {}, warning() {}, info() {} } as unknown as ImplodeContext['findings'] };
         const entries = quiet ? parse(path, raw.join('\n'), quiet) : null;
         if (!entries) return [path, text(raw.map(l => l.trim()).filter(l => l && !l.startsWith('#')).join('\n') + '\n')];
+        // A label is a place, not a name: explode numbers them in order, an edit may call a new one anything.
+        const place = new Map<string, string>();
+        for (const e of entries) if (e.kind === 'label' && !place.has(e.name)) place.set(e.name, `label_${place.size + 1}`);
         return [path, text(entries.map(e => {
-            if (e.kind === 'label') return `${e.name}:`;
+            if (e.kind === 'label') return `${place.get(e.name)}:`;
             if (e.kind === 'skip') return `${SKIP} ${e.size}`;
-            let tail = e.ref !== undefined && names ? '@' + resolveName(e.ref, self, x => names.has(x)) : e.jump ?? '';
+            let tail = e.ref !== undefined && names ? '@' + resolveName(e.ref, self, x => names.has(x)) : e.jump !== undefined ? place.get(e.jump) ?? e.jump : '';
             const body = [...e.body], id = BY_ID[e.op];
             if (id && e.ref === undefined && body.length >= id.size) {
                 const v = body.slice(-id.size).reduce((n, x, k) => n | (x << (8 * k)), 0), n = byId.get(id.form === 'global' ? globalsFrom + v : v / 3);

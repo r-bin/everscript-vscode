@@ -30,6 +30,8 @@ not a reload. `$2559`-`$2833` (731 bytes) no code and no script touches (CDL lib
 
 ### Ingredients (22)
 
+Lifted in v0.460.0 as steps I1-I6 say (resources.md §alchemy, "Adding an ingredient"); the shop's ring item is left (I7).
+
 | What | Where | Why it stops at 22 | To lift |
 |---|---|---|---|
 | held count | `$22FF + id`, a byte; consumables follow at `$2315` | no byte for id 22 | new ids: a `temp[]` cell each (file `held: "temp[99]"`), the readers below redirected |
@@ -70,12 +72,12 @@ charm does is code reading its bit; a new one is a key item that scripts set and
 
 | # | Step | State |
 |---|---|---|
-| I1 | Ingredients kind growable in the files: a new file is a new id, `held` a `temp[]` cell, `name` its text; implode refuses what it cannot build yet, naming the blocker | 🔴 |
-| I2 | Names anywhere in `$C4`: the ingredient name table moved (long readers), its strings placed in `$C4` space other kinds release | 🔴 |
-| I3 | Count hooks: every reader above reads a new id's cell (generated code in the 4th MB, only when the kind has grown; vanilla bytes otherwise) | 🔴 |
-| I4 | Alchemy screen: the list's bound and positions generated; check in game where row 23 goes | 🔴 |
-| I5 | Formula cost by a new ingredient (cost/`ingredient` accepts ids past 21) | 🔴 |
-| I6 | Loot: a reward name for each new id, the three loot scripts' branches generated (or written by hand first), a gourd and a ground pickup proven in game | 🔴 |
+| I1 | Ingredients kind growable in the files: a new file is a new id, `held` a `temp[]` cell, `text` its name, `icon` a vanilla one's | ✅ v0.460.0 (`codecs/ingredients.mts`) |
+| I2 | Names: the one reader (`$8D:C1F6`) and its bank immediate (`$8D:C1F3`) point at a generated table + strings in any bank, so `$C4` needs no room | ✅ v0.460.0 |
+| I3 | Count hooks: every reader above reads a new id's cell (generated code, only when the kind has grown; vanilla bytes otherwise) | ✅ v0.460.0: unit test on the 65816 interpreter; cast and alchemy screen in game |
+| I4 | Alchemy screen: the list's bounds generated, the icon table moved | ✅ v0.460.0: a held new ingredient is listed (two columns of held ones; 23 held at once not tried) |
+| I5 | Formula cost by a new ingredient (cost/`ingredient` accepts ids past 21) | ✅ v0.460.0: Cure costing Salt, cast in game |
+| I6 | Loot: the three loot scripts' branches by hand (resources.md §alchemy), a gourd and a ground pickup proven in game | 🟡 v0.460.0: count-in proven (a script calls it, the cell goes 0→1); the "Found" text and a real gourd not seen in game; reward ids by number (`534`), no `LOOT_REWARD` name |
 | I7 | Shop: a ring item for the ingredient (ring items growable, bank `$8E`) | 🔴 |
 | C1 | Consumables: as I1-I7, plus the action table (bank `$8E`) and the use effect | 🔴 |
 | N1 | Named items kind: 20 entries `{ name, flag }` (flag by name, `CHARM_FLAGS` bit), in place | 🔴 |

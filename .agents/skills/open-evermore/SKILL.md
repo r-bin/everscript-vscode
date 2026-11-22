@@ -95,6 +95,10 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
 - **The script VM's `ScriptRom` reads the pointer table at its vanilla place** (header word +0), but a built layout moves
   the table and rebases only its readers: anything that follows calls by id (`walk(…, true)`, `roleOf`) on a built ROM
   resolves them wrong. Use `room-names.mts`'s `scriptRom`, which reads the table through `tableOf`.
+- **A kind that grows by patching code** (ingredients, v0.460.0): explode declares the patched bytes as `tables` (blanked in
+  `_base/`), implode writes vanilla's back while the kind has its vanilla count, and explode reads the grown form too (the
+  round trip explodes the grown build). Scripts write a `temp[]` cell with `write_temp_byte`/`_word`: `write_byte_14` reaches
+  only the save area.
 - **Script lines are operands, not bytes** (`op a, b, c`): `operands.mts` per token and parameter type, expressions
   in `expressions.mts`. Explode keeps a readable operand only if it reads back to the same bytes, else `[hex]`; the
   round trip compares bytes. `<`/`>` are operators except in `<0x…>` cells (`splitTop`).

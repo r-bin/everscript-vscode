@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { GAME, KINDS, PAST_END } from '../../tools/open-evermore/evermore/kinds.mts';
 import { explode } from '../../tools/open-evermore/explode.mts';
+import { HOOKS_LENGTH } from '../../tools/open-evermore/evermore/codecs/ingredient-hooks.mts';
 import { implode } from '../../tools/open-evermore/implode.mts';
 import { sha1 } from '../../tools/open-evermore/tree.mts';
 
@@ -154,6 +155,35 @@ if (!path || !existsSync(path)) {
     }).sort(), ['invalid-value alchemy/formulas/heal.json#/power', 'no-room alchemy/formulas/laser.json#/description', 'no-room equipment/armour/shell_plate.json#/text_2', 'unknown-reference alchemy/formulas/heal.json#/block']);
     console.log('  ✓ equipment and alchemy: a formula\'s block, power and description, a weapon\'s attack and school, an armour\'s defence and a level\'s factor land in place; a longer text, a power past a byte and an unknown block are errors');
 
+    // A 23rd ingredient (docs/todo/growable-items.md): a cost of Cure, its name, icon and count cell generated, every
+    // count reader a jsl into the hooks, the alchemy screen's loops one longer (in game by hand: docs/todo/growable-items.md I-steps).
+    const ing = new Map(tree);
+    ing.set('alchemy/ingredients/salt.json', new Uint8Array(Buffer.from(JSON.stringify({ text: 'Salt', held: 'temp[198]', icon: 'crystal' }))));
+    editJson(ing, 'alchemy/ingredients/_enum.json', v => { v.names.push('salt'); });
+    editJson(ing, 'alchemy/formulas/cure.json', v => { v.cost[1].ingredient = 'salt'; });
+    const gb = implode(ing, GAME, KINDS);
+    assert.deepStrictEqual(gb.findings.list.filter(f => f.severity !== 'info'), []);
+    const gi = gb.image!, u24 = (at: number) => gi[at] | (gi[at + 1] << 8) | (gi[at + 2] << 16);
+    for (const site of [0x0DC1AD, 0x0DC2CE, 0x0EA923, 0x11CDF1, 0x11CDF8, 0x11CE1E, 0x11CE25, 0x11CE4C, 0x11CE70, 0x0E8DC5, 0x0E8DDF]) assert.strictEqual(gi[site], 0x22, `a jsl at ${site.toString(16)}`);
+    assert.deepStrictEqual([gi[0x0DC1AB], gi[0x0DC2CC]], [22, 22], 'the alchemy screen counts down from id 22');
+    const table = u24(0x0DC1F7) & 0x3FFFFF, salt = ((gi[0x0DC1F3] << 16) | gi[table + 44] | (gi[table + 45] << 8)) & 0x3FFFFF;
+    assert.strictEqual(Buffer.from(gi.subarray(salt, salt + 5)).toString('latin1'), 'Salt\0', 'the name in the moved table');
+    const icons = u24(0x0DBE5F) & 0x3FFFFF;
+    assert.strictEqual(u24(icons + 3 * 22), u24(icons + 3 * 15), 'Crystal\'s icon');
+    assert.strictEqual(u24(0x0DBE65), u24(0x0DBE5F) + 1, 'both icon reads moved');
+    const cells = (u24(0x0DC1AE) & 0x3FFFFF) + HOOKS_LENGTH;
+    assert.strictEqual(gi[cells] | (gi[cells + 1] << 8), 0x28FA, 'temp[198] counts it');
+    assert.strictEqual(gi[0x04601F + 4 * 6 + 1], 22, 'Cure costs it');
+    assert.deepStrictEqual(rules(t => {
+        t.set('alchemy/ingredients/salt.json', new Uint8Array(Buffer.from(JSON.stringify({ text: 'Salt', held: 'temp[200]', icon: 'salt' }))));
+        editJson(t, 'alchemy/ingredients/_enum.json', v => { v.names.push('salt'); });
+    }).sort(), ['invalid-value alchemy/ingredients/salt.json#/held']);
+    assert.deepStrictEqual(rules(t => {
+        t.set('alchemy/ingredients/salt.json', new Uint8Array(Buffer.from(JSON.stringify({ text: 'Salt', held: 'temp[198]', icon: 'salt' }))));
+        editJson(t, 'alchemy/ingredients/_enum.json', v => { v.names.push('salt'); });
+    }).sort(), ['unknown-reference alchemy/ingredients/salt.json#/icon']);
+    console.log('  ✓ a 23rd ingredient: a formula\'s cost, its name, icon and count cell generated, 11 count readers and the alchemy screen redirected; a cell past temp[] and an icon of no vanilla ingredient are errors');
+
     // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
     const edited = new Map(tree);
     editJson(edited, meta, m => { if (m.list[0].inFront) delete m.list[0].inFront; else m.list[0].inFront = true; });
@@ -268,7 +298,7 @@ if (!path || !existsSync(path)) {
     const g = implode(grown, GAME, KINDS);
     assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
-    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16], ['fonts', 2], ['hud', 22], ['animation_modes', 6], ['ring_items', 162], ['rings', 18], ['ring_flows', 12], ['option_actions', 9], ['item_actions', 9], ['alchemy_actions', 36], ['caller_actions', 4], ['spell_actions', 18]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
+    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16], ['fonts', 2], ['hud', 22], ['animation_modes', 6], ['ring_items', 162], ['rings', 18], ['ring_flows', 12], ['option_actions', 9], ['item_actions', 9], ['alchemy_actions', 36], ['caller_actions', 4], ['spell_actions', 18], ['ingredients', 64]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
     console.log('  ✓ a new tile, string and table script: each table grows and moves, the round trip holds; limits at the engine\'s');
 
     // The table kinds of the table hack: a new animation, character (a record and an ENEMY id) and sprite blocks grow

@@ -678,7 +678,7 @@ block map, power is one byte).
 ```
 alchemy/formulas/<formula>.json        { name, ring_item, description, block, power, target, learned {flags, bit},
                                          cost [{ingredient, count} ×2]; wram (derived: experience, level, casts) }
-alchemy/ingredients/<ingredient>.json  { name; held (derived) }
+alchemy/ingredients/<ingredient>.json  { name; held (derived) }  ids 0-21; a new one (id 22-63): { text, held, icon }
 alchemy/alchemy_levels/level_<n>.json  { experience_per_cast (0-8), power_factor }
 ```
 
@@ -692,8 +692,23 @@ alchemy/alchemy_levels/level_<n>.json  { experience_per_cast (0-8), power_factor
 - **target** stays hex (the bits are only partly understood: knowledge `ALCHEMY_TARGET`).
 - **Proven** (v0.456.0): G0 alone and with every kind, seeds 1 and 2026 round-trip; Laser's block, power and a shorter
   description land in place; a longer text, a power past 255 and an unknown block are errors (`g0.test.mts`).
-- **To add an ingredient** (open): every reader that holds the list at 22 (counts `$22FF + id`, names `$C4:5FF3`, the
-  cast check in `$91`, the alchemy screen's loop, shops, the loot scripts) and the steps: [../todo/growable-items.md](../todo/growable-items.md).
+- **Adding an ingredient** *(v0.460.0)*: a file past the 22 (and its name in `_enum.json`, limit 64) is a new one,
+  `{ "text": "Salt", "held": "temp[198]", "icon": "crystal" }`: its name, the WRAM word that counts it (a `temp[]` cell,
+  `temp[n]` = `$2834 + n`: wiped on every room load and not saved, said as an info; or a WRAM name) and the vanilla
+  ingredient whose icon it shows. Formulas take it as a cost by name. Implode then generates the names (table and
+  strings in one bank, the alchemy screen's bank immediate `$8D:C1F3`), the icon table (five pairs of `lda.l` operands)
+  and the hooks (`codecs/ingredient-hooks.mts`): the 11 count readers (`$22FF,x`: alchemy screen, a ring's held count,
+  the cast's check and use in `$91`, the shop's buy) become a `jsl` of the same length that keeps vanilla's access below
+  id 22, and the alchemy screen's loops count from the last id. With 22 ingredients every one of those bytes is vanilla's.
+  **Loot** is scripts: a gourd or sniff spot stages the reward (`write_word PRIZE, 534`, reward `$0216` = the first new
+  ingredient by convention: `$0200 + id`) and calls its driver; `scripts/global/global_loot_part1` counts it in (a branch
+  like vanilla's, writing the cell with `write_temp_byte temp[198], …`: `write_byte_14` reaches only the save area),
+  `global_loot_part2` says "Found …" and `global_loot_part3` "can't carry more" (new strings). **Proven**: G0 with 22;
+  seeds 1, 2026 (vanilla tree) and 1, 7 (grown) round-trip; in game (the user's recording to free play, WRAM written):
+  the ingredients page (L/R in the alchemy screen) lists "5× Salt" with Crystal's icon, Cure costing Salt shows "×1" and
+  a cast takes Salt 5→4, Root 2→0; the count-in script adds one Salt. The "Found" text is not seen yet (the intro, where
+  it was called, shows none). Not done: shops (a ring item per ingredient, ring items fixed at 162), a save that keeps
+  the count ([../todo/growable-items.md](../todo/growable-items.md)).
 - **To add a formula** (open): the nine tables touch each other (moving them is possible: every reader is a long
   operand), the ring item ids for formulas are a fixed range (`$48`-`$8C`), the alchemy action table has 36 entries
   with code after it, and WRAM holds 35 of everything, packed: learned bits `$2258`-`$225C` (5 bits free), experience

@@ -13,6 +13,7 @@
 //   $C4:5B9C experience per cast by level (0-8, a byte), $C4:5BA5 the power factor by level (0-9, a byte)
 // Names: the formulas' are menus.mts' (the compiler's ALCHEMY_INDEX order); ingredients from their ring item's text.
 import { FORMULAS, nameRingItems } from './menus.mts';
+import { growIngredients } from './ingredients.mts';
 import { recordsCodec, wramText } from './records.mts';
 
 const GROUP = 'alchemy';
@@ -29,10 +30,11 @@ const FORMULA_BLOCKS = ['cure', 'acid_rain', 'defend', 'flash', 'heal', 'levitat
 const CAST_BLOCKS: Record<number, string> = { 35: 'heat_wave', 36: 'storm', 40: 'confound', 45: 'plague', 47: 'disrupt' };
 export const BLOCKS = Array.from({ length: 53 }, (_, k) => FORMULA_BLOCKS[k] ?? CAST_BLOCKS[k] ?? `block_${k}`);
 
-/** Each table has its long-indexed reader (`lda.l`, `and.l`, `ora.l` table,x) in the ROM: the release is this one. */
+/** Each table has its long-indexed reader (`lda.l`, `and.l`, `ora.l` table,x) in the ROM: the release is this one. The
+ *  ingredient names' reader ($C4:5FF3) moves in a grown build: ingredients.mts checks it. */
 function check(rom: Uint8Array): void {
     const ops = new Set([0xBF, 0x3F, 0x1F]);
-    for (const t of [0x5D09, 0x5BAF, 0x5D51, 0x5DDF, 0x5E6B, 0x5BF5, 0x5C3B, 0x5C81, 0x601F, 0x5FF3, 0x5B9C, 0x5BA5]) {
+    for (const t of [0x5D09, 0x5BAF, 0x5D51, 0x5DDF, 0x5E6B, 0x5BF5, 0x5C3B, 0x5C81, 0x601F, 0x5B9C, 0x5BA5]) {
         let found = false;
         for (let i = 0; i + 3 < rom.length && !found; i++) found = ops.has(rom[i]) && rom[i + 1] === (t & 0xFF) && rom[i + 2] === t >> 8 && rom[i + 3] === 0xC4;
         if (!found) throw new Error(`alchemy: nothing reads $C4:${t.toString(16).toUpperCase()} as this codec knows; another release?`);
@@ -69,12 +71,12 @@ export const formulasCodec = recordsCodec({
     notes: id => ({ wram: { experience: wramText(0x2F52 + 2 * id), level: wramText(0x2F98 + 2 * id), casts: wramText(0x2FDE + 2 * id) } }),
 });
 
-export const ingredientsCodec = recordsCodec({
+export const ingredientsCodec = growIngredients(recordsCodec({
     kind: INGREDIENTS, group: GROUP, count: INGREDIENT_COUNT, names: () => INGREDIENT_NAMES, prepare, check,
     why: 'ingredient = id: the name pointers at $C4:5FF3 (22 words, the cast names before them), the held count at $22FF + id',
     fields: [{ path: 'name', at: C4 + 0x5FF3, stride: 2, form: { type: 'ring_text' } }],
     notes: id => ({ held: wramText(0x22FF + id) }),
-});
+}));
 
 export const levelsCodec = recordsCodec({
     kind: LEVELS, group: GROUP, count: LEVEL_COUNT, names: () => Array.from({ length: LEVEL_COUNT }, (_, k) => `level_${k}`),
