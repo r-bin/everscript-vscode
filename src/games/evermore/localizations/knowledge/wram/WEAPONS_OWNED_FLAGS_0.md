@@ -7,7 +7,7 @@ title: Unlocked weapon inventory bitfield
 lifetime: save
 confidence: confirmed
 tags: [inventory, weapons]
-evidence: ["disasm: func_CF9210 ($8F:927D) iterates over 13 weapon indices via tbl_C459A4 ($22DA/$22DB) and bitmasks tbl_C459C0 to check/clear owned weapons"]
+evidence: ["disasm: func_CF9210 ($8F:927D) iterates over 13 weapon indices via WEAPON_OWNED_BYTE ($22DA/$22DB) and bitmasks WEAPON_OWNED_BIT to check/clear owned weapons"]
 see: [knowledge/wram/EQUIPMENT_GRANT_COMMAND.md, knowledge/wram/dog_companion_attack_mode.md]
 ---
 2-byte bitfield (16 bits) tracking which physical weapons have been acquired:

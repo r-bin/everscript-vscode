@@ -1,7 +1,7 @@
 ---
 addr: 8EA0B3
-size: 820
-end: 8EA3E6
+size: 823
+end: 8EA3E9
 kind: code
 category: 🏪
 name: shopkeeper_dialogue_window_init
@@ -12,3 +12,4 @@ evidence: ["disasm: sets shop active flag $05A9 |= $8000; loads active NPC point
 ---
 Initializes speech bubble and dialogue window positioning for shopkeepers, anchoring coordinates directly above the merchant NPC's world position.
 
+It ends in `stz $95 : rtl` at `$8E:A3E7` (once believed alignment padding, BANK8E_PAD_A3E7); the byte after it is the debug ring's loop (`ring_debug_loop`, a bare `rts`).

@@ -17,8 +17,10 @@ Master equipment database for all 40 pieces of equippable defense gear:
 - 4 Dog Collars (`$C4:3C6A`..`$C4:3C91`, stride 10): Leather Collar through Spot's Collar
 
 Record format (10 bytes):
-- `+0x00`: Physical defense rating (uint16_t)
-- `+0x02`: Magic defense rating (uint16_t)
-- `+0x04`: 16-bit far pointer in bank $C4 to zero-terminated ASCII name string
-- `+0x06`: 16-bit far pointer in bank $C4 to description/status string
-- `+0x08`: 16-bit ring menu icon index ($00A0..$00EE)
+- `+0x00`: the defence the stats add (`$8F:84BD`: `adc.l $C40000,x` with X = the equipped record, `$0AC0`-`$0AC4`)
+- `+0x02`: the defence the armour ring shows for it (`$8E:A66B`); equal to +0 in all 40
+- `+0x04`: pointer in bank $C4 to the name (the ring item's text)
+- `+0x06`: pointer in bank $C4 to a second text: all 40 point at the same empty string (`$C4:60AD`)
+- `+0x08`: the ring item id ($00A0..$00EE)
+
+WRAM keeps the equipped record's address, not an index (and the save keeps WRAM), so a record cannot move. Corrected v0.456.0: +2 was believed magic defence, +6 a description. Open Evermore: `equipment/armour/`.

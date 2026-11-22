@@ -18,7 +18,7 @@ The equipment and status synchronization pipeline in Bank `$8F` (`$8F:9210` – 
 
 2. **Weapon Equipping & Bitfield Synchronization (`$8F:9273` – `$8F:92EE`)**:
    - Inspects weapon equip request register `$7E:2441`:
-     - **Un-equip Request ($< 0$)**: Loops over 13 weapon categories, clearing equipped bits in `$7E:22DA` and `$7E:22DB` using ROM tables `tbl_C459A4` and `tbl_C459C0`. Sets transition flags `$7E:23BF = 1` and `$7E:0ABA = 0`.
+     - **Un-equip Request ($< 0$)**: Loops over 13 weapon categories, clearing equipped bits in `$7E:22DA` and `$7E:22DB` using ROM tables `WEAPON_OWNED_BYTE` and `WEAPON_OWNED_BIT`. Sets transition flags `$7E:23BF = 1` and `$7E:0ABA = 0`.
      - **Equip Weapon Request ($> 0$)**: Configures weapon animation state timers (`$7E:1434`, `$7E:145D`, `$7E:145E`), updates persistence bitmask in `$7E:22DA`/`$7E:22DB`, and assigns active weapon ID to `$7E:0ABA` and `$7E:235F`.
    - Zeroes request register `$7E:2441 = 0`.
 
@@ -60,4 +60,4 @@ The equipment and status synchronization pipeline in Bank `$8F` (`$8F:9210` – 
 - **Weapon Charge Initialization**:
   - Whenever a new weapon is drawn or swapped, the stamina meter instantly resets to full charge (`1024 = 0x0400 = 100.0%`), preventing the player from being penalized with 0% charge upon equipping a new weapon during combat.
 - **Persistence Table Mapping**:
-  - Tables `tbl_C459A4` and `tbl_C459C0` bridge weapon IDs to persistent SRAM save bitfields in `$7E:22DA` and `$7E:22DB`, ensuring equipment state survives game saving and reloads.
+  - Tables `WEAPON_OWNED_BYTE` and `WEAPON_OWNED_BIT` bridge weapon IDs to persistent SRAM save bitfields in `$7E:22DA` and `$7E:22DB`, ensuring equipment state survives game saving and reloads.

@@ -1,6 +1,6 @@
 # Open Evermore: the ROM as a folder of named parts
 
-Status: **maps, tile families, tiles, strings, scripts, opcodes, animations, attack procs, behaviours, characters, sprite blocks, music and sounds exploded (2026-11-21)**; the rest of the ROM is still the pinned `_base/`. Progress:
+Status: **maps, tile families, tiles, strings, scripts, opcodes, animations, attack procs, behaviours, characters, sprite blocks, music and sounds, fonts, HUD, ring menus, equipment and alchemy exploded (2026-11-22)**; the rest of the ROM is still the pinned `_base/`. Progress:
 [progress.md](progress.md). Labels: *(repo)* = exists today; *(proposal)* = this design, open to change;
 *(owner's call)* = a decision for the owner; *(to verify)*.
 
@@ -26,6 +26,7 @@ keeps that plan's reasoning (gates, codecs, placement rules, fast ROM by heat) a
 | [validation.md](validation.md) | what implode checks, error vs warning, the report |
 | [tool.md](tool.md) | `tools/open-evermore/`: actions, the steps of implode, codecs, the proof, tests |
 | [progress.md](progress.md) | the step list and the state of each kind |
+| [wram.md](wram.md) | WRAM by name: `temp[]` as a placeholder, the proof of concept, allocation |
 
 ---
 

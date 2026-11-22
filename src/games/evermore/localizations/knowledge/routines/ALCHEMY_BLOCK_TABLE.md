@@ -4,7 +4,7 @@ end: 9180E9
 size: 68
 kind: table
 name: ALCHEMY_BLOCK_TABLE
-title: Alchemy formula blocks in bank $91
+title: Alchemy blocks in bank $91: the formulas' (0-33) and the Call Bead casts' (34-52)
 confidence: likely
 tags: [alchemy, animation]
 evidence: ["read: 34 words, $91 addresses $85DA..$962A, indexed by ALCHEMY_ANIM_MAP ($C4:5DDF) (v0.203.0)", "read: the blocks are data, not 65816 code (the asm view of $91:86F0 decodes as brk/cop runs)", "read: 32 of the 35 formulas' blocks hold one to three words that are animation record ids ($C4:xxxx in the table at $C43E3A), at even offsets +4..+28; Atlas, Corrosion and Escape hold none"]
@@ -27,3 +27,5 @@ coordinates transitions between them when opcode `0x5D` (`effect_done`) sets ent
 - 33 animation records signal `effect_done` (animation command `0x5D`, which only bank `$91`
   reads); all lie in `$C4:571A..$C4:589E`. Most records the blocks name are among them.
 - Fireball's enum value (`$8C86`) disagrees with this table (`$8CB6`); the table is what the ROM holds.
+
+Corrected v0.456.0: 53 words (the disassembly's table and the cast table `$C4:5F97` reach index 52), not 34.

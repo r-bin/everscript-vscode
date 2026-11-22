@@ -11,3 +11,5 @@ tags: [ring-menu, dog, stats, collar, ui]
 evidence: ["disasm: called by ring_menu_dog_selection_loop ($8D:9792); loads string pointer $8D:8DF8; formats Dog companion HP, attack power, and equipped collar name via $80:B21F and $8C:9E03 into window $0409 (REA dossier 0x8d8c26)"]
 ---
 Formats the Dog companion status line for the dog ring menu, converting dog hit points, attack power, and collar attributes into decimal text strings.
+
+The weapon skill screen calls it for the sword school: it draws that page (`weapon_skill_page_draw_swords`, v0.456.0); the name above may be wrong.

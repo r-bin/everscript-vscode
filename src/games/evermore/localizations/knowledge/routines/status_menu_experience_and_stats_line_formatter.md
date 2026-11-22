@@ -30,3 +30,5 @@ It calls `$80:B21F` (`format_32bit_integer_to_decimal_ascii`) to convert binary 
 - `$7E:22DB` (Status menu party member selection flag)
 - `$22`, `$24` (Pointer to source text / numeric string descriptor)
 - `$034D`, `$0379` (UI window line VRAM tilemap offsets)
+
+The weapon skill screen calls it for the spear school: it draws that page (`weapon_skill_page_draw_spears`, v0.456.0); the name above may be wrong.

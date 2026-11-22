@@ -11,3 +11,5 @@ tags: [ring-menu, boy, stats, weapon, ui]
 evidence: ["disasm: called by ring_menu_boy_selection_loop ($8D:91AF); loads string pointer $8D:8FD1; formats Boy HP, attack power rating, and equipped weapon name via $80:B21F and $8C:9E03 into window $0409 (REA dossier 0x8d8dff)"]
 ---
 Formats the Boy protagonist status line for the boy ring menu, converting current hit points, attack power, and equipped weapon name into decimal text strings.
+
+The weapon skill screen calls it for the axe school: it draws that page (`weapon_skill_page_draw_axes`, v0.456.0); the name above may be wrong.

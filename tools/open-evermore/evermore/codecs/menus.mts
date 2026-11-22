@@ -66,7 +66,7 @@ export const itemActionsCodec = handlerTable({
 });
 
 /** The formulas in index order (2·formula is what an alchemy ring item holds and what the learned bits count). */
-const FORMULAS = ['acid_rain', 'atlas', 'barrier', 'call_up', 'corrosion', 'crush', 'cure', 'defend', 'double_drain', 'drain',
+export const FORMULAS = ['acid_rain', 'atlas', 'barrier', 'call_up', 'corrosion', 'crush', 'cure', 'defend', 'double_drain', 'drain',
     'energize', 'escape', 'explosion', 'fireball', 'fire_power', 'flash', 'force_field', 'hard_ball', 'heal', 'lance', 'laser',
     'levitate', 'lightning_storm', 'miracle_cure', 'nitro', 'one_up', 'reflect', 'regrowth', 'revealer', 'revive', 'slow_burn',
     'speed', 'sting', 'stop', 'super_heal'];
@@ -145,6 +145,14 @@ export function nameRingItems(rom: Uint8Array): string[] {
 }
 
 const nameKey = (n: string) => `${RING_ITEMS}/${n}.name`;
+/** The item key of a ring item's text (records.mts: weapons, armour, formulas point at the same text). */
+export const ringItemNameKey = nameKey;
+/** Each ring item's text pointer (16 bits in bank $C4) → the first ring item that shows it. */
+export function ringItemTexts(rom: Uint8Array): Map<number, number> {
+    const out = new Map<number, number>();
+    for (let id = 0; id < ITEM_COUNT; id++) { const p = word(rom, entryAt(rom, id) & 0x3FFFFF); if (!out.has(p)) out.set(p, id); }
+    return out;
+}
 
 interface RingItem { text: string; icon: number; palette: number; index: number }
 

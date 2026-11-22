@@ -1,6 +1,6 @@
 ---
 addr: 7E2258
-end: 7E225B
+end: 7E225C
 kind: table
 name: ALCHEMY_KNOWN_FLAGS
 title: Alchemy formula learned bitfield
@@ -19,3 +19,4 @@ Bit allocation order is alphabetical:
 - `$7E:225B`: bits 0..7: Nitro, One Up, Reflect, Regrowth, Revealer, Revive, Slow Burn, Speed
 - `$7E:225C`: bits 0..2: Sting, Stop, Super Heal
 
+Corrected v0.456.0: five bytes ($2258-$225C), as the learned table `$C4:5C3B` says; bits 3-7 of `$225C` are no formula's (bit 7 is a Call Bead caller's, `RING_ITEMS` sites).
