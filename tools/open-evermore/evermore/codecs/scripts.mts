@@ -1,11 +1,13 @@
 // The `scripts` kind (docs/open-evermore/resources.md §scripts): every event script as a <name>.txt, one line per
 // command (the opcode by its name in opcodes/, then its operand bytes in hex), a reference to another script written
 // `@<name>` in place of its operand. One file is one entry of the Scripts tab (a room's enter script, a step-on or B
-// trigger, a global) or a script those call. A room's scripts (its enter script, its triggers', what they call
-// first) live in maps/<map>/scripts/<local>.txt and are named `<map>/<local>` (owner, 2026-11-20); the rest in
-// scripts/<name>.txt. In a file, `@local` names a script of the same room, `@name` one in scripts/ (`@/name` when a
-// local one shares it), `@<map>/<local>` another room's. Reached only through what implode generates: the pointer table, the enter-script table (maps), the boot
-// pointer in the header and the absolute calls between scripts.
+// trigger, a global) or a script those call. Scripts are a kind of their own, never inside another kind's folder
+// (owner, 2026-11-22): a room's scripts (its enter script, its triggers', what they call first) live in
+// scripts/rooms/<map>/<local>.txt and are named `<map>/<local>`, the local name being the first trigger that runs it
+// (room-names.mts: `door_01`, `sniff_02`) or `enter`; the rest in scripts/global/<name>.txt. A room's scripts.json
+// names them in full. In a script file, `@local` names a script of the same room, `@name` a global one (`@/name` when
+// a local one shares it), `@<map>/<local>` another room's. Reached only through what implode generates: the pointer
+// table, the enter-script table (maps), the boot pointer in the header and the absolute calls between scripts.
 //
 // Facts used (docs/scripts/vm.md, src/games/evermore/script-vm, tools/table-hack/tables.js):
 //   window       script code lives in the upper halves of banks $92-$BF, read as one space: the program counter
@@ -38,6 +40,7 @@ import { piecesOf, windowFile, windowPos } from '../../layout.mts';
 import { json, NAME_RE, readText, sha1, text } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { locate as locateMaps, roomBlobs } from './maps.mts';
+import { objectNames, triggerNames } from './room-names.mts';
 import { DEFAULT_OPCODE, KIND as OPCODES } from './opcodes.mts';
 import { ANIMATION_COUNT, KIND as ANIMATIONS } from './animations.mts';
 import { CHARACTERS, characterNames } from './characters.mts';
@@ -45,7 +48,7 @@ import { ENTITY_SUB_OPS, KIND as ENTITIES } from './entities.mts';
 import { SOUND_COUNT, SOUNDS } from './music.mts';
 import type { Refs } from './operands.mts';
 import { KIND as PROJECTILES, PROJECTILE_COUNT } from './projectiles.mts';
-import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, OBJECTS, objectName, parse, REF, SCRIPTS, scriptText, SKIP, WINDOW } from './script-lines.mts';
+import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, OBJECTS, parse, REF, SCRIPTS, scriptText, SKIP, WINDOW } from './script-lines.mts';
 import type { Member, Patch, Script } from './script-lines.mts';
 import { KIND as STRINGS, STRING_COUNT } from './strings.mts';
 import { FONT_COUNT, FONTS } from './graphics.mts';
@@ -60,11 +63,11 @@ const { globalScriptName } = require('../../../../dist/games/evermore/script-mod
 
 export const KIND = SCRIPTS;
 const DIR = KIND, TABLE = `${DIR}/_table`;
-const MAP_DIR = 'maps', IN_MAP = 'scripts';
-/** A script's name: `<local>` in scripts/, or `<map>/<local>` in that map's scripts/ folder. */
+const MAP_DIR = 'maps', GLOBAL = 'global', ROOMS = 'rooms';
+/** A script's name: `<local>` in scripts/global/, or `<map>/<local>` in scripts/rooms/<map>/. */
 export const SCRIPT_NAME_RE = /^(?:[a-z][a-z0-9_]{0,79}\/)?[a-z][a-z0-9_]{0,79}$/;
 /** Its file. */
-export const scriptPath = (name: string): string => name.includes('/') ? `${MAP_DIR}/${name.replace('/', `/${IN_MAP}/`)}.txt` : `${DIR}/${name}.txt`;
+export const scriptPath = (name: string): string => name.includes('/') ? `${DIR}/${ROOMS}/${name}.txt` : `${DIR}/${GLOBAL}/${name}.txt`;
 /** `@name` as written in a file of `from`'s folder: local names stay local, a top-level one bare, others qualified. */
 export function relativeName(name: string, from: string, exists: (n: string) => boolean): string {
     const home = (n: string) => n.includes('/') ? n.slice(0, n.indexOf('/')) : '';
@@ -81,13 +84,13 @@ export function resolveName(ref: string, from: string, exists: (n: string) => bo
 }
 /** `base` + `suffix` with the local part cut so it stays a name (80 characters). */
 const withSuffix = (base: string, suffix: string) => { const i = base.indexOf('/') + 1; return base.slice(0, i) + base.slice(i).slice(0, 80 - suffix.length) + suffix; };
-const PATH_RE = new RegExp(`^(?:${DIR}/([^/]+)|${MAP_DIR}/([^/]+)/${IN_MAP}/([^/]+))\\.txt$`);
+const PATH_RE = new RegExp(`^(?:${DIR}/${GLOBAL}/([^/]+)|${DIR}/${ROOMS}/([^/]+)/([^/]+))\\.txt$`);
 /** A tree path → the script's name when it is a script file. */
 export function scriptOf(path: string): string | null {
     const m = PATH_RE.exec(path);
     return m ? (m[1] !== undefined ? m[1] : `${m[2]}/${m[3]}`) : null;
 }
-const FORMAT = 'open-evermore/scripts', VERSION = 2;
+const FORMAT = 'open-evermore/scripts', VERSION = 3;
 const HEADER = 0x128000, BOOT = 0x12800C, MAP_COUNT = 127;
 const READERS = [{ at: 0x0CCE64, add: 0 }, { at: 0x0CCE6A, add: 2 }, { at: 0x0CD3B6, add: 0 }, { at: 0x0CD3BC, add: 2 }];
 const u16 = (rom: Uint8Array, at: number) => rom[at] | (rom[at + 1] << 8);
@@ -100,7 +103,7 @@ const hex2 = (b: number) => b.toString(16).padStart(2, '0');
 const fit = (base: string, suffix: string) => base.slice(0, 80 - suffix.length) + suffix;
 
 /** The pointer table (file offset), from the first reader's operand and the header word it adds. */
-function tableOf(rom: Uint8Array): number {
+export function tableOf(rom: Uint8Array): number {
     const ops = READERS.map(r => maps.romFileOffset(rom, u24(rom, r.at) - r.add));
     if (READERS.some(r => rom[r.at - 1] !== 0xBF) || ops.some(o => o !== ops[0])) throw new Error('scripts: the pointer table readers are not the ones this codec knows ($8C:CE63, $8C:D3B5); another release?');
     return maps.romFileOffset(rom, (u24(rom, READERS[0].at) + u16(rom, HEADER)) & 0xFFFFFF);
@@ -122,14 +125,15 @@ export function scriptLayout(rom: Uint8Array, name: (kind: string, id: number) =
     const ids = Array.from({ length: n }, (_, i) => fileOfPacked(u24(rom, table + 3 * i)));
     const globalsFrom = u16(rom, HEADER + 8) / 3;
 
-    // Names of table entries on a fresh explode: the room trigger that uses it first (`<map>/step_1`, `<map>/b_1`),
-    // a global's name, else its id. A script's name says its folder: `<map>/<local>` lives in that map's scripts/.
+    // Names of table entries on a fresh explode: the room trigger that uses it first (`<map>/door_01`, room-names.mts),
+    // a global's name, else its id. A script's name says its folder: `<map>/<local>` lives in scripts/rooms/<map>/.
     const fresh = new Map<number, string>();
     if (!roundTrip) {
+        const triggers = triggerNames(rom, count);
         roomBlobs(rom, count('maps')).forEach((at, room) => {
             const m = maps.modelFromRom(rom, room, at);
-            for (const [kind, list] of [['step', m.stepOn], ['b', m.bTrigger]] as const) {
-                list.forEach((t: { scriptId: number }, k: number) => { const id = t.scriptId / 3; if (!fresh.has(id)) fresh.set(id, `${name('maps', room)}/${kind}_${k + 1}`); });
+            for (const list of ['stepOn', 'bTrigger'] as const) {
+                m[list].forEach((t: { scriptId: number }, k: number) => { const id = t.scriptId / 3; if (!fresh.has(id)) fresh.set(id, `${name('maps', room)}/${triggers[room][list][k]}`); });
             }
         });
         for (let g = 0; g < 256 && globalsFrom + g < n; g++) {
@@ -199,7 +203,7 @@ const encoded = new WeakMap<ImplodeContext, { groups: Group[]; boot: string | nu
 const paths = new WeakMap<ImplodeContext, Map<string, string>>();
 
 export const scriptsCodec: Codec = {
-    kind: KIND, version: VERSION, path: DIR, folder: `${DIR}/global`, listedIdsOnly: true, nameRe: SCRIPT_NAME_RE,
+    kind: KIND, version: VERSION, path: DIR, listedIdsOnly: true, nameRe: SCRIPT_NAME_RE,
 
     defaultName: id => `script_${id.toString(16).padStart(4, '0')}`,
 
@@ -254,19 +258,17 @@ export const scriptsCodec: Codec = {
         lists.set(ENTITIES, entities);
         const back = new Map([...lists].map(([k, l]) => [k, new Map(l.flatMap((n, i) => n ? [[n, i] as [string, number]] : []))]));
         const refs: Refs = { name: (k, id) => lists.get(k)?.[id] ?? undefined, id: (k, n) => back.get(k)?.get(n) };
-        // A room's script names that room's objects (`object_<id>`, maps writes no names); a global one keeps numbers.
-        const blobs = roomBlobs(rom, count(MAP_DIR) ?? MAP_COUNT), objectCount = new Map<string, number>();
-        const roomOf = (script: string) => {
+        // A room's script names that room's objects as its objects.json does (room-names.mts); a global one keeps numbers.
+        const objects = objectNames(rom, name, count, nameAt);
+        const roomOf = (script: string): string[] => {
             const map = script.includes('/') ? script.slice(0, script.indexOf('/')) : undefined, room = map === undefined ? undefined : back.get(MAP_DIR)!.get(map);
-            if (map === undefined || room === undefined) return 0;
-            if (!objectCount.has(map)) objectCount.set(map, maps.modelFromRom(rom, room, blobs[room]).objectOffsets.length);
-            return objectCount.get(map)!;
+            return room === undefined ? [] : objects[room] ?? [];
         };
         const refsIn = (script: string): Refs => {
-            const n = roomOf(script);
+            const list = roomOf(script);
             return {
-                name: (k, id) => k === OBJECTS ? (id < n ? objectName(undefined, id) : undefined) : refs.name(k, id),
-                id: (k, x) => { if (k !== OBJECTS) return refs.id(k, x); const m = /^object_(\d+)$/.exec(x); return m && Number(m[1]) < n ? Number(m[1]) : undefined; },
+                name: (k, id) => k === OBJECTS ? list[id] : refs.name(k, id),
+                id: (k, x) => { if (k !== OBJECTS) return refs.id(k, x); const i = list.indexOf(x); return i < 0 ? undefined : i; },
             };
         };
         for (const group of L.groups) {
@@ -306,7 +308,7 @@ export const scriptsCodec: Codec = {
             const s = scriptOf(path);
             if (s) { where.set(s, path); names.add(s); continue; }
             if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}` || path === `${DIR}/${META}`) continue;
-            findings.warning('unknown-file', path, '', 'a script is one <name>.txt; ignored');
+            findings.warning('unknown-file', path, '', `a script is one ${DIR}/${GLOBAL}/<name>.txt or ${DIR}/${ROOMS}/<map>/<name>.txt; ignored`);
         }
         paths.set(ctx, where);
         return names;
@@ -352,7 +354,7 @@ export const scriptsCodec: Codec = {
                 for (const e of entries) if (e.kind === 'cmd' && e.ref !== undefined) {
                     const written = e.ref;
                     e.ref = resolveName(e.ref, n, x => names.has(x));
-                    if (!names.has(e.ref)) findings.error('unknown-reference', file, `/${e.line}`, `@${written} is no script (this room's scripts/, scripts/, or <map>/<name>)`);
+                    if (!names.has(e.ref)) findings.error('unknown-reference', file, `/${e.line}`, `@${written} is no script (this room's, ${DIR}/${GLOBAL}/, or <map>/<name>)`);
                 }
                 members.push({ name: n, file, entries });
             }

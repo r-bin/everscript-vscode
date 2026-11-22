@@ -19,7 +19,7 @@ const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 /** Where a kind lives in the tree when not at the top (folders.mts). */
-const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts/global', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels' };
+const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', tile_families: 'maps/tile_families', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -98,7 +98,7 @@ if (!path || !existsSync(path)) {
     // Script lines name rooms, objects, own animations, flag enums, attach scripts, fonts and cell values; a font is
     // a folder whose width edit lands in its table and round-trips.
     const all = [...tree].filter(([p]) => p.endsWith('.txt') && !p.startsWith('strings/')).map(([, b]) => text(b)).join('\n');
-    for (const want of [/^restore_object_state object_\d+, /m, /^load_map \d+, \d+, [a-z]/m, /, own\.[a-z_]+, /m, /^spawn [a-z_0-9]+, [A-Z_]+ ?\|? ?/m, /^attach_script .*, @/m, /^font default$/m, /^write_word PRIZE, [A-Z]/m, /^animate .*, loop$/m])
+    for (const want of [/^restore_object_state (sniff|loot|door|scene|unknown)_\d\d+(_\d+)?, /m, /^load_map \d+, \d+, [a-z]/m, /, own\.[a-z_]+, /m, /^spawn [a-z_0-9]+, [A-Z_]+ ?\|? ?/m, /^attach_script .*, @/m, /^font default$/m, /^write_word PRIZE, [A-Z]/m, /^animate .*, loop$/m])
         assert.ok(want.test(all), `no line like ${want}`);
     const widened = new Map(tree);
     editJson(widened, 'graphics/fonts/default/font.json', f => { f.glyphs[1].width = 9; });
@@ -161,18 +161,18 @@ if (!path || !existsSync(path)) {
     assert.notStrictEqual(e.sha1, sha1(rom));
     console.log('  ✓ an edited metatile is compressed anew and round-trips');
 
-    // Objects and cuttable grass are text (map format v6): an edited state and an edited grass record build and
-    // explode back to the edit; a token that is no metatile is an error at its row.
-    const grassRoom = [...tree.keys()].find(p => p.endsWith('/map.json') && JSON.parse(Buffer.from(tree.get(p)!).toString()).cuttableGrass.length)!;
-    const objects = grassRoom.replace('map.json', 'objects.json');
+    // Objects and cuttable grass are text (objects.json, grass.json): an edited state and an edited grass record build
+    // and explode back to the edit; a token that is no metatile is an error at its row.
+    const grassRoom = [...tree.keys()].find(p => p.endsWith('/grass.json') && JSON.parse(Buffer.from(tree.get(p)!).toString()).list.length)!;
+    const objects = grassRoom.replace('grass.json', 'objects.json');
     const changed = new Map(tree);
     editJson(changed, objects, o => { const st = o.list[0].states[0]; st.cells[0] = st.cells[0].replace(/^\s*[0-9a-f]+/, '000'); });
-    editJson(changed, grassRoom, m => { m.cuttableGrass[0].into = [m.cuttableGrass[1].into[0]]; });
+    editJson(changed, grassRoom, m => { m.list[0].into = [m.list[1].into[0]]; });
     const c = implode(changed, GAME, KINDS);
     assert.deepStrictEqual(c.findings.list.filter(f => f.severity === 'error'), []);
     assert.notStrictEqual(c.sha1, sha1(rom));
     assert.deepStrictEqual(rules(t => editJson(t, objects, o => { const st = o.list[0].states[0]; st.cells[0] = st.cells[0].replace(/^\s*\S+/, 'zzz'); })), [`invalid-value ${objects}#/list/0/states/0/cells/0`]);
-    assert.deepStrictEqual(rules(t => editJson(t, grassRoom, m => { m.cuttableGrass[0].cut = 'fff'; })), [`invalid-value ${grassRoom}#/cuttableGrass/0`]);
+    assert.deepStrictEqual(rules(t => editJson(t, grassRoom, m => { m.list[0].cut = 'fff'; })), [`invalid-value ${grassRoom}#/list/0`]);
     console.log('  ✓ an edited object state and grass record build and round-trip; a cell that is no metatile is an error');
 
     const other = explode(rom, { release: 'us', sha1: sha1(rom), explodedWith: 'test' }, GAME, KINDS, undefined, { tile_families: { format: 'png' }, tiles: { format: 'json' } });
@@ -193,18 +193,27 @@ if (!path || !existsSync(path)) {
     console.log('  ✓ strings: an unknown tag is an error; an edited string is encoded anew and round-trips');
 
     // Scripts: one file per script, a command per line (the opcode by name, its operands in hex), `@name` for another
-    // script (calls by global or trigger id too), labels for jumps; a room's scripts in its folder. An edited script
-    // round-trips (an opcode as hex too); a name that is no script, an opcode that is none and operands that are no
-    // bytes are errors; a relative call out of reach takes the absolute form, an error only with --strict.
-    const enter = 'maps/rooms/podunk_opening_over_the_machine/scripts/enter.txt';
-    assert.ok(tree.has(enter) && tree.has('scripts/global/boot.txt') && tree.has('scripts/global/_scripts.json') && !tree.has('maps/_enter_scripts.json'));
-    const opening = JSON.parse(Buffer.from(tree.get('maps/rooms/podunk_opening_over_the_machine/map.json')!).toString());
-    assert.deepStrictEqual(opening.enter, { script: 'enter', word: '$0001' });
-    const isScript = (p: string) => /^(scripts\/global|maps\/rooms\/[^/]+\/scripts)\/[^_/][^/]*\.txt$/.test(p);
-    const scriptCount = [...tree.keys()].filter(isScript).length, inRooms = [...tree.keys()].filter(p => isScript(p) && p.startsWith('maps/')).length;
+    // script (calls by global or trigger id too), labels for jumps; a room's scripts in scripts/rooms/<map>/, named in
+    // full by its scripts.json. An edited script round-trips (an opcode as hex too); a name that is no script, an
+    // opcode that is none and operands that are no bytes are errors; a relative call out of reach takes the absolute
+    // form, an error only with --strict.
+    const enter = 'scripts/rooms/podunk_opening_over_the_machine/enter.txt';
+    assert.ok(tree.has(enter) && tree.has('scripts/global/boot.txt') && tree.has('scripts/_scripts.json') && tree.has('scripts/_enum.json'));
+    assert.ok(![...tree.keys()].some(p => /^maps\/rooms\/[^/]+\/scripts\//.test(p)), 'no script inside a map folder');
+    const opening = JSON.parse(Buffer.from(tree.get('maps/rooms/podunk_opening_over_the_machine/scripts.json')!).toString());
+    assert.strictEqual(opening.enter, 'podunk_opening_over_the_machine/enter');
+    assert.strictEqual(opening.enterWord, 1);
+    const isScript = (p: string) => /^scripts\/(global|rooms\/[^/]+)\/[^_/][^/]*\.txt$/.test(p);
+    const scriptCount = [...tree.keys()].filter(isScript).length, inRooms = [...tree.keys()].filter(p => isScript(p) && p.startsWith('scripts/rooms/')).length;
     assert.ok(scriptCount > 3000 && inRooms > 2000, `${scriptCount} script files, ${inRooms} in rooms`);
-    const named = [...tree.keys()].filter(p => p.endsWith('/map.json')).some(p => JSON.parse(Buffer.from(tree.get(p)!).toString()).stepOn.some((t: { script: unknown }) => typeof t.script === 'string'));
-    assert.ok(named, 'triggers name their scripts');
+    // Triggers and objects are named by what they do; a room script by the first trigger that runs it.
+    const roomScripts = [...tree.keys()].filter(p => p.endsWith('/scripts.json')).map(p => JSON.parse(Buffer.from(tree.get(p)!).toString()));
+    const triggers = roomScripts.flatMap(v => [...v.stepOn, ...v.bTrigger]);
+    assert.ok(triggers.length > 2000 && triggers.every(t => /^(door|sniff|loot|scene|unknown)_\d\d+$/.test(t.name) && typeof t.script === 'string' && tree.has(`scripts/rooms/${t.script}.txt`)), 'triggers are named and name their scripts');
+    for (const what of ['door', 'sniff', 'loot', 'scene']) assert.ok(triggers.some(t => t.name.startsWith(what + '_')), `no ${what} trigger`);
+    const objectLists = [...tree.keys()].filter(p => p.endsWith('/objects.json')).map(p => JSON.parse(Buffer.from(tree.get(p)!).toString()).list);
+    assert.ok(objectLists.flat().every((o: { name?: unknown; id?: unknown }) => typeof o.name === 'string' && o.id === undefined), 'every object has a name');
+    assert.ok(objectLists.flat().some((o: { name: string }) => o.name.startsWith('sniff_')), 'sniff spots name their objects');
     const lines = (p: string) => Buffer.from(tree.get(p)!).toString().split('\n');
     const caller = [...tree.keys()].find(p => isScript(p) && lines(p).some(l => /^call @/.test(l)))!;
     const relative = [...tree.keys()].find(p => isScript(p) && lines(p).some(l => /^call_back @/.test(l)))!;
@@ -217,7 +226,7 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(rules(farCall).filter(r => !r.startsWith('left-out')), []);
     const r1 = rules(farCall, true).filter(r => !r.startsWith('left-out'));
     assert.ok(r1.length && r1.every(r => r.startsWith(`out-of-range ${relative}#`) || r.startsWith('left-out')), r1.join());
-    const globalCall = [...tree.keys()].flatMap(p => isScript(p) && !p.startsWith('maps/') ? lines(p).filter(l => /^call_global @[a-z0-9_]+$/.test(l)) : [])[0];
+    const globalCall = [...tree.keys()].flatMap(p => isScript(p) && p.startsWith('scripts/global/') ? lines(p).filter(l => /^call_global @[a-z0-9_]+$/.test(l)) : [])[0];
     assert.ok(globalCall, 'global calls name their script');
     const sc = implode((() => { const t = new Map(tree); setLines(t, enter, l => ['a3 0x36', 'call_global 0x36', globalCall.replace('@', '@/'), ...l]); return t; })(), GAME, KINDS);
     assert.deepStrictEqual(sc.findings.list.filter(f => f.severity === 'error'), []);
@@ -234,7 +243,7 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual([...loose.findings.list, ...tight.findings.list].filter(f => f.severity !== 'info'), []);
     assert.ok(groupKeys(loose) === 0 && groupKeys(tight) > 100, `groups placed together: ${groupKeys(loose)} random, ${groupKeys(tight)} strict`);
     assert.ok(!loose.findings.list.some(f => f.rule === 'changed'), 'absolute calls are the same scripts');
-    console.log(`  ✓ scripts: ${scriptCount} files (${inRooms} in room folders, enter and triggers named in map.json); an edited script builds and round-trips; an unknown @name or opcode, operands that are no bytes and a jump to no label are errors; a relative call out of reach is promoted (an error with --strict); a random build places each script alone, --strict keeps the groups`);
+    console.log(`  ✓ scripts: ${scriptCount} files (${inRooms} in scripts/rooms/, enter and named triggers in scripts.json, objects named); an edited script builds and round-trips; an unknown @name or opcode, operands that are no bytes and a jump to no label are errors; a relative call out of reach is promoted (an error with --strict); a random build places each script alone, --strict keeps the groups`);
 
     // Every table grows past vanilla and moves (the engine limits: 256 maps, 21,845 tiles and strings, 21,625 scripts).
     const grow = (dir: string, from: string, to: string, ext: string) => (t: typeof tree) => {
@@ -244,7 +253,8 @@ if (!path || !existsSync(path)) {
     const grown = new Map(tree);
     grow('maps/tiles', 'tile_0000', 'tile_new', 'png')(grown);
     grow('strings', 'string_0000', 'string_new', 'txt')(grown);
-    grow('scripts/global', 'boot', 'script_new', 'txt')(grown);
+    grown.set('scripts/global/script_new.txt', grown.get('scripts/global/boot.txt')!);
+    editJson(grown, 'scripts/_enum.json', e => { e.names.push('script_new'); });
     const g = implode(grown, GAME, KINDS);
     assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);

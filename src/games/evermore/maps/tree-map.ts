@@ -1,8 +1,10 @@
-// Ownership: a room as the files of an Open Evermore tree (docs/open-evermore/resources.md §maps) and back:
-// map.json (header, families, palette cycles, graphics, animations, triggers, cuttable grass), grid.txt (the cells),
-// metatiles.json (what each metatile draws and how it collides) and objects.json (each object's states). Pure:
-// values in, values out; the tool (tools/open-evermore) and the Rooms tab (rooms/tree-rooms.ts) do the files.
-// Every byte of a vanilla room comes back (explode checks it); references to other kinds are names.
+// Ownership: a room as the files of an Open Evermore tree (docs/open-evermore/resources.md §maps) and back, one
+// concern per file: map.json (header, families, graphics), scripts.json (the scripts the room runs: its enter script,
+// its step-on and B triggers), animations.json (animated tiles, palette cycles), grass.json (cuttable grass),
+// grid.txt (the cells), metatiles.json (what each metatile draws and how it collides) and objects.json (each object's
+// states). Pure: values in, values out; the tool (tools/open-evermore) and the Rooms tab (imports/tree/) do the files.
+// Every byte of a vanilla room comes back (explode checks it); references to other kinds are names, and every entry
+// a reader may point at (a trigger, an object) has a name of its own.
 //
 // Facts used (room-reference.md):
 //   graphics    Block 1: 16-bit deltas summed into tile ids ($90:8E85)
@@ -20,18 +22,32 @@ import { decompressMarkovGrid } from './markov';
 import { collisionText, grassText, hexN, layerText, objectsText, parseCollision, parseGrass, parseLayer, parseObjects, slotNames } from './tree-map-text';
 import type { Cells } from './tree-map-text';
 
-export const TREE_MAP = { map: 'map.json', grid: 'grid.txt', metatiles: 'metatiles.json', objects: 'objects.json' } as const;
+export const TREE_MAP = {
+    map: 'map.json', scripts: 'scripts.json', animations: 'animations.json', grass: 'grass.json',
+    grid: 'grid.txt', metatiles: 'metatiles.json', objects: 'objects.json',
+} as const;
 export type TreeMapFile = (typeof TREE_MAP)[keyof typeof TREE_MAP];
-export const TREE_MAP_VERSION = 6;
+/** map.json's version; v7 moved triggers, animations and grass into files of their own. */
+export const TREE_MAP_VERSION = 7;
 const FORMAT = 'open-evermore/map', META_FORMAT = 'open-evermore/metatiles', OBJ_FORMAT = 'open-evermore/objects';
+const SCRIPTS_FORMAT = 'open-evermore/room-scripts', ANIM_FORMAT = 'open-evermore/room-animations', GRASS_FORMAT = 'open-evermore/grass';
+/** The JSON files and the format each one names (grid.txt is text). */
+const FORMATS: [keyof TreeMapFiles, string, number][] = [
+    ['map', FORMAT, TREE_MAP_VERSION], ['scripts', SCRIPTS_FORMAT, 1], ['animations', ANIM_FORMAT, 1], ['grass', GRASS_FORMAT, 1],
+    ['metatiles', META_FORMAT, 1], ['objects', OBJ_FORMAT, 1],
+];
 /** Animation channels the engine runs ($90:A1B4 scans 50). */
 const MAX_CHANNELS = 50;
 
 /** A room's files as values: JSON already parsed, grid.txt as text. */
-export interface TreeMapFiles { map: any; grid: string; metatiles: any; objects: any }
+export interface TreeMapFiles { map: any; scripts: any; animations: any; grass: any; grid: string; metatiles: any; objects: any }
 /** Names for other kinds' ids (explode); `script`: a trigger's script id (a byte offset, 3·id) by name, when the
- *  tree has scripts (undefined keeps the number). */
-export interface TreeNames { family(id: number): string; tile(id: number): string; script?(scriptId: number): string | undefined }
+ *  tree has scripts (undefined keeps the number); `trigger` and `object`: the room's own entries by what they do
+ *  (undefined: none written). */
+export interface TreeNames {
+    family(id: number): string; tile(id: number): string; script?(scriptId: number): string | undefined;
+    trigger?(list: 'stepOn' | 'bTrigger', index: number): string | undefined; object?(index: number): string | undefined;
+}
 /** Ids for other kinds' names (implode, the Rooms tab); `dma`: the tile is an animation frame (streamed raw);
  *  `script`: a trigger's script by name → its script id (3·id). */
 export interface TreeRefs { family(name: string): number | undefined; tile(name: string, dma: boolean): number | undefined; script?(name: string): number | undefined }
@@ -84,7 +100,9 @@ function cellsOf(m: RoomModel, count: number): Cells {
 export function roomToTree(m: RoomModel, names: TreeNames): TreeMapFiles {
     const h = m.header, ids = graphicIds(m.block1), anim = channels(m.section2Count, m.section2Data);
     const slots = slotNames(ids.map(names.tile));
-    const trigger = (t: TriggerRecord) => ({ from: [t.x1, t.y1], to: [t.x2, t.y2], script: names.script?.(t.scriptId) ?? t.scriptId });
+    const named = (n: string | undefined) => n === undefined ? {} : { name: n };
+    const trigger = (list: 'stepOn' | 'bTrigger') => (t: TriggerRecord, i: number) =>
+        ({ ...named(names.trigger?.(list, i)), from: [t.x1, t.y1], to: [t.x2, t.y2], script: names.script?.(t.scriptId) ?? t.scriptId });
     const cycles = [];
     for (let i = 0; i + 2 < m.extras.length; i += 3) cycles.push({ start: m.extras[i], colours: m.extras[i + 1], rate: (m.extras[i + 2] << 24) >> 24 });
     const words = wordsOf(unpackBlock(m.block3)), n = words.length / 3;
@@ -98,14 +116,15 @@ export function roomToTree(m: RoomModel, names: TreeNames): TreeMapFiles {
             cameraFlags: h[9] | (h[10] << 8), reserved: h[11] | (h[12] << 8),
         },
         tileFamilies: m.tileFamilies.map(names.family),
-        paletteCycles: cycles,
         graphics: { ...stored(m.block1), tiles: ids.map(names.tile) },
-        animations: anim.map(c => ({ countdown: c.countdown, frames: c.frames.map(f => ({ ticks: f.ticks, tile: names.tile(f.tile) })) })),
-        stepOn: m.stepOn.map(trigger),
-        bTrigger: m.bTrigger.map(trigger),
-        cuttableGrass: grass.list,
-        ...(grass.sources !== undefined ? { grassSources: grass.sources } : {}),
     };
+    const scripts = { format: SCRIPTS_FORMAT, version: 1, stepOn: m.stepOn.map(trigger('stepOn')), bTrigger: m.bTrigger.map(trigger('bTrigger')) };
+    const animations = {
+        format: ANIM_FORMAT, version: 1,
+        tiles: anim.map(c => ({ countdown: c.countdown, frames: c.frames.map(f => ({ ticks: f.ticks, tile: names.tile(f.tile) })) })),
+        paletteCycles: cycles,
+    };
+    const grassFile = { format: GRASS_FORMAT, version: 1, list: grass.list, ...(grass.sources !== undefined ? { sources: grass.sources } : {}) };
     const grid = Array.from({ length: room.height }, (_, y) => room.cells.slice(y * room.width, (y + 1) * room.width).map(c => hexN(c, digits)).join(' ')).join('\n') + '\n';
     const metatiles = {
         format: META_FORMAT, version: 1, ...stored(m.block3),
@@ -113,14 +132,19 @@ export function roomToTree(m: RoomModel, names: TreeNames): TreeMapFiles {
             id: hexN(k, digits), canopy: layerText(words[k], slots, anim.length), terrain: layerText(words[n + k], slots, anim.length), collision: collisionText(words[2 * n + k]),
         })),
     };
-    const objects = { format: OBJ_FORMAT, version: 1, list: objectsText(m.objectOffsets, m.objectArea, room, digits) };
-    return { map, grid, metatiles, objects };
+    const objects = { format: OBJ_FORMAT, version: 1, list: objectsText(m.objectOffsets, m.objectArea, room, digits).map((o, i) => {
+        // A named object is reached by its name, so its place in the list is free; an unnamed one by its id.
+        const n = names.object?.(i), { id, ...rest } = o;
+        return n === undefined ? o : { name: n, ...rest };
+    }) };
+    return { map, scripts, animations, grass: grassFile, grid, metatiles, objects };
 }
 
 /** The room the files describe, or null; every problem goes to `report` with its file and JSON pointer (grid.txt: /row/column). */
 export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreeProblem) => void): RoomModel | null {
     const badIn = (file: TreeMapFile) => (pointer: string, message: string, code = 'invalid-value') => { report({ level: 'error', code, file, pointer, message }); return null; };
     const bad = badIn(TREE_MAP.map), badMeta = badIn(TREE_MAP.metatiles), badGrid = badIn(TREE_MAP.grid), badObj = badIn(TREE_MAP.objects);
+    const badScripts = badIn(TREE_MAP.scripts), badAnim = badIn(TREE_MAP.animations), badGrass = badIn(TREE_MAP.grass);
     const isByte = (n: unknown) => Number.isInteger(n) && (n as number) >= 0 && (n as number) <= 0xFF;
     const isWord = (n: unknown) => Number.isInteger(n) && (n as number) >= 0 && (n as number) <= 0xFFFF;
     /** A payload under its noted compression: the kept vanilla bytes while they still unpack to it, else ours. */
@@ -137,21 +161,34 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
         }
         return { sub: SUB_LZSS, decomp: payload.length, data: lzssCompressVanilla(payload) };
     };
-    const v = f.map, meta = f.metatiles, obj = f.objects;
-    if (v?.format !== FORMAT || v.version !== TREE_MAP_VERSION) return bad('/format', `"${FORMAT}", version ${TREE_MAP_VERSION}`, 'schema');
-    if (meta?.format !== META_FORMAT || meta.version !== 1) return badMeta('/format', `"${META_FORMAT}", version 1`, 'schema');
-    if (obj?.format !== OBJ_FORMAT || obj.version !== 1) return badObj('/format', `"${OBJ_FORMAT}", version 1`, 'schema');
+    const v = f.map, meta = f.metatiles, obj = f.objects, sc = f.scripts, an = f.animations, gr = f.grass;
+    for (const [key, format, version] of FORMATS) {
+        if (f[key]?.format !== format || f[key].version !== version) return badIn(TREE_MAP[key])('/format', `"${format}", version ${version}`, 'schema');
+    }
+    /** Names of a file's entries: optional, unique in the room's scripts.json (and in objects.json). */
+    const namesOk = (lists: [any[], string][], badFile: (pointer: string, message: string, code?: string) => null): boolean => {
+        const seen = new Set<string>();
+        for (const [list, p] of lists) for (let i = 0; Array.isArray(list) && i < list.length; i++) {
+            const n = list[i]?.name;
+            if (n === undefined) continue;
+            if (typeof n !== 'string' || !/^[a-z][a-z0-9_]{0,79}$/.test(n)) { badFile(`${p}/${i}/name`, 'snake_case, at most 80 characters'); return false; }
+            if (seen.has(n)) { badFile(`${p}/${i}/name`, `"${n}" names two entries`, 'duplicate-name'); return false; }
+            seen.add(n);
+        }
+        return true;
+    };
+    if (!namesOk([[sc.stepOn, '/stepOn'], [sc.bTrigger, '/bTrigger']], badScripts) || !namesOk([[obj.list, '/list']], badObj)) return null;
 
     const pair = (a: unknown) => Array.isArray(a) && a.length === 2 && a.every(isByte);
     const triggers = (list: any, p: string): TriggerRecord[] | null => {
-        if (!Array.isArray(list)) return bad(p, 'a list of { from: [x, y], to: [x, y], script }');
+        if (!Array.isArray(list)) return badScripts(p, 'a list of { name, from: [x, y], to: [x, y], script }');
         const out: TriggerRecord[] = [];
         for (let i = 0; i < list.length; i++) {
             const t = list[i];
-            if (!t || !pair(t.from) || !pair(t.to)) return bad(`${p}/${i}`, 'from and to: [x, y], bytes');
+            if (!t || !pair(t.from) || !pair(t.to)) return badScripts(`${p}/${i}`, 'from and to: [x, y], bytes');
             const id = typeof t.script === 'string' ? refs.script?.(t.script) : t.script;
-            if (typeof t.script === 'string' && id === undefined) return bad(`${p}/${i}/script`, `no script "${t.script}"`, 'unknown-reference');
-            if (!isWord(id)) return bad(`${p}/${i}/script`, 'a script by name, or a script id (word)');
+            if (typeof t.script === 'string' && id === undefined) return badScripts(`${p}/${i}/script`, `no script "${t.script}"`, 'unknown-reference');
+            if (!isWord(id)) return badScripts(`${p}/${i}/script`, 'a script by name, or a script id (word)');
             out.push({ x1: t.from[0], y1: t.from[1], x2: t.to[0], y2: t.to[1], scriptId: id as number });
         }
         return out;
@@ -166,21 +203,21 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
         }
         return out;
     };
-    const tileId = (name: unknown, p: string, dma: boolean): number | null => {
+    const tileId = (name: unknown, p: string, dma: boolean, badFile = bad): number | null => {
         const id = typeof name === 'string' ? refs.tile(name, dma) : undefined;
-        return id === undefined ? bad(p, `no tile "${name}"`, 'unknown-reference') : id;
+        return id === undefined ? badFile(p, `no tile "${name}"`, 'unknown-reference') : id;
     };
     const animations = (list: any, p: string): Channel[] | null => {
-        if (!Array.isArray(list) || list.length > MAX_CHANNELS) return bad(p, `at most ${MAX_CHANNELS} channels of { countdown, frames: [{ ticks, tile }, …] }`);
+        if (!Array.isArray(list) || list.length > MAX_CHANNELS) return badAnim(p, `at most ${MAX_CHANNELS} channels of { countdown, frames: [{ ticks, tile }, …] }`);
         const out: Channel[] = [];
         for (let c = 0; c < list.length; c++) {
             const ch = list[c];
-            if (!ch || !isByte(ch.countdown) || !Array.isArray(ch.frames) || ch.frames.length > 0xFF) return bad(`${p}/${c}`, '{ countdown: byte, frames: at most 255 }');
+            if (!ch || !isByte(ch.countdown) || !Array.isArray(ch.frames) || ch.frames.length > 0xFF) return badAnim(`${p}/${c}`, '{ countdown: byte, frames: at most 255 }');
             const frames = [];
             for (let k = 0; k < ch.frames.length; k++) {
                 const fr = ch.frames[k];
-                if (!fr || !isByte(fr.ticks)) return bad(`${p}/${c}/frames/${k}/ticks`, 'a byte (60 Hz frames)');
-                const tile = tileId(fr.tile, `${p}/${c}/frames/${k}/tile`, true);
+                if (!fr || !isByte(fr.ticks)) return badAnim(`${p}/${c}/frames/${k}/ticks`, 'a byte (60 Hz frames)');
+                const tile = tileId(fr.tile, `${p}/${c}/frames/${k}/tile`, true, badAnim);
                 if (tile === null) return null;
                 frames.push({ ticks: fr.ticks, tile });
             }
@@ -199,11 +236,11 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
             hd.cameraFlags & 0xFF, hd.cameraFlags >> 8, hd.reserved & 0xFF, hd.reserved >> 8];
     })();
     const extras = (() => {
-        if (!Array.isArray(v.paletteCycles)) return bad('/paletteCycles', 'a list of { start, colours, rate }');
+        if (!Array.isArray(an.paletteCycles)) return badAnim('/paletteCycles', 'a list of { start, colours, rate }');
         const out: number[] = [];
-        for (let i = 0; i < v.paletteCycles.length; i++) {
-            const c = v.paletteCycles[i];
-            if (!c || !isByte(c.start) || !isByte(c.colours) || !Number.isInteger(c.rate) || c.rate < -128 || c.rate > 127) return bad(`/paletteCycles/${i}`, 'start, colours: bytes; rate: -128..127');
+        for (let i = 0; i < an.paletteCycles.length; i++) {
+            const c = an.paletteCycles[i];
+            if (!c || !isByte(c.start) || !isByte(c.colours) || !Number.isInteger(c.rate) || c.rate < -128 || c.rate > 127) return badAnim(`/paletteCycles/${i}`, 'start, colours: bytes; rate: -128..127');
             out.push(c.start, c.colours, c.rate & 0xFF);
         }
         return Uint8Array.from(out);
@@ -213,7 +250,7 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
     const ids: number[] = [];
     for (let i = 0; i < g.tiles.length; i++) { const id = tileId(g.tiles[i], `/graphics/tiles/${i}`, false); if (id === null) return null; ids.push(id); }
     const block1 = pack(graphicPayload(ids), g, '/graphics', TREE_MAP.map);
-    const anim = animations(v.animations, '/animations');
+    const anim = animations(an.tiles, '/tiles');
 
     // grid.txt
     if (typeof f.grid !== 'string') return badGrid('', 'missing', 'missing-file');
@@ -248,10 +285,10 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
     if (over >= 0) return badGrid(`/${Math.floor(over / width)}/${over % width}`, `metatile ${hexN(cells[over], 3)}; metatiles.json has ${n}`);
     const block3 = pack(payload, meta, '', TREE_MAP.metatiles);
 
-    // cuttable grass (map.json) and objects.json, in metatile indices over the grid
+    // grass.json and objects.json, in metatile indices over the grid
     const room: Cells = { width, height: rows.length, cells, base: 2 * width * rows.length, count: n };
-    const section4 = parseGrass(v.cuttableGrass, v.grassSources, room.base, n);
-    if (!(section4 instanceof Uint8Array)) return bad(section4.pointer, section4.message);
+    const section4 = parseGrass(gr.list, gr.sources, room.base, n);
+    if (!(section4 instanceof Uint8Array)) return badGrass(section4.pointer, section4.message);
     const objects = parseObjects(obj.list, room);
     if ('pointer' in objects) return badObj(objects.pointer, objects.message);
 
@@ -261,7 +298,7 @@ export function roomFromTree(f: TreeMapFiles, refs: TreeRefs, report: (p: TreePr
     let block2: Block;
     try { block2 = encodeBlock2(cells.map(c => room.base + 8 * c), width, rows.length, room.base, section4[0]); }
     catch (e) { return badGrid('', (e as Error).message); }
-    const stepOn = triggers(v.stepOn, '/stepOn'), bTrigger = triggers(v.bTrigger, '/bTrigger'), tileFamilies = familyIds(v.tileFamilies, '/tileFamilies');
+    const stepOn = triggers(sc.stepOn, '/stepOn'), bTrigger = triggers(sc.bTrigger, '/bTrigger'), tileFamilies = familyIds(v.tileFamilies, '/tileFamilies');
     if (!stepOn || !bTrigger || !tileFamilies) return null;
     return {
         header: hdr, stepOn, bTrigger, tileFamilies, extras, block1, section2Count: anim.length, section2Data: section2Bytes(anim),

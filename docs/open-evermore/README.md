@@ -27,6 +27,7 @@ keeps that plan's reasoning (gates, codecs, placement rules, fast ROM by heat) a
 | [tool.md](tool.md) | `tools/open-evermore/`: actions, the steps of implode, codecs, the proof, tests |
 | [progress.md](progress.md) | the step list and the state of each kind |
 | [wram.md](wram.md) | WRAM by name: `temp[]` as a placeholder, the proof of concept, allocation |
+| [roadmap.md](roadmap.md) | the road to 10/10: the rules (one kind per folder, typed names, named entries, no derived data), what still breaks them, the order of work |
 
 ---
 
@@ -78,9 +79,10 @@ are noise. They change meaning when something is inserted, and they cannot be re
 ```
 out/open-evermore/                 GENERATED from the user's ROM; never committed (§8)
   manifest.json                    the memory map (manifest.md)
-  maps/rooms/<map>/                the rooms (map.json, grid, metatiles, objects; scripts/: the room's scripts)
+  maps/rooms/<map>/                the rooms (map.json, scripts.json, animations.json, grass.json, grid, metatiles, objects)
   maps/tiles/, maps/tile_families/ 16×16 graphics and background palettes
-  scripts/global/, scripts/opcodes/   the scripts no room owns; the script VM's opcodes
+  scripts/rooms/<map>/, scripts/global/   the scripts rooms run first (named in their scripts.json), the rest
+  scripts/opcodes/, scripts/entities/     the script VM's opcodes; entity operands
   strings/                         text
   characters/records/<name>/       a record (character.json, animations.json); beside it what records use:
   characters/{behaviours,attack_procs,animations,sprite_blocks_16,sprite_blocks_8}/

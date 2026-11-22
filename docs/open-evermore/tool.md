@@ -14,7 +14,7 @@ No npm commands (owner, 2026-11-19). `npm run build:ts` first: the codecs call t
 
 ```sh
 T=tools/open-evermore/open-evermore.mts
-node $T explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json] [--kinds a,b]   # rom: else the library's base ROM; dir: out/open-evermore; --kinds: only those (proving kinds apart)
+node $T explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json] [--kinds a,b] [--previews]   # rom: else the library's base ROM; dir: out/open-evermore; --kinds: only those (proving kinds apart); --previews: each room drawn (preview.png)
 node $T implode <dir> [--random [seed]] [--check-only] [--strict]
 node $T prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
 ```

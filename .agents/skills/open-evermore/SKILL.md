@@ -23,7 +23,11 @@ before touching its codec. This skill is how to work on it and what bit us.
   inside a script and id calls keep their form, and the files never change. `--strict` keeps vanilla's
   forms and groups: G0 (vanilla sha1) and the lockstep proof.
 - Related kinds share a group folder, every kind in a subfolder of its own (`characters/records/` beside
-  `characters/behaviours/`, `maps/rooms/` beside `maps/tiles/`): `Codec.folder`.
+  `characters/behaviours/`, `maps/rooms/` beside `maps/tiles/`): `Codec.folder`. **No kind inside another's folder**
+  (2026-11-22): a resource references another kind by name (a room's `scripts.json` names `scripts/rooms/<map>/` files).
+- **The road to 10/10** (`docs/open-evermore/roadmap.md`): typed names for every reference (script, string, palette,
+  WRAM), every entry named by what it does (`door_01`, `unknown_01`), editable files hold only what implode reads
+  (previews only with `--previews`), one concern per file.
 - **WRAM that cannot grow: `temp[]` as a placeholder.** A kind that grows past its ids' WRAM (a 36th formula's
   experience, a 15th weapon's skill word) gives the new ids `temp[]` cells (`COMPILER_TEMP` `$2834`-`$28FB`), from the
   top down, named in its file; say that they are wiped on every room load and not saved. Real allocation is the todo
@@ -86,6 +90,9 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   shows is that ring item by name (menus owns the bytes), other text is written at its home. A codec's "another release?"
   check must test structure (readers, pointer tables in `_base/`), never editable data: implode explodes its own edited
   build again.
+- **The script VM's `ScriptRom` reads the pointer table at its vanilla place** (header word +0), but a built layout moves
+  the table and rebases only its readers: anything that follows calls by id (`walk(…, true)`, `roleOf`) on a built ROM
+  resolves them wrong. Use `room-names.mts`'s `scriptRom`, which reads the table through `tableOf`.
 - **Script lines are operands, not bytes** (`op a, b, c`): `operands.mts` per token and parameter type, expressions
   in `expressions.mts`. Explode keeps a readable operand only if it reads back to the same bytes, else `[hex]`; the
   round trip compares bytes. `<`/`>` are operators except in `<0x…>` cells (`splitTop`).

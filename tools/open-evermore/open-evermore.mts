@@ -1,14 +1,15 @@
 // Open Evermore: one tool, the action is the first argument (docs/open-evermore/tool.md §1). Run `npm run build:ts`
 // first: the codecs call the decoders in dist/.
 //   node tools/open-evermore/open-evermore.mts explode [rom] [--out out/open-evermore] [--force] [--families json|png]
-//                                                       [--tiles png|json] [--kinds a,b]
+//                                                       [--tiles png|json] [--kinds a,b] [--previews]
 //   node tools/open-evermore/open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]
 //   node tools/open-evermore/open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
 // explode: the ROM (argument, else the base ROM of the ROM library) → the tree. The tree is ROM-derived: inside the
 //          repository only under the git-ignored out/; --force replaces a tree (edits there are lost). --families png
 //          writes each tile family as a 128×8 stripe of its 16 colours instead of JSON; --tiles json writes tiles as
 //          rows of hex digits instead of indexed PNGs (both kept in manifest.json). --kinds explodes only those kinds
-//          (the rest stays in _base/; implode and prove use the manifest's list): to prove kinds apart.
+//          (the rest stays in _base/; implode and prove use the manifest's list): to prove kinds apart. --previews
+//          also draws each room as maps/rooms/<map>/preview.png (for the reader; nothing reads it back).
 // implode: the tree → <dir>/_build/evermore.sfc (only without errors), report.md, report.json. --random shuffles
 //          where every resource goes (a seed reproduces a layout; without one, a new seed is drawn and printed) and
 //          grows the image to 4 MiB, the 4th MB free. --strict keeps every encoding as written (scripts: relative
@@ -30,10 +31,10 @@ import { BUILD_DIR, json, readText, readTree, sha1, writeTree } from './tree.mts
 const require = createRequire(import.meta.url);
 const REPO = resolve(dirname(new URL(import.meta.url).pathname), '..', '..');
 const TOOL_VERSION: string = JSON.parse(readFileSync(join(REPO, 'package.json'), 'utf8')).version;
-const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json] [--kinds a,b]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]';
+const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--families json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]';
 
 function runExplode(args: string[], flag: (n: string) => boolean, value: (n: string) => string | null): number {
-    const force = flag('--force');
+    const force = flag('--force'), previews = flag('--previews');
     const only = value('--kinds')?.split(',');
     const unknown = only?.filter(k => !KINDS.some(c => c.kind === k));
     if (unknown?.length) { console.error(`--kinds: no kind ${unknown.join(', ')} (${KINDS.map(c => c.kind).join(', ')})`); return 2; }
@@ -57,6 +58,7 @@ function runExplode(args: string[], flag: (n: string) => boolean, value: (n: str
     const options: Record<string, Record<string, string>> = {};
     if (families && families !== 'json') options.tile_families = { format: families };
     if (tiles && tiles !== 'png') options.tiles = { format: tiles };
+    if (previews) options.maps = { previews: 'png' };
     const tree = explode(rom, { release: identifyRom(rom).variant, sha1: sha1(rom), explodedWith: TOOL_VERSION }, GAME, kindsOf(only), undefined, options);
     if (only) { const m = JSON.parse(readText(tree.get(MANIFEST)!)); m.kinds = only; tree.set(MANIFEST, json(m)); }
     // A tree is replaced whole (but its builds): a folder of a kind since renamed or merged (enemies/ into

@@ -61,10 +61,10 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         if (!trees || Date.now() - trees.at > 5000) trees = { at: Date.now(), list: findTrees(deps.roots()) };
         return trees.list;
     };
-    /** A kind's folder in a tree (v0.450.0: maps/rooms, maps/tiles, maps/tile_families, scripts/global); older trees
+    /** A kind's folder in a tree (v0.457.0: maps/rooms, maps/tiles, maps/tile_families, scripts); older trees
      *  have them elsewhere, so the first folder holding the kind's _enum.json wins. */
     const FOLDERS: Record<string, string[]> = {
-        maps: ['maps/rooms', 'maps'], tiles: ['maps/tiles', 'tiles'], tile_families: ['maps/tile_families', 'tile_families'], scripts: ['scripts/global', 'scripts'],
+        maps: ['maps/rooms', 'maps'], tiles: ['maps/tiles', 'tiles'], tile_families: ['maps/tile_families', 'tile_families'], scripts: ['scripts', 'scripts/global'],
     };
     const folderOf = (dir: string, kind: string): string =>
         (FOLDERS[kind] ?? [kind]).find(f => fs.existsSync(path.join(dir, f, '_enum.json'))) ?? kind;
@@ -103,14 +103,17 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         let files: TreeMapFiles;
         try {
             const read = (f: string) => fs.readFileSync(path.join(dir, f), 'utf8');
-            files = { map: JSON.parse(read(TREE_MAP.map)), grid: read(TREE_MAP.grid), metatiles: JSON.parse(read(TREE_MAP.metatiles)), objects: JSON.parse(read(TREE_MAP.objects)) };
+            const parsed = (f: string) => JSON.parse(read(f));
+            files = {
+                map: parsed(TREE_MAP.map), scripts: parsed(TREE_MAP.scripts), animations: parsed(TREE_MAP.animations), grass: parsed(TREE_MAP.grass),
+                grid: read(TREE_MAP.grid), metatiles: parsed(TREE_MAP.metatiles), objects: parsed(TREE_MAP.objects),
+            };
         } catch (e) { throw new Error(`${folderOf(tree.dir, 'maps')}/${name}: ${(e as Error).message}`); }
         const byName = (kind: string) => new Map(names(tree.dir, kind).map((n, i) => [n, i] as [string, number]));
         const families = byName('tile_families'), tiles = byName('tiles'), scripts = byName('scripts');
-        // A trigger names its script; the trigger record holds its table offset, 3·id (scripts/_enum.json).
+        // A trigger names its script in full (scripts.json); the trigger record holds its table offset, 3·id (scripts/_enum.json).
         const refs: TreeRefs = { family: n => families.get(n), tile: n => tiles.get(n), script: n => {
-            // A room names its own scripts by their local name (`b_1` = `<map>/b_1`), others `<map>/<name>`, `/name` or `name`.
-            const id = n.startsWith('/') ? scripts.get(n.slice(1)) : scripts.get(`${name}/${n}`) ?? scripts.get(n);
+            const id = scripts.get(n);
             return id === undefined ? undefined : id * 3;
         } };
         const problems: TreeProblem[] = [];

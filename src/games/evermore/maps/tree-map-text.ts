@@ -208,7 +208,7 @@ export function grassText(section4: Uint8Array, base: number, count: number, dig
 
 /** Section 4's bytes, or why the text is not grass. */
 export function parseGrass(list: unknown, sources: unknown, base: number, count: number): Uint8Array | { pointer: string; message: string } {
-    if (!Array.isArray(list)) return { pointer: '/cuttableGrass', message: 'a list of { cut, into: [metatile, …] }' };
+    if (!Array.isArray(list)) return { pointer: '/list', message: 'a list of { cut, into: [metatile, …] }' };
     const out: number[] = [0];
     const word = (t: unknown): number | null => {
         if (typeof t !== 'string') return null;
@@ -219,8 +219,8 @@ export function parseGrass(list: unknown, sources: unknown, base: number, count:
     for (let i = 0; i < list.length; i++) {
         const g = list[i], steps = g?.steps ?? 1;
         const words = [g?.cut, ...(Array.isArray(g?.into) ? g.into : [null])].map(word);
-        if (!Number.isInteger(steps) || steps < 0 || steps > 0xFF) return { pointer: `/cuttableGrass/${i}/steps`, message: 'a byte' };
-        if (words.some(w => w === null)) return { pointer: `/cuttableGrass/${i}`, message: `cut and into: metatile ids below ${hexN(count, 3)} (or "#<4 hex>", not 0)` };
+        if (!Number.isInteger(steps) || steps < 0 || steps > 0xFF) return { pointer: `/list/${i}/steps`, message: 'a byte' };
+        if (words.some(w => w === null)) return { pointer: `/list/${i}`, message: `cut and into: metatile ids below ${hexN(count, 3)} (or "#<4 hex>", not 0)` };
         out.push(steps);
         for (const w of words as number[]) out.push(w & 0xFF, w >> 8);
         out.push(0, 0);
@@ -229,6 +229,6 @@ export function parseGrass(list: unknown, sources: unknown, base: number, count:
     if (sources !== undefined && !(Number.isInteger(sources) && (sources as number) >= 0 && (sources as number) <= 0xFF))
         return { pointer: '/grassSources', message: 'a byte' };
     out[0] = sources === undefined ? distinct : sources as number;
-    if (out.length > 0xFFFF) return { pointer: '/cuttableGrass', message: 'over 64 KiB' };
+    if (out.length > 0xFFFF) return { pointer: '/list', message: 'over 64 KiB' };
     return Uint8Array.from(out);
 }

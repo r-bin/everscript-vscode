@@ -53,11 +53,11 @@ const tokensOf = (op: number): string[] | undefined => SPEC.get(op)?.operands;
 export const OBJECTS = 'objects';
 export const objectName = (entry: { name?: unknown } | undefined, id: number): string => typeof entry?.name === 'string' ? entry.name : `object_${id}`;
 
-/** The names a build resolves references with: each kind's enum (ctx.ids); for a room's script (`path` in a map's
- *  folder), that room's objects. */
+/** The names a build resolves references with: each kind's enum (ctx.ids); for a room's script (`path` in
+ *  scripts/rooms/<map>/), that room's objects. */
 export function buildRefs(ctx: ImplodeContext, path?: string): Refs {
     const back = new Map<string, Map<number, string>>();
-    const room = path ? /^maps\/([^/]+)\/scripts\//.exec(path)?.[1] : undefined;
+    const room = path ? /^scripts\/rooms\/([^/]+)\//.exec(path)?.[1] : undefined;
     let objects: string[] | undefined;
     const objectsOf = (): string[] => {
         if (objects === undefined) {

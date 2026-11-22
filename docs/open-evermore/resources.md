@@ -176,37 +176,57 @@ round trip compares the indices, not the file.
 
 ## maps — rooms *(built, S1)*
 
-**Folder.** One folder per room:
+**Folder.** One folder per room, one concern per file; nothing of another kind lives in it (owner, 2026-11-22: a
+room *references* its scripts, as it references its tiles and families):
 
 ```
 maps/rooms/_enum.json                    names[id]: the map table's order (README.md §4); up to 256 ids
-maps/rooms/<map>/map.json                  header, families, palette cycles, graphics, animations, triggers, cuttable grass
+maps/rooms/<map>/map.json                  header, tile families, graphics
+maps/rooms/<map>/scripts.json              the scripts the room runs: enter, step-on and B triggers (names of scripts/)
+maps/rooms/<map>/animations.json           animated tiles (Section 2) and palette cycles
+maps/rooms/<map>/grass.json                cuttable grass (Section 4)
 maps/rooms/<map>/grid.txt                  the cells: one row per line, each cell its metatile id in hex
 maps/rooms/<map>/metatiles.json            what each metatile draws (canopy, terrain) and how it collides
-maps/rooms/<map>/objects.json              each object's states: where, which cells, how long each is held
-maps/rooms/<map>/scripts/<name>.txt        the room's scripts: enter.txt, step_<n>.txt, b_<n>.txt and what they call (§scripts)
-maps/rooms/<map>/preview.png               the room drawn by the repo's renderer; for the reader, implode ignores it
+maps/rooms/<map>/objects.json              each object by name: its states, where, which cells, how long each is held
+maps/rooms/<map>/preview.png               only with `explode --previews`: the room drawn, for the reader; implode ignores it
 ```
 
-`map.json` (version 6; the files are `src/games/evermore/maps/tree-map.ts`, which the Rooms tab reads too):
+`map.json` (version 7, v0.457.0; the files are `src/games/evermore/maps/tree-map.ts`, which the Rooms tab reads too):
 
 ```jsonc
 {
-  "format": "open-evermore/map", "version": 6,
+  "format": "open-evermore/map", "version": 7,
   "header": { "triggerOrigin": [17, 11], "mainScreen": 23, "subScreen": 0, "colourMath": 0, "colourWindow": 2,
               "effect": 2, "cameraFlags": 0, "reserved": 0 },  // room-reference.md §4; width and height come from grid.txt
   "tileFamilies": ["family_020", …],               // names in tile_families/
-  "paletteCycles": [{ "start": 27, "colours": 4, "rate": 5 }],  // CGRAM colour, how many, frames per step (signed)
-  "graphics": { "compression": "lzss", "tiles": ["tile_0d7b", …] },   // Block 1, names in tiles/
-  "animations": [{ "countdown": 0, "frames": [{ "ticks": 8, "tile": "tile_0a40" }, …] }],   // Section 2
-  "stepOn": [
-    { "from": [64, 16], "to": [68, 18], "script": "step_1" }   // cells [x, y]; this room's script, or <map>/<name>
-  ],
-  "bTrigger": [ … ],
-  "cuttableGrass": [{ "cut": "000", "into": ["507"] }, …],  // Section 4: metatile ids as in grid.txt
-  "enter": { "script": "enter", "word": "$0001" }  // the enter-script record; none: no `enter`
+  "graphics": { "compression": "lzss", "tiles": ["tile_0d7b", …] }    // Block 1, names in tiles/
 }
 ```
+
+`scripts.json`: what runs when, every script by its full name (`scripts/rooms/<map>/<name>.txt`, §scripts):
+
+```jsonc
+{ "format": "open-evermore/room-scripts", "version": 1,
+  "enter": "antiqua_desert_of_doom/enter",   // the enter-script record's script; null: none (Brian's room)
+  "enterWord": 1,                            // the word after its pointer, when not 0 (the room loader never reads it)
+  "stepOn": [
+    { "name": "door_01", "from": [64, 16], "to": [68, 18], "script": "antiqua_desert_of_doom/door_01" }   // cells [x, y]
+  ],
+  "bTrigger": [ { "name": "sniff_01", … } ] }
+```
+
+`animations.json`: `{ "tiles": [{ "countdown": 0, "frames": [{ "ticks": 8, "tile": "tile_0a40" }, …] }, …],
+"paletteCycles": [{ "start": 27, "colours": 4, "rate": 5 }] }` (a channel per entry, `anim<n>` in metatiles.json; a
+cycle: CGRAM colour, how many, frames per step, signed). `grass.json`: `{ "list": [{ "cut": "000", "into": ["507"] }, …] }`.
+
+- **Names of a room's entries** (`room-names.mts`). A trigger is `<what>_<nn>`, counted per room over the step-on then
+  the B triggers, by what its script does with everything it calls (script-model `roleOf`): `door` (changes the map),
+  `sniff` (the sniff spot's loot driver), `loot` (a gourd's or chest's driver, or a staged reward), `scene` (text,
+  animations), `unknown`. The room's script is named after the first trigger that runs it, so `door_01` the trigger,
+  `<map>/door_01` its script and, below, `door_01` the object it opens are one thing. An object takes the name of the
+  first trigger whose script (or a script of the room it calls) names it or stages it as the pickup's object
+  (`LOOT_OBJECT`); `_2`, `_3` for more objects of one trigger; `unknown_<nn>` for objects no trigger touches. Names
+  are optional and unique per file (`duplicate-name`); the round trip ignores them (they say what, not which bytes).
 
 `grid.txt`, one row per line (`048 048 049 …`), and `metatiles.json`, one metatile per line:
 
@@ -217,12 +237,13 @@ maps/rooms/<map>/preview.png               the room drawn by the repo's renderer
   ] }
 ```
 
-`objects.json`, one object per line (its id is its position: scripts set `object[n]`):
+`objects.json`, one object per line, by name (the room's scripts write `object sniff_03, 1`): a named object may
+move in the list, its scripts follow; one with `id` instead of a name is reached by its position (`object_<n>`):
 
 ```jsonc
 { "format": "open-evermore/objects", "version": 1,
   "list": [
-    { "id": 0, "holds": [1], "states": [{ "at": [39, 63], "cells": ["53d 53e", "53f 540"] }] }, …
+    { "name": "sniff_03", "holds": [1], "states": [{ "at": [39, 63], "cells": ["53d 53e", "53f 540"] }] }, …
   ] }
 ```
 
@@ -232,9 +253,9 @@ maps/rooms/<map>/preview.png               the room drawn by the repo's renderer
   edited grid.txt keeps each object's look. `holds[s]`: ticks state *s* stays up while a script steps through it
   (the first is never read). `^<4 hex>` is a delta written as is: a cell off the grid (room `0x6E`, 3 stamps).
 - **Layout** is vanilla's: all records, then all stamps, in order (127 of 127 rooms rebuild byte for byte).
-- **Cuttable grass** (`map.json`): `cut` is a metatile the Boy cuts, `into` what is stamped in its place; `steps` if
+- **Cuttable grass** (`grass.json`): `cut` is a metatile the Boy cuts, `into` what is stamped in its place; `steps` if
   not 1. The source count Section 4 starts with (also the grid's first Markov counter) is the number of distinct
-  `cut`s, as in all 7 vanilla rooms; `grassSources` overrides it. `#<4 hex>` is a word that is no metatile.
+  `cut`s, as in all 7 vanilla rooms; `sources` overrides it. `#<4 hex>` is a word that is no metatile.
 
 - **Layer words** (`canopy` = BG1, `terrain` = BG2): `<graphic> p<palette>` and the set flags `pr` (priority), `h`, `v`
   (flips). The graphic is a name from `graphics.tiles` (`tile_10ee#2` for its second occurrence), `anim<n>` for
@@ -254,7 +275,9 @@ graphics, animations (4/5). Triggers in `[y1, x1, y2, x2]` with script numbers (
 Version 5: about **3.5/5**. Named header and palette cycles, `from`/`to` triggers, an aligned `grid.txt`, metatiles
 in words, and a preview (4–5/5). Version 6 (2026-11-19): objects and cuttable grass decoded, in metatile ids like
 the grid (0/5 → 4/5). 2026-11-20 (v0.446.0): triggers and the enter script name their scripts, which live in the
-room's `scripts/` folder (owner: no central `_enter_scripts.json`). Still open: a grid of names rather than ids.
+room's `scripts/` folder (owner: no central `_enter_scripts.json`). Version 7 (v0.457.0): one concern per file,
+scripts moved out to `scripts/rooms/<map>/` and referenced from `scripts.json`, triggers and objects named by what they
+do, previews optional. Still open: a grid of names rather than ids, animation channels by name in metatiles.json.
 
 - **Names.** From `localizations/data/rooms.json` *(repo, our own wording)*: region + place + part in snake case
   (`prehistoria_jungle_south_where_the_game_starts`); `map_<hexid>` for a room it does not name.
@@ -265,9 +288,9 @@ room's `scripts/` folder (owner: no central `_enter_scripts.json`). Still open: 
   is added (the enter table's vanilla footprint ends 2 bytes early: its last word lies on the script pointer
   table), and the four reader operands are rewritten to wherever it landed. Explode finds both through those
   operands. The blob pointer is the `$80–$BF:8000+` form.
-- **Enter script.** `map.json` `enter`: the script and the word after its pointer (the room loader does not read
-  the word; vanilla holds 0–4). No `enter`: none (packed 0, as Brian's room). Copying a map's look over another's
-  means its four map files with the target's `enter` kept: Brian's map in `podunk_opening_over_the_machine` boots
+- **Enter script.** `scripts.json` `enter`: the script, and `enterWord` the word after its pointer (the room loader
+  does not read it; vanilla holds 0–4). `null`: none (packed 0, as Brian's room). Copying a map's look over another's
+  means its map files with the target's `enter` kept: Brian's map in `podunk_opening_over_the_machine` boots
   under the intro's fade-in (tested); with Brian's own (none) the screen stays black.
 - **Placement.** Upper half of a bank, never across a bank, ≤ 32 KiB *(repo: `writeRoomAt`)*. The vanilla rooms
   fill `$9C–$AD` upper halves to within a few hundred bytes per bank (other data follows each bank's last room).
@@ -289,21 +312,22 @@ room's `scripts/` folder (owner: no central `_enter_scripts.json`). Still open: 
 ## scripts *(built, S6, 2026-11-20)*
 
 **Folder.** One file per script; one script is one entry of the Scripts tab (a room's enter script, a step-on or
-B trigger, a global) or a script those call. A room's scripts live in its folder under short names (owner,
-2026-11-20): `enter`, `step_<n>`, `b_<n>` (the trigger's place in `map.json`), `<root>_sub_<n>` for what they call
-first. A script belongs to the room whose trigger or enter record reaches it first (table order); another room names
-it `<map>/<name>`. The rest (globals, the boot script and what they call first) in `scripts/`:
+B trigger, a global) or a script those call. Scripts are their own kind in their own folder, never inside a map's
+(owner, 2026-11-22, replacing 2026-11-20's room `scripts/` folders): a room's scripts are `<map>/<name>`, named after
+the first trigger that runs them (`door_01`, `sniff_02`: §maps, names of a room's entries), `enter`, and
+`<root>_sub_<n>` for what they call first. A script belongs to the room whose trigger or enter record reaches it first
+(table order). The rest (globals, the boot script and what they call first) in `scripts/global/`:
 
 ```
-scripts/global/_enum.json        names[id]: the pointer table (trigger ids are byte offsets 3·id; globals from id 1,917)
-scripts/global/_scripts.json     the boot script (header +$0C) and the groups (below)
+scripts/_enum.json               names[id]: the pointer table (trigger ids are byte offsets 3·id; globals from id 1,917)
+scripts/_scripts.json            the boot script (header +$0C) and the groups (below)
 scripts/global/<script>.txt      globals, the boot script and what they call
-maps/rooms/<map>/scripts/<name>.txt     the room's scripts (2,700 of 3,288); full name `<map>/<name>` (the enum, other rooms)
+scripts/rooms/<map>/<name>.txt   the room's scripts (2,700 of 3,288); full name `<map>/<name>`, as scripts.json names them
 ```
 
 A line is one command (format 2, v0.452.0): the opcode by its name in `opcodes/` (a hex byte works too), then its
 operands separated by commas, one per operand token of the opcode (`script-vm/spec.ts`); another script as `@name`
-(`@b_1` this room's, `@global_x` one in `scripts/`, `@<map>/b_1` another room's, `@/name` the one in `scripts/` when this
+(`@door_01` this room's, `@global_x` a global one, `@<map>/door_01` another room's, `@/name` the global one when this
 room has one of that name too); a jump's target as a label; `label_<n>:` where a jump lands; `skip <n>`:
 
 ```
@@ -335,17 +359,17 @@ skip 7                                   7 bytes no command reaches: not this sc
   FLAG enums, knowledge entries); a name that means two things is not used.
 - **Round trip** compares each command as its bytes (the operands read back), so a name and its number compare equal.
 
-- **Names.** A table entry: the room trigger that uses it (`<map>_step_<n>`, `<map>_b_<n>`), a global's name
-  (`global_<name>`, `script-model/names.ts`), else `script_<id>`. An enter script `<map>_enter`, the boot script
+- **Names.** A table entry: the room trigger that uses it first (`<map>/door_01`, `<map>/sniff_02`), a global's name
+  (`global_<name>`, `script-model/names.ts`), else `script_<id>`. An enter script `<map>/enter`, the boot script
   `boot`, a called one `<root>_sub_<n>` after the first table script, map or boot script that reaches it. A map
-  names its enter script and its triggers' scripts in `map.json`. Every name and folder is the tree's: on a round
+  names its enter script and its triggers' scripts in `scripts.json`. Every name and folder is the tree's: on a round
   trip, implode tells explode where each named script landed and which folder held it.
 - **References.** `@name` replaces the operand of `07`, `29`, `af`, `b4` (a packed pointer, any script), of
   `a5`, `b2` (one byte back), `a6`, `b3` (a word back), and the id of `a3`, `b0` (a global: id − header word +8 / 3)
   and `a4`, `b1` (a trigger: 3·id), and of `attach_talk_script` (`3d`) and `attach_script` (`3f`), which hand an entity a
   script by its trigger offset; a number still works. Still numbers: window slots, music, sounds past the table.
-- **More names** (v0.453.0). A room's script names that room's objects (`object_20`, or an entry's `name` in its
-  `objects.json`; `object_<n>` always means index n, also in a room whose map was replaced; global scripts keep numbers:
+- **More names** (v0.453.0). A room's script names that room's objects (its `objects.json` names since v0.457.0:
+  `object sniff_03, 1`; `object_<n>` always means index n, also in a room whose map was replaced; global scripts keep numbers:
   their room is the one running), maps by their folder (`load_map 23, 40,
   <room>` with `:n` for an entrance), the character's own animations with bit 15 (`own.stand`, `own.death_with_drop`),
   flag enums as `A | B` (`SPAWNER | INACTIVE`), fonts (`font default`), a value written to or compared with a named cell
@@ -378,7 +402,7 @@ skip 7                                   7 bytes no command reaches: not this sc
   stretch where a command took a longer form (`Item.segments`).
   In game (G2): the opening's enter script rewritten to `load_map(0x7F)`, and a new map's own enter script
   (`tests/open-evermore/in-game.test.mts`).
-- **Next.** Object names worth reading (objects.json `name`); WRAM names for the remaining cells (knowledge entries); a songs kind for `music`; everscript text once the compiler writes relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7).
+- **Next.** WRAM names for the remaining cells (knowledge entries); a songs kind for `music`; everscript text once the compiler writes relocatable output ([../split-and-link/tool.md](../split-and-link/tool.md) §7).
 
 ## opcodes *(built, 2026-11-20)*
 

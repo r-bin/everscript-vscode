@@ -176,7 +176,9 @@ export function implode(onDisk: Tree, game: string, kinds: Codec[], opts: Option
     }));
     // The round trip reads what the game reads: the cartridge, or for sa1 its HiROM content.
     const located = new Map([...layout.at, ...ctx.symbols]);
-    const again = mapTree(explode(p.layout === 'sa1' ? content : image, manifest.base, game, kinds, byId, manifest.options ?? {}, located), where.fromTree);
+    // Previews are for the reader (canonical drops them): the round trip does not draw them.
+    const { maps: _previews, ...options } = manifest.options ?? {};
+    const again = mapTree(explode(p.layout === 'sa1' ? content : image, manifest.base, game, kinds, byId, options, located), where.fromTree);
     const own = (p: string) => p !== MANIFEST && !p.startsWith(BASE_DIR + '/') && !ignored.has(p);
     // Each kind says what of a file counts (Codec.canonical): derived or cached parts are left out of the comparison.
     const strip = (t: Tree): Tree => new Map([...t].filter(([p]) => own(p)).flatMap(([p, b]): [string, Uint8Array][] => {
