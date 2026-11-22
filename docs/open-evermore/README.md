@@ -81,7 +81,7 @@ out/open-evermore/                 GENERATED from the user's ROM; never committe
   manifest.json                    the memory map (manifest.md)
   maps/rooms/<map>/                the rooms (map.json, scripts.json, animations.json, grass.json, grid, metatiles, objects)
   maps/tiles/, maps/palettes/      16×16 graphics and background palettes
-  maps/collisions/                 every collision word by name (metatiles name them)
+  maps/collisions/                 the 16 collision forms by name (metatiles name them)
   scripts/rooms/<map>/, scripts/global/   the scripts rooms run first (named in their scripts.json), the rest
   scripts/opcodes/, scripts/entities/     the script VM's opcodes; entity operands
   strings/                         text

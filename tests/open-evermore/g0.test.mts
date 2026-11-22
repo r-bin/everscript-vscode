@@ -65,10 +65,10 @@ if (!path || !existsSync(path)) {
     console.log('  ✓ a map naming a missing palette or tile, a colour the SNES cannot show and a tile PNG that is not indexed are errors');
 
     const meta = room.replace('map.json', 'metatiles.json'), grid = room.replace('map.json', 'grid.txt');
-    assert.deepStrictEqual(rules(t => editJson(t, meta, m => { m.list[0].collision += '_sticky'; })), [`invalid-value ${meta}#/list/0/collision`]);
+    assert.deepStrictEqual(rules(t => editJson(t, meta, m => { m.list[0].collision = 'sticky'; })), [`invalid-value ${meta}#/list/0/collision`]);
     assert.deepStrictEqual(rules(t => { t.set(grid, new TextEncoder().encode('000 001\n000\n')); }), [`invalid-value ${grid}#/1`]);
-    assert.deepStrictEqual(rules(t => editJson(t, 'maps/collisions/solid_plane1_in_front.json', c => { c.geometry = 'squishy'; })), ['invalid-value maps/collisions/solid_plane1_in_front.json#/geometry']);
-    console.log('  ✓ an unknown collision word, a collision file with no such geometry and a ragged grid.txt are errors');
+    assert.deepStrictEqual(rules(t => editJson(t, meta, m => { m.list[0].level = 7; })), [`invalid-value ${meta}#/list/0/level`]);
+    console.log('  ✓ an unknown collision form, a level past 3 and a ragged grid.txt are errors');
 
     // Entities and projectiles by name in script lines (`damage dog ba`): renamed everywhere, or written as the hex
     // byte, the ROM is the same; a name for nothing is an error, and a new projectile has no record to go to.
@@ -156,20 +156,20 @@ if (!path || !existsSync(path)) {
 
     // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
     const edited = new Map(tree);
-    editJson(edited, meta, m => { const c: string = m.list[0].collision; m.list[0].collision = c.includes('_in_front') ? c.replace('_in_front', '') : c + '_in_front'; });
+    editJson(edited, meta, m => { if (m.list[0].inFront) delete m.list[0].inFront; else m.list[0].inFront = true; });
     const e = implode(edited, GAME, KINDS);
     assert.deepStrictEqual(e.findings.list.filter(f => f.severity === 'error'), []);
     assert.notStrictEqual(e.sha1, sha1(rom));
-    // A collision file is the word of every metatile that names it; a name no file has is read as it is spelled.
-    const plain = 'solid_plane1_in_front', users = [...tree.keys()].filter(p => p.endsWith('/metatiles.json') && JSON.parse(Buffer.from(tree.get(p)!).toString()).list.some((x: any) => x.collision === plain));
-    const recoloured = new Map(tree);
-    editJson(recoloured, `maps/collisions/${plain}.json`, c => { c.inFront = false; });
-    const unfront = new Map(tree);
-    for (const p of users) editJson(unfront, p, m => { for (const x of m.list) if (x.collision === plain) x.collision = 'solid_plane1'; });
-    const [byFile, byName] = [implode(recoloured, GAME, KINDS), implode(unfront, GAME, KINDS)];
-    assert.deepStrictEqual([...byFile.findings.list, ...byName.findings.list].filter(f => f.severity === 'error'), []);
-    assert.ok(byFile.sha1 !== sha1(rom) && byFile.sha1 === byName.sha1, 'an edited collision file = the same edit in every metatile that names it');
-    console.log(`  ✓ an edited metatile is compressed anew and round-trips; editing ${plain}.json edits its ${users.length} rooms' metatiles`);
+    // A collision form is a name of collisions/_enum.json: renamed there (and its file, and the metatiles), the same ROM.
+    const wall = new Map(tree), formsEnum = 'maps/collisions/_enum.json';
+    editJson(wall, formsEnum, e => { e.names[e.names.indexOf('solid')] = 'wall'; });
+    wall.set('maps/collisions/wall.json', wall.get('maps/collisions/solid.json')!);
+    wall.delete('maps/collisions/solid.json');
+    for (const p of [...wall.keys()].filter(p => p.endsWith('/metatiles.json'))) editJson(wall, p, m => { for (const x of m.list) if (x.collision === 'solid') x.collision = 'wall'; });
+    const walled = implode(wall, GAME, KINDS, { strict: true });
+    assert.deepStrictEqual(walled.findings.list.filter(f => f.severity === 'error'), []);
+    assert.strictEqual(walled.sha1, sha1(rom), 'a renamed form is the same ROM');
+    console.log('  ✓ an edited metatile is compressed anew and round-trips; a form renamed in collisions/ builds the same ROM');
 
     // Objects and cuttable grass are text (objects.json, grass.json): an edited state and an edited grass record build
     // and explode back to the edit; a token that is no metatile is an error at its row.

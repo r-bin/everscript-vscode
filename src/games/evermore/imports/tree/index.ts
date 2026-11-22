@@ -11,7 +11,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { blobFromTree, TREE_MAP } from '../../maps/tree-map';
-import { collisionOfFields } from '../../maps/tree-map-text';
 import type { TreeMapFiles, TreeProblem, TreeRefs } from '../../maps/tree-map';
 import { writeRoomAt } from '../../maps/encode';
 import { readRomMapHeaderFrom } from '../../rom-readers';
@@ -111,18 +110,12 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
             };
         } catch (e) { throw new Error(`${folderOf(tree.dir, 'maps')}/${name}: ${(e as Error).message}`); }
         const byName = (kind: string) => new Map(names(tree.dir, kind).map((n, i) => [n, i] as [string, number]));
-        const palettes = byName('palettes'), tiles = byName('tiles'), scripts = byName('scripts');
+        const palettes = byName('palettes'), tiles = byName('tiles'), scripts = byName('scripts'), forms = byName('collisions');
         // A trigger names its script in full (scripts.json); the trigger record holds its table offset, 3·id (scripts/_enum.json).
         const refs: TreeRefs = { palette: n => palettes.get(n), tile: n => tiles.get(n), script: n => {
             const id = scripts.get(n);
             return id === undefined ? undefined : id * 3;
-        }, collision: n => {
-            // A collision file's word (a file edited after the tree's _enum.json is read when the room is next built).
-            try {
-                const c = collisionOfFields(readJson(path.join(tree.dir, folderOf(tree.dir, 'collisions'), n + '.json')));
-                return typeof c === 'number' ? c : undefined;
-            } catch { return undefined; }
-        } };
+        }, collision: n => forms.get(n) };
         const problems: TreeProblem[] = [];
         const blob = blobFromTree(files, refs, p => problems.push(p));
         if (!blob) throw new Error(problems.filter(p => p.level === 'error').map(p => `${folderOf(tree.dir, 'maps')}/${name}/${p.file}${p.pointer ? '#' + p.pointer : ''}: ${p.message}`).join('; '));

@@ -67,107 +67,81 @@ export function parseLayer(s: unknown, slots: string[], channelCount: number, pa
     return w | (pal << 10);
 }
 
-// Collision word: words joined by "_", in this order: the geometry, "plane<n>" (bits 5-4), then the set flags
-// "see_through" (6), "bit7", the gate (11-8), "in_front" (12), "step_on" (14), "b_trigger" (15). The geometry
-// names bits 3-0 and 13 together: without bit 13 the solid part of the cell (`half_s`: its south half is solid;
-// `corner_sw`: the triangle in its south-west; `_2` for the second code with the same shape, which the engine tells
-// apart in ways not known yet); with it the cell is always walkable and bits 3-0 the drift (`drift_n`), the
-// diagonal stairs' push (`stairs_ne`: walking east goes north) or nothing (`walk`, `walk_3`-`walk_7`).
+// Collision word, as a metatile's fields (the Rooms editor's split: the Collision tab's form, the Level bar, the
+// Special tab's flags). `collision`: the form, which part of the cell is solid (bits 3-0), by the editor's names: the
+// diagonal twins "slide" or "stop" ($8FA3F8 / $8FA418: three open compass points and a slide entry, or one point and
+// none; unconfirmed in game), 0x4 and 0xB are open in both tables and in no vanilla room. `alwaysWalkable` instead
+// when bit 13 is set: bits 3-0 then say how the cell moves you (stairs, drift, nothing), and there is no form.
+// `level` (bits 5-4). Then only what is set: `seeThrough` (6), `gate` (11-8), `inFront` (12), `stepOn` (14),
+// `interact` (15), `bit7` (never in vanilla).
 
-const GEOMETRY = ['open', 'corner_se', 'corner_sw', 'half_s', 'half_s_2', 'corner_se_2', 'corner_sw_2', 'half_w',
-    'half_e', 'corner_ne', 'corner_nw', 'half_n', 'half_n_2', 'corner_ne_2', 'corner_nw_2', 'solid'];
-const WALK = ['walk', 'stairs_ne', 'stairs_se', 'walk_3', 'walk_4', 'walk_5', 'walk_6', 'walk_7',
+/** The 16 forms by code; the collisions kind (maps/collisions/) may rename them. */
+export const COLLISION_FORMS = ['open', 'diagonal_se_slides', 'diagonal_sw_slides', 'bottom_half', 'bottom_half_unused', 'diagonal_se_stops',
+    'diagonal_sw_stops', 'left_half', 'right_half', 'diagonal_ne_stops', 'diagonal_nw_stops', 'top_half_unused', 'top_half', 'diagonal_ne_slides',
+    'diagonal_nw_slides', 'solid'];
+/** Bit 13's nibble ($8FAD9F): the Special tab's Stairs & Drift; 3-7 share one handler (no push). */
+const ALWAYS_WALKABLE = ['stairs_vertical', 'stairs_diagonal_r', 'stairs_diagonal_l', 'walkable_3', 'walkable', 'walkable_5', 'walkable_6', 'walkable_7',
     'drift_n', 'drift_ne', 'drift_e', 'drift_se', 'drift_nw', 'drift_w', 'drift_sw', 'drift_s'];
-/** Gate nibbles with a known effect (collision.ts entityGate, spriteHiddenOn); others are `gate_<hex>`. */
-const GATES: Record<number, string> = { 3: 'blocks_others', 5: 'blocks_dog', 7: 'blocks_boy_dog', 8: 'hides_sprite' };
-const FLAGS: [string, number, keyof CollisionFields][] = [
-    ['see_through', 0x40, 'seeThrough'], ['bit7', 0x80, 'bit7'], ['in_front', 0x1000, 'inFront'], ['step_on', 0x4000, 'stepOn'], ['b_trigger', 0x8000, 'bTrigger'],
-];
+/** Gate nibbles by what they do (collision.ts entityGate, spriteHiddenOn; Deflect is the editor's unconfirmed reading). */
+const GATES: Record<number, string> = { 1: 'deflect', 3: 'blocks_others', 5: 'blocks_dog', 7: 'blocks_boy_and_dog', 8: 'hides_character' };
 const gateName = (n: number) => GATES[n] ?? `gate_${n.toString(16)}`;
-/** Every word a collision name is made of, longest first (a name is split by longest match). */
-const VOCABULARY = [...GEOMETRY, ...WALK, ...[0, 1, 2, 3].map(p => `plane${p}`), ...FLAGS.map(f => f[0]),
-    ...Array.from({ length: 16 }, (_, n) => gateName(n)), ...Array.from({ length: 16 }, (_, n) => `gate_${n.toString(16)}`)]
-    .sort((a, b) => b.split('_').length - a.split('_').length);
+const FLAGS: [string, number][] = [['seeThrough', 0x40], ['inFront', 0x1000], ['stepOn', 0x4000], ['interact', 0x8000], ['bit7', 0x80]];
 
-/** A collision word as its fields: what a collision file (maps/collisions/) holds. */
+/** A metatile's collision fields, in the order metatiles.json writes them. */
 export interface CollisionFields {
-    geometry: string; plane: number; seeThrough: boolean; gate: string | null; inFront: boolean; stepOn: boolean; bTrigger: boolean; bit7?: boolean;
+    collision?: string; alwaysWalkable?: string; level: number; gate?: string;
+    seeThrough?: true; inFront?: true; stepOn?: true; interact?: true; bit7?: true;
+}
+/** The keys a metatile's collision takes (the round trip and the parser know them). */
+export const COLLISION_KEYS = ['collision', 'alwaysWalkable', 'level', 'gate', ...FLAGS.map(f => f[0])];
+
+/** A collision word as a metatile's fields; `form`: a form's name by code (the tree's collisions kind). */
+export function collisionFields(c: number, form: (code: number) => string = k => COLLISION_FORMS[k]): CollisionFields {
+    const gate = (c >> 8) & 15, out: CollisionFields = { level: (c >> 4) & 3 };
+    const f: CollisionFields = c & 0x2000 ? { alwaysWalkable: ALWAYS_WALKABLE[c & 15], ...out } : { collision: form(c & 15), ...out };
+    if (gate) f.gate = gateName(gate);
+    for (const [key, bit] of FLAGS) if (c & bit) (f as any)[key] = true;
+    return f;
 }
 
-export function collisionFields(c: number): CollisionFields {
-    const gate = (c >> 8) & 15;
-    return {
-        geometry: (c & 0x2000 ? WALK : GEOMETRY)[c & 15], plane: (c >> 4) & 3, seeThrough: !!(c & 0x40), gate: gate ? gateName(gate) : null,
-        inFront: !!(c & 0x1000), stepOn: !!(c & 0x4000), bTrigger: !!(c & 0x8000), ...(c & 0x80 ? { bit7: true } : {}),
-    };
-}
-
-/** A collision file's fields as a word, or why they are not one (with the field). */
-export function collisionOfFields(v: any): number | { field: string; message: string } {
+/** A metatile's collision fields as a word, or why they are not one (with the field); `form`: a form's code by name. */
+export function collisionOfFields(v: any, form: (name: string) => number | undefined = n => { const k = COLLISION_FORMS.indexOf(n); return k < 0 ? undefined : k; }): number | { field: string; message: string } {
     const bad = (field: string, message: string) => ({ field, message });
-    if (!v || typeof v !== 'object') return bad('', 'an object: { geometry, plane, seeThrough, gate, inFront, stepOn, bTrigger }');
-    const g = GEOMETRY.indexOf(v.geometry), walk = WALK.indexOf(v.geometry);
-    if (g < 0 && walk < 0) return bad('geometry', `"${v.geometry}": ${GEOMETRY.join(', ')}; always walkable: ${WALK.join(', ')}`);
-    if (!Number.isInteger(v.plane) || v.plane < 0 || v.plane > 3) return bad('plane', '0-3');
-    let c = (g >= 0 ? g : walk | 0x2000) | (v.plane << 4);
-    if (v.gate !== null && v.gate !== undefined) {
-        const n = Array.from({ length: 16 }, (_, k) => k).find(k => gateName(k) === v.gate || `gate_${k.toString(16)}` === v.gate);
-        if (n === undefined) return bad('gate', `"${v.gate}": null, ${Object.values(GATES).join(', ')} or gate_<hex>`);
+    let c: number;
+    if (v?.alwaysWalkable !== undefined) {
+        if (v.collision !== undefined) return bad('collision', 'none on an always-walkable cell (its bits are alwaysWalkable\'s)');
+        const k = ALWAYS_WALKABLE.indexOf(v.alwaysWalkable);
+        if (k < 0) return bad('alwaysWalkable', `"${v.alwaysWalkable}": ${ALWAYS_WALKABLE.join(', ')}`);
+        c = 0x2000 | k;
+    } else {
+        const k = typeof v?.collision === 'string' ? form(v.collision) : undefined;
+        if (k === undefined) return bad('collision', `"${v?.collision}": a form (${COLLISION_FORMS.join(', ')}), or alwaysWalkable instead`);
+        c = k;
+    }
+    if (!Number.isInteger(v.level) || v.level < 0 || v.level > 3) return bad('level', '0-3');
+    c |= v.level << 4;
+    if (v.gate !== undefined) {
+        const n = Array.from({ length: 16 }, (_, k) => k).find(k => k && (gateName(k) === v.gate || `gate_${k.toString(16)}` === v.gate));
+        if (n === undefined) return bad('gate', `"${v.gate}": ${Object.values(GATES).join(', ')} or gate_<hex>`);
         c |= n << 8;
     }
-    for (const [, bit, key] of FLAGS) {
-        if (v[key] === undefined && key === 'bit7') continue;
-        if (typeof v[key] !== 'boolean') return bad(key, 'true or false');
-        if (v[key]) c |= bit;
+    for (const [key, bit] of FLAGS) {
+        if (v[key] === undefined || v[key] === false) continue;
+        if (v[key] !== true) return bad(key, 'true, or leave it out');
+        c |= bit;
     }
     return c;
 }
 
-export function collisionText(c: number): string {
-    const f = collisionFields(c);
-    return [f.geometry, `plane${f.plane}`, ...(f.seeThrough ? ['see_through'] : []), ...(f.bit7 ? ['bit7'] : []), ...(f.gate ? [f.gate] : []),
-        ...(f.inFront ? ['in_front'] : []), ...(f.stepOn ? ['step_on'] : []), ...(f.bTrigger ? ['b_trigger'] : [])].join('_');
-}
-
-/** A collision name (`solid_plane1_in_front`), or why it is not one. */
-export function parseCollision(s: unknown): number | string {
-    const usage = 'a collision name: the geometry, plane<n>, then see_through, the gate, in_front, step_on, b_trigger (solid_plane1_in_front)';
-    if (typeof s !== 'string' || !s) return usage;
-    const parts = s.split('_'), words: string[] = [];
-    for (let i = 0; i < parts.length;) {
-        const w = VOCABULARY.find(v => v.split('_').every((p, k) => parts[i + k] === p));
-        if (!w) return `"${s}": no word at "${parts.slice(i).join('_')}"; ${usage}`;
-        words.push(w);
-        i += w.split('_').length;
-    }
-    const geometry = words.filter(w => GEOMETRY.includes(w) || WALK.includes(w)), planes = words.filter(w => /^plane\d$/.test(w));
-    const gates = words.filter(w => Object.values(GATES).includes(w) || /^gate_[0-9a-f]$/.test(w));
-    if (geometry.length !== 1) return `"${s}": one geometry (${GEOMETRY[0]}, ${GEOMETRY[15]}, half_s, corner_sw, walk, drift_n, …)`;
-    if (planes.length > 1 || gates.length > 1 || new Set(words).size !== words.length) return `"${s}": each word once`;
-    const v: Record<string, unknown> = { geometry: geometry[0], plane: planes.length ? +planes[0].slice(5) : 0, gate: gates[0] ?? null };
-    for (const [name, , key] of FLAGS) v[key] = words.includes(name);
-    const c = collisionOfFields(v);
-    return typeof c === 'number' ? c : `"${s}": ${c.message}`;
-}
-
-/** What a collision word does, in a sentence (collision files, for the reader). */
-export function collisionWhat(c: number): string {
-    const f = collisionFields(c), out: string[] = [];
-    const shape = (g: string) => {
-        if (g === 'open' || g === 'solid') return g === 'open' ? 'Open' : 'Solid';
-        const [form, dir, second] = g.split('_');
-        return `The ${dir.toUpperCase()} ${form === 'half' ? 'half' : 'triangle'} is solid${second ? ' (the second code of that shape)' : ''}`;
-    };
-    if (c & 0x2000) out.push(f.geometry.startsWith('drift') ? `Always walkable; drifts ${f.geometry.slice(6).toUpperCase()}` : f.geometry.startsWith('stairs') ? `Always walkable; diagonal stairs, walking east goes ${f.geometry === 'stairs_ne' ? 'north' : 'south'}` : 'Always walkable');
-    else out.push(shape(f.geometry));
-    out.push(`on plane ${f.plane}` + (f.seeThrough ? ', open from the other planes (see-through)' : ''));
-    const gate: Record<string, string> = { blocks_others: 'solid for everyone but the Boy and the Dog', blocks_dog: 'solid for the Dog', blocks_boy_dog: 'solid for the Boy and the Dog', hides_sprite: 'a character here is not drawn' };
-    if (f.gate) out.push(gate[f.gate] ?? `gate nibble ${f.gate.slice(5)} (no known effect)`);
-    out.push(f.inFront ? 'a character here is drawn in front of the canopy' : 'a character here is drawn behind the canopy');
-    if (f.stepOn) out.push('a step-on trigger fires here');
-    if (f.bTrigger) out.push('B here runs a B trigger');
-    if (f.bit7) out.push('bit 7 set (never in vanilla)');
-    return out.join('; ') + '.';
+/** What a form does, in a sentence (collision files, for the reader). */
+export function collisionFormWhat(code: number): string {
+    const name = COLLISION_FORMS[code];
+    if (name === 'open') return 'Nothing in the cell is solid.';
+    if (name === 'solid') return 'The whole cell is solid.';
+    if (name.endsWith('_unused')) return `Solid like ${name.replace('_unused', '').replace('_', ' ')}, but open in both of the engine's tables ($8FA3F8, $8FA418); no vanilla room uses it.`;
+    const [form, dir, how] = name.split('_');
+    if (form === 'diagonal') return `The ${dir.toUpperCase()} triangle is solid; ${how === 'slides' ? 'you slide along it (three compass points open, a slide entry)' : 'it stops you (one compass point open, no slide entry)'} — unconfirmed in game.`;
+    return `The ${form} half is solid.`;
 }
 
 // ── Objects (room-reference.md §8, map_objects.md §4–§4c) ─────────────────────────────────────────────────────

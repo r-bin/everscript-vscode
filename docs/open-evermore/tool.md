@@ -45,7 +45,7 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `evermore/kinds.mts` | Evermore's kinds, in migration order — the only place with game facts, with `evermore/codecs/` |
 | `evermore/codecs/maps.mts` | the maps kind ([resources.md](resources.md) §maps): files, names, placement, the map and enter-script tables (generated items) and `roomBlobs` (every kind walks the rooms through it); the room ↔ files mapping is `src/games/evermore/maps/tree-map.ts` |
 | `evermore/codecs/palettes.mts` | the palettes kind (the room format's tile families): the array and its two loader operands; JSON or PNG |
-| `evermore/codecs/collisions.mts` | the collisions kind: one file per collision word, no bytes of its own; the maps kind reads them |
+| `evermore/codecs/collisions.mts` | the collisions kind: the 16 forms, one file each, no bytes of its own; the enum gives each name its code |
 | `evermore/codecs/strings.mts` | the strings kind: the text form, the key table, our encoder |
 | `evermore/codecs/scripts.mts` | the scripts kind ([resources.md](resources.md) §scripts): one `.txt` per script, groups, the pointer table, the boot pointer; `scriptLayout` names every script (the maps kind names enter scripts with it) |
 | `evermore/codecs/script-lines.mts` | a script file's lines: `scriptText` writes one from the ROM, `parse` reads one, `assemble` builds a group (labels, relative calls, ids; a longer form where a shorter one does not reach, `segments` for the proof) |

@@ -63,7 +63,7 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
 ## Proving and debugging
 
 - Prove kinds apart: `explode --kinds a,b --out <scratch>`, then `implode`/`prove` on that tree.
-  Maps, scripts, tiles and palettes need each other; scripts need entities and projectiles, which
+  Maps, scripts, tiles, palettes and collisions need each other; scripts need entities and projectiles, which
   need attack procs.
 - **Removing a kind reshuffles every other** (the RNG sequence changes), so a bisect by kind tests
   layouts, not kinds. Compare like with like: pin chosen items at home in one layout (a throwaway
@@ -86,9 +86,6 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
 - **A resource `_base/` reads by address stays home** (projectile records: animation scripts throw them by
   address): an item only its home fits (`above`/`below`/`bankOffset`), the home found by id when renamed.
   `allocate` places such items first without a random draw: a draw would reshuffle every other kind's layout.
-- **A vocabulary kind** (`collisions`: no bytes, its words live in the rooms) cannot round-trip its files: an edited one
-  names another word. Its files are `canonical: null`, the maps kind compares each metatile by its word, and the tree's
-  names come back through a pseudo kind's `symbols` (`collisions.word`, as `characters.record`).
 - **Records read in place** (`records.mts`: equipment, alchemy): a field per (table, stride, offset); text a ring item
   shows is that ring item by name (menus owns the bytes), other text is written at its home. A codec's "another release?"
   check must test structure (readers, pointer tables in `_base/`), never editable data: implode explodes its own edited

@@ -72,40 +72,27 @@ What the room format calls a *tile family* is one 16-colour palette; up to 7 a r
 - **Later:** sprite palettes (bank `$90`, full) as their own kind once their readers allow it
   ([../split-and-link/extending.md](../split-and-link/extending.md) §5).
 
-## collisions — collision words *(built, v0.458.0)*
+## collisions — collision forms *(built, v0.458.1)*
 
-Every collision word the rooms use, one file per word (516 in vanilla), named by what it does; metatiles name them
-(`"collision": "solid_plane1_in_front"`). No bytes of its own: the words live in each room's Block 3, and implode
-writes them there.
+The 16 forms a cell's collision can take (which part of it is solid), named as the Rooms editor's Collision tab names
+them. A metatile names its form (`"collision": "solid"`); its level and flags are its own fields (§maps). No bytes of
+its own: the form is bits 3–0 of each collision word in a room's Block 3, which implode writes.
 
-**Folder.** `maps/collisions/_enum.json` (the most used first; the order means nothing to the game) + `<name>.json`:
+**Folder.** `maps/collisions/_enum.json` (names[code]: the form's code, 0–15) + `<name>.json`, all for the reader:
 
 ```jsonc
 { "format": "open-evermore/collision", "version": 1,
-  "geometry": "solid", "plane": 1, "seeThrough": false, "gate": null, "inFront": true, "stepOn": false, "bTrigger": false,
-  "what": "Solid; on plane 1; a character here is drawn in front of the canopy.",   // derived, for the reader
-  "metatiles": 32264, "maps": ["antiqua_…", …] }                                       // derived: how often, where
+  "what": "The SW triangle is solid; you slide along it (three compass points open, a slide entry) — unconfirmed in game.",
+  "shape": ["#...............", "##..............", …],     // 16×16, # solid ($909DE8, maps/collision.ts geometryMask)
+  "metatiles": 659, "maps": ["antiqua_…", …] }               // how often vanilla uses it, where
 ```
 
-- **The vocabulary** ([../map-format/room-reference.md](../map-format/room-reference.md) §9, `maps/tree-map-text.ts`).
-  `geometry` names bits 3–0 and 13 together. Without bit 13, the solid part of the cell: `open`, `solid`, `half_n`
-  `half_s` `half_e` `half_w` (that half is solid), `corner_ne` `corner_nw` `corner_se` `corner_sw` (that triangle);
-  six shapes have two codes, the second written `_2` (`half_s_2`: what the engine does differently is not known).
-  With bit 13 the cell is always walkable and bits 3–0 say how it moves you: `walk` (`walk_3`–`walk_7` for the
-  nibbles with no handler), `drift_n` … `drift_sw` (eight directions), `stairs_ne` / `stairs_se` (diagonal stairs:
-  walking east goes north / south). `plane` 0–3; `seeThrough` (bit 6); `gate` (bits 11–8): `blocks_others`,
-  `blocks_dog`, `blocks_boy_dog`, `hides_sprite`, else `gate_<hex>`; `inFront` (bit 12), `stepOn` (14), `bTrigger`
-  (15); `bit7` only when set (never in vanilla).
-- **Names spell the fields**, joined by `_` in that order: geometry, `plane<n>`, then the set flags `see_through`,
-  `bit7`, the gate, `in_front`, `step_on`, `b_trigger` (`open_plane1_in_front_step_on`).
-- **References.** A metatile's `collision` is a name: the file of that name gives the word, else the name is read
-  as it spells (so a new combination needs no file, and `explode --kinds maps` alone still builds). Editing a file
-  edits every metatile that names it (G0 test: `solid_plane1_in_front.json` set to `inFront: false` builds the same
-  ROM as renaming its metatiles in 115 rooms). An unknown word is `invalid-value` in metatiles.json, a bad field in the
-  collision file.
-- **Round trip.** Each word keeps the tree's name for it (the pseudo kind `collisions.word`'s symbols; of several
-  names for one word, the one that spells it). The files are a vocabulary, so the round trip compares what each
-  metatile means (its word), not the files.
+- **Names.** `open`, `solid`, `top_half`, `bottom_half`, `left_half`, `right_half`, and `diagonal_<corner>_slides` /
+  `diagonal_<corner>_stops` for the twins that share a triangle (the engine's tables `$8FA3F8` / `$8FA418`: three
+  compass points open and a slide entry, or one point and none; unconfirmed in game). `top_half_unused` (0xB) and
+  `bottom_half_unused` (0x4) are open in both tables and in no vanilla room.
+- **Renaming** a form (its `_enum.json` entry and its file) renames it in every room; the G0 test renames `solid` to
+  `wall` and gets the vanilla ROM. Without the kind (`--kinds`) a metatile's form is read by these default names.
 
 ## strings *(built, S4)*
 
@@ -269,9 +256,10 @@ cycle: CGRAM colour, how many, frames per step, signed). `grass.json`: `{ "list"
 `grid.txt`, one row per line (`048 048 049 …`), and `metatiles.json`, one metatile per line:
 
 ```jsonc
-{ "format": "open-evermore/metatiles", "version": 2, "compression": "lzss",
+{ "format": "open-evermore/metatiles", "version": 3, "compression": "lzss",
   "list": [
-    { "id": "000", "canopy": "tile_026d palette_01c pr v", "terrain": "tile_02ac palette_020", "collision": "solid_plane1" }, …
+    { "id": "000", "canopy": "tile_026d palette_01c pr v", "terrain": "tile_02ac palette_020", "collision": "solid", "level": 1, "inFront": true },
+    { "id": "1a4", "canopy": "…", "terrain": "…", "alwaysWalkable": "drift_sw", "level": 1, "stepOn": true }, …
   ] }
 ```
 
@@ -301,8 +289,13 @@ move in the list, its scripts follow; one with `id` instead of a name is reached
   palette is a name from `map.json` `palettes` (BG palette *n* is entry *n*−1; `#2` for a palette listed twice in the
   first seven), or `p<n>` for one the list does not name (`p0`, the HUD's). A room with more than 7 palettes (22 rooms)
   holds several sets that a script switches (`MAP_PALETTE`): the name is the first set's palette in that slot.
-- **Collision words**: a name from `maps/collisions/` (§collisions), e.g. `solid_plane1_in_front`; any name that
-  spells a word works without a file.
+- **Collision** ([../map-format/room-reference.md](../map-format/room-reference.md) §9), as the Rooms editor splits
+  it: `collision`, the form (a name of `maps/collisions/`, §collisions), or `alwaysWalkable` instead when bit 13 is
+  set (bits 3–0 then say how the cell moves you: `stairs_vertical`, `stairs_diagonal_l` / `_r`, `drift_n` …
+  `drift_sw`, `walkable`, `walkable_3`/`_5`/`_6`/`_7`); `level` 0–3. Then only what is set: `seeThrough` (bit 6),
+  `gate` (bits 11–8: `blocks_boy_and_dog`, `blocks_dog`, `blocks_others`, `deflect` (the editor's unconfirmed
+  reading), `hides_character`, else `gate_<hex>`), `inFront` (12: drawn in front of the canopy), `stepOn` (14),
+  `interact` (15: B runs a B trigger), `bit7` (never in vanilla). A flag written `false` is the same as left out.
 - `id` is the entry's position, written for the reader (`invalid-value` if it disagrees). Flags may come in any
   order and grid ids without padding: the round trip compares what they mean.
 - **Compression** is noted, not stored: `lzss` is our `lzssCompressVanilla`, which gives back 237 of the 241 vanilla
@@ -319,8 +312,8 @@ the grid (0/5 → 4/5). 2026-11-20 (v0.446.0): triggers and the enter script nam
 room's `scripts/` folder (owner: no central `_enter_scripts.json`). Version 7 (v0.457.0): one concern per file,
 scripts moved out to `scripts/rooms/<map>/` and referenced from `scripts.json`, triggers and objects named by what they
 do, previews optional. Version 8 (v0.458.0): layer words name their palette (`tile_026d palette_01c`, was `p2`), and
-a collision is a name that says what it does (`solid_plane1_in_front`, was `gf z1 front`) with a file of its own in
-`maps/collisions/`. Still open: a grid of names rather than ids, animation channels by name in metatiles.json.
+a collision is its form by name (`"collision": "solid"`, the 16 forms in `maps/collisions/`) beside its level and
+flags as fields (`"level": 1, "inFront": true`; was `"gf z1 front"`). Still open: a grid of names rather than ids, animation channels by name in metatiles.json.
 
 - **Names.** From `localizations/data/rooms.json` *(repo, our own wording)*: region + place + part in snake case
   (`prehistoria_jungle_south_where_the_game_starts`); `map_<hexid>` for a room it does not name.
