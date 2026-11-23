@@ -5,10 +5,11 @@ end: 8E9C67
 kind: code
 category: 🎮
 name: shop_menu_load_armor_catalog_items
-title: Load available armor equipment catalog into shop buffer ($8E:9C28)
+title: Shop: fill the ring with the ingredients on sale
 confidence: confirmed
-evidence: ["disasm: scans shop item IDs $0B95,Y; maps IDs via table $C4:5B10,X into catalog buffer $0BA5,X; updates item count $0BA1; initializes scroll offsets $0BFB and $0BFD to -5 ($FFFB); callers: shop catalog loader $8E:9FA8"]
+evidence: ["disasm: run by shop_mode_catalog_loader when $0E6C has bit 8 (shop ids $30-$45, opcode 0x89); each list byte is an ingredient id (tbl_8CE311), 2·id into $C4:5B10 gives its ring item, into the shop ring $0BA5 (2026-11-23)"]
 see: ["routines/shop_mode_catalog_loader.md"]
-tags: ["shop","armor","equipment","catalog"]
+tags: ["shop","alchemy","ingredients","catalog"]
 ---
-Loads armor item catalog in shop menu. Scans shop item IDs in `$0B95,Y`, maps them through table `$C4:5B10,X` into buffer `$0BA5,X`, tracks count in `$0BA1`, and initializes scroll cursor parameters `$0BFB` and `$0BFD` to -5 (`$FFFB`).
+Fills the shop ring with the ingredients a shop sells: each byte of `SHOP_ITEM_STREAM_BUF` is an ingredient id, `$C4:5B10`
+(ingredient → ring item) gives the ring item. The name (armour) is a misreading: armour goes through `shop_load_catalog`.

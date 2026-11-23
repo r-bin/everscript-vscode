@@ -5,10 +5,10 @@ size: 70
 kind: table
 category: 📋
 name: tbl_8CE311
-title: CDL lookup: 70 entries × 1B
+title: Shop item id → the byte the shop list holds
 confidence: confirmed
-tags: ["table","cdl","lookup","lookup"]
-evidence: ["CDL recorded table: 70 entries × 1B (out/recomp/asar/tables/tables.json)"]
+tags: ["table","shop"]
+evidence: ["disasm: configure_catalog_parameters (opcode 0x89, $8C:E2F5) lda.l $8CE311,x with X = the item id (< 8 consumable, < $30 armour, else ingredient) → SHOP_ITEM_STREAM_BUF (2026-11-23)", "rom: ids 0-7 → 0-7; 8-47 → 2·(id − 7); 48-69 → 0-21"]
 ---
-
-CDL lookup table at $8C:E311 (70 bytes, 70 entries × 1B). Read by configure_catalog_parameters+$40 (8C:E2F5).
+70 bytes, one per shop item id (opcode `0x89`'s item): what the loader of its category reads. Ids 0-7 consumables (the
+consumable id), 8-47 armour (2·(armour + 1), the index into `$C4:5ABE`), 48-69 ingredients (the ingredient id).

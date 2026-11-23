@@ -67,6 +67,25 @@ two flag tables: `$8F:9215` (equip sync, by `$243D`), `$8C:C403` (count), `$8C:C
 only a flag bit, and saved bits are left (candidates: `$22DB` bits 6, 7; `$225C` bits 3-6, after the 35 learned bits; bit 7 is a Call Bead caller's): **no `temp[]` needed**. What a
 charm does is code reading its bit; a new one is a key item that scripts set and test.
 
+### Shops (found 2026-11-23, after v0.461.0)
+
+A shop is built by its script, not by a table: opcode `0x88` empties the list, each `0x89 item, price` adds one, `0x8A`
+(or the vanilla scripts' own way) opens it. So **prices are per shop, in the script** (`SHOP_CATALOG_PRICES_BUF` `$0BC5`);
+no ROM table holds a price. What else holds a shop to vanilla's items:
+
+| What | Where | Why it stops at vanilla's | To lift |
+|---|---|---|---|
+| shop item id | `0x89`'s item: one id space 0-69 for all three kinds; `$8C:E2C8` and `$8C:E2D8` split it (`cmp #$0008` → consumable, `cmp #$0030` → armour, else ingredient) and sets `$0E6C` bit `$02`/`$04`/`$08` | the ranges are immediates, the ids packed (consumables 0-7, armour 8-47, ingredients 48-69) | new ids past 69 with a generated split (a `jsl` at the two `cmp`s), or ids per kind in the files |
+| id → list byte | `tbl_8CE311` (70 bytes, `lda.l` at `$8C:E2F5`) | 70 bytes, code after | a generated table |
+| list | `SHOP_ITEM_STREAM_BUF` `$0B95` (bytes, negative = end), then the shop ring `$0BA5` (16 words) | 12 bytes before `$0BA1`: about 11 items a shop (not tried) | — |
+| ring item | consumables `$C4:5AAE` (`$8E:9C09`), armour `$C4:5ABE` (`$8E:9BD5`), ingredients `$C4:5B10` (`$8E:9C3D`), all `lda.l` | vanilla's count each | consumables: the v0.461.0 table (redirect `$8E:9C09`, `$8E:9C83`); ingredients: a generated `$C4:5B10` |
+| a new item's ring item | a `debug_*` one, its index the id (as consumables) | 11 for every new consumable and ingredient together | ring items growable (pointers `$8E:8000` are `lda.l` at 35 sites, records must stay in `$8E`, names in `$C4`) |
+| buy | ingredients `$8E:8DC5`/`8DDF` (+5, below 100: hooked since v0.460.0); consumables `$8E:8E98`/`8EAC` (`lda`/`sta $2315,x`, +1, at most 6) | `$2315,x` for a consumable | a hook like the ingredients' |
+| sell | consumables held `$8E:9C68` (8 counts, `$C4:5AAE`) and `$8E:914D`/`9151` (count down); the ring's count `$8E:A9F2`, `$8E:AB71` | the loop of 8, `$2315,x` | the bound generated, the reads hooked (the ring build's hooks fit) |
+
+The loaders' names in the knowledge were swapped (fixed 2026-11-23): `shop_load_catalog` is armour,
+`shop_menu_load_armor_catalog_items` ingredients, `shop_ingredient_catalog_populator` the consumables held.
+
 ## Steps
 
 | # | Step | State |
@@ -77,7 +96,15 @@ charm does is code reading its bit; a new one is a key item that scripts set and
 | I4 | Alchemy screen: the list's bounds generated, the icon table moved | ✅ v0.460.0: a held new ingredient is listed (two columns of held ones; 23 held at once not tried) |
 | I5 | Formula cost by a new ingredient (cost/`ingredient` accepts ids past 21) | ✅ v0.460.0: Cure costing Salt, cast in game |
 | I6 | Loot: the three loot scripts' branches by hand (resources.md §alchemy), a gourd and a ground pickup proven in game | 🟩 v0.461.0: a real gourd gives Salt in game, "Found some Salt"; `PRIZE` takes new items by name (`salt`). A sniff spot runs the same scripts (not seen). Open: the branches are hand-written per item |
-| I7 | Shop: a ring item for the ingredient (ring items growable, bank `$8E`) | 🔴 |
+| I7 | Shop: a ring item for the ingredient (ring items growable, bank `$8E`) | 🔴 a `debug_*` ring item will do (as consumables); then S1-S3 |
 | C1 | Consumables: as I1-I7, plus the action table (bank `$8E`) and the use effect | 🟩 v0.461.0 (`items.mts`, `consumable-hooks.mts`): a new one on a `debug_*` ring item, `temp[]` count, target/block/power; seen in game (ring, use, heal by its power). Open: shops (`$C4:5ABE`), loot branches |
 | N1 | Named items kind: 20 entries `{ name, flag }` (flag by name, `CHARM_FLAGS` bit), in place | 🟩 v0.461.0 (with `description`) |
 | N2 | Named items growable: the three tables moved, the bound generated, names in `$C4` (I2) or in a bank of their own (the loop's `#$C4`) | 🟩 v0.461.0: four tables, icons and strings in one generated item, both bank immediates, four loop bounds; seen in game. Open: more than 20 held at once (the list has 20 places) |
+| S1 | Shop item ids by name: `0x89`'s item as the item's file (`add_shop_item salt, 40`), as `PRIZE` takes them | 🔴 |
+| S2 | Shops sell a new ingredient: ids past 69 (the split and `tbl_8CE311` generated), `$C4:5B10` grown | 🔴 |
+| S3 | Shops sell and buy back a new consumable: the split, `$8E:9C09`/`9C83` on the grown table, the buy (`$8E:8E98`/`8EAC`) and sell (`$8E:914D`/`9151`, `$8E:9C68`'s loop) hooked | 🔴 |
+| S4 | Ring items growable (more than the 11 `debug_*` ones): the pointer table `$8E:8000` moved (35 `lda.l` readers), records in `$8E` (no free byte: room from moving the pointer table out, 324 bytes), names in `$C4` (§Why a name keeps its length) | 🔴 |
+| L1 | Loot branches generated: implode writes each new item's branch in the three loot scripts (count in, "Found", full) instead of by hand; consumables (`$0800 + id`) and named items (`$0100 + k`) too | 🔴 |
+| L2 | A sniff spot giving a new item, seen in game (same scripts as the gourd: expected to work) | 🔴 |
+| T1 | Counts that survive a room load and a save: new ids' cells in saved WRAM (the save's six blocks grown, [wram-allocation.md](wram-allocation.md)) | 🔴 owner chose `temp[]` for now |
+| T2 | More than 20 named items held at once: the list scrolls or pages (positions `$8C:C2E9` / `$8C:C30D`, cursor bounds `$8C:C22F`-`$C279`) | 🔴 |

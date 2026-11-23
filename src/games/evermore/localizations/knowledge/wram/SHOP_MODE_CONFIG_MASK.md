@@ -6,4 +6,6 @@ tags: []
 confidence: verified
 evidence: ["cdl", "disasm"]
 ---
-Shop Subsystem: Shop mode configuration bitmask (bit 2: standard weapons/armor, bit 3: alchemy ingredients satchel)
+Shop Subsystem: which item kinds the shop list holds, set by opcode `0x89` per item: bit `$02` consumables (ids 0-7),
+`$04` armour (8-47), `$08` ingredients (48-69); `shop_mode_catalog_loader` picks the loader by it (armour first, then
+ingredients, else consumables).

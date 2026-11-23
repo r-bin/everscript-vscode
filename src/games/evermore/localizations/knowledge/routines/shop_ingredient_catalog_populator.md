@@ -5,13 +5,11 @@ end: 8E9CA0
 kind: code
 category: 🧠
 name: shop_ingredient_catalog_populator
-title: Scan player ingredient satchel and populate shop buy catalog
+title: Shop: fill the ring with the consumables held (to sell)
 confidence: confirmed
-tags: [shop, alchemy, inventory, ui]
-evidence: ["disasm: loops 8 times reading ingredient inventory at $7E:2315,x; extracts shop item records from $C4:5AAE,x; populates display slot array at $0BA5,y; counts valid offers in $0BA1; clamps cursor index $0BA3", "trace: executed when opening vendor alchemy buy screen"]
+tags: [shop, items, consumables, ui]
+evidence: ["disasm: loops 8 consumables, lda.l $7E2315,x (their counts), 2·id into $C4:5AAE (consumable → ring item) for each one held; run when a shop's sell page opens and after a sale (alchemy_ingredient_satchel_deduct, $8E:915C) (2026-11-23)"]
 see: [docs/disassembly/ui/shop-catalogs.md, docs/disassembly/ui/shop-system.md, routines/shop_load_catalog.md, routines/shop_populate_sell_list.md]
 ---
-Scans the player's 8 alchemy ingredient inventory slots at `$7E:2315,x`, looks up vendor records
-from master table `$C4:5AAE,x`, populates the active shop buy offer array at `$7E:0BA5,y`, tracks
-the available catalog item count in `$7E:0BA1`, and clamps cursor `$7E:0BA3`.
-Full disassembly and clean C reconstruction: `docs/disassembly/ui/shop-catalogs.md`.
+Fills the shop ring with every consumable held (counts `$2315 + id`, ring items `$C4:5AAE`), what a shop's sell page offers.
+The name (ingredients) is a misreading: `$2315` holds the consumables.
