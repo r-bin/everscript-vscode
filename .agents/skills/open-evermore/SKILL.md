@@ -17,12 +17,13 @@ before touching its codec. This skill is how to work on it and what bit us.
   id too), handlers by routine name (`readers.mts` `routines(bank)`), fields by the name of the entry they
   pick, flag words as `a | b` (null when 0), operands that are one entity or projectile byte by its name. No name yet: create the knowledge entry first
   (`game-knowledge` skill), then use it.
-- **Hard-coded asset addresses are semi-prohibited** (e.g. `"record": "$C4:4182"`, `"palette": "$B52B"`,
-  `"name": "$C4705A"`). A raw ROM pointer to an asset in an editable JSON is never a finished design — it is
-  only tolerated as a temporary bridge while the target asset kind is not yet exploded (animation
-  records/scripts S7d, sprite palettes, `$C4` UI strings). Never introduce a new hard-coded asset address
-  when the target can be exploded or named; track every temporary one in `docs/open-evermore/roadmap.md`
-  and replace it with a typed resource name once that kind lands.
+- **Hard-coded asset addresses are semi-prohibited — use resource names/links wherever possible**
+  (e.g. `"record": "$C4:4182"`, `"palette": "$AD6B"`, `"name": "$C4705A"`). A raw ROM pointer to an asset
+  in JSON (editable or preview) is never a finished design. **If the target data is not exploded yet,
+  consider exploding it** (e.g. sprite palettes, `$C4` UI strings, animation records/scripts S7d) so it
+  can be linked by name instead. Only keep a raw address as a temporary bridge when exploding the target
+  kind is genuinely out of scope for the current task, track it in `docs/open-evermore/roadmap.md`, and
+  replace it with a typed resource name/link as soon as that kind lands.
 - **One tool, no npm commands**; `<kind>/_enum.json` is the one ordered file of a kind.
 - **Untangled by default, vanilla with `--strict`.** Without `--strict` every relative call into another
   script is written absolute (it ends in `0x29`'s code anyway), so no script must lie near another; jumps
