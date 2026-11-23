@@ -213,4 +213,19 @@ test('animation ASCII art renders transparent, dark outlines, bright fills, scal
     assert.ok(!ANIMATION_NAME_RE.test('BadName'));
 });
 
+test('metasprites format: chunk encoding, bounding box, flip and priority flags round-trip', () => {
+    const meta = {
+        format: 'open-evermore/metasprite',
+        version: 1,
+        bounds: { x: -16, y: -32, w: 32, h: 32 },
+        chunks: [
+            { block: 'block_0012', size: 16 as const, x: -8, y: -28, priority: 2, flip_x: true },
+            { block: 'block_0045', size: 8 as const, x: 8, y: -12, palette: 1, flip_y: true }
+        ]
+    };
+    const str = readText(json(meta));
+    const parsed = JSON.parse(str);
+    assert.deepStrictEqual(parsed, meta);
+});
+
 console.log(`  ${passed} passed`);

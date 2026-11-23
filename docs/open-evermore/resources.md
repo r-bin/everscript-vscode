@@ -790,9 +790,31 @@ characters/sprite_blocks_8/<name>.png        8×8; sprite_blocks_8/block_17c5.js
   placed as one run. 21,845 ids each.
 - **Proven (G1).** See [progress.md](progress.md).
 
+## metasprites — composite sprite frames *(built, S7d)*
+
+The 4,904 discrete composite sprite frames (metasprites) assembled from 16×16 and 8×8 sprite blocks across banks `$CA–$D3`.
+Each file describes the chunks, signed offsets from the origin anchor (feet), flags (size, flipX, flipY, priority, palette),
+and hardware bounding box.
+
+**Folder.** `characters/metasprites/<character>/<frame>.json`, organized by character or `shared/`, `alchemy/`, `icon/`, `misc/`.
+
+```jsonc
+{ "format": "open-evermore/metasprite", "version": 1,
+  "bounds": { "x": -16, "y": -32, "w": 32, "h": 32 },
+  "chunks": [
+    { "block": "block_014a", "size": 16, "x": -8, "y": -28, "priority": 2, "flip_x": false, "flip_y": false, "palette": 0 }
+  ]
+}
+```
+
+- **Names.** `<character>/frame_<addr>` (e.g. `boy/frame_ca0003`, `shared/frame_cb1230`).
+- **References.** Used by animation scripts (`sprite` opcodes `0x22–0x2B`, `sprite2`, `sprite_long`, `sprite_aim`). References `sprite_blocks_16` and `sprite_blocks_8` by block name.
+- **Implode generates**: The exact byte sequences for `$CA–$D3` sprite records (chunk count, first offset, bounding box, 5-byte chunk descriptors).
+- **Placement**: Pinned to home addresses while animation bytecode in `_base/` remains address-bound; relocatable across banks `$CA–$D3` once scripts become symbolic.
+
 ## characters, sprites, animations — the rest
 
-Explored 2026-11-20: [animations.md](animations.md) (what binds each layer, what can be exploded first).
+Explored 2026-11-20, designed 2026-11-23: [animations.md](animations.md) (what binds each layer, what can be exploded first).
 
 **Folder.**
 
