@@ -5,27 +5,10 @@ size: 90
 kind: code
 category: 🧠
 name: status_menu_alchemy_formula_icon_slot_draw
-title: Renders learned alchemy formula icons into the Status Menu spell grid from unlocked formula bitmasks
-confidence: guess
-tags: [unverified, rea-partial-read]
-evidence: ["disasm: only the first ~20 instructions plus caller/callee names of the REA dossier were read (v0.387.7-12 batch); the purpose is inferred from those, not verified"]
+title: Draws the named items list's icons (charms, key items)
+confidence: confirmed
+tags: [menu, charm, item]
+evidence: ["disasm: X = 2·entry from 0 to $28; the flag word tbl_8CBBB0 and mask tbl_8CBBD8 test the item held; held ones draw tbl_C45A12's sprite at ($02, $04), two columns ($1C / $8C by eor #$0090), a row every second item (+$0D) (2026-11-23)"]
+see: [routines/tbl_C45A12.md, routines/tbl_8CBBB0.md]
 ---
-Low confidence — Renders learned alchemy formula icons into the Status Menu spell grid from unlocked formula bitmasks.
-
-> Inferred from a partial read of the routine; names, purposes and variable roles below are hypotheses until the whole body is traced or tested.
-
-Populates the formula grid on the Status Menu Alchemy screen.
-The routine inspects the player\'s learned formula bitfield in `$7E:0000,X`.
-
-For each unlocked formula, it retrieves the 16x16 icon graphic descriptor from ROM table `$C4:5A12`, calculates grid slot coordinates in `$02` and `$04`, and renders the formula icon tile into the OAM buffer via `$80:9033` (`direct_sprite_draw_oam`).
-
-## Callers
-- `$8C:C16C` (`FUN_8cc16c`)
-
-## Callees
-- `$80:9033` (`direct_sprite_draw_oam`)
-
-## Variables and memory (hypotheses)
-- `$7E:0000` (Learned alchemy formula bitmask array in WRAM)
-- `$C4:5A12` (ROM table of formula icon tile indices)
-- `$02`, `$04` (Status menu grid slot column and row pixel coordinates)
+Draws an icon for each named item held, in the list's order and layout. The name (formula icons) is a misreading: the loop reads the named items' tables, not the formulas'.

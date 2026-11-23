@@ -99,6 +99,8 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   `_base/`), implode writes vanilla's back while the kind has its vanilla count, and explode reads the grown form too (the
   round trip explodes the grown build). Scripts write a `temp[]` cell with `write_temp_byte`/`_word`: `write_byte_14` reaches
   only the save area.
+  A `JSR (table,x)` whose table cannot leave its bank (items ring, v0.461.0): a `jsl` hook in the call's 4 bytes that turns
+  the long return into a short one and `rtl`s into the handler in that bank (`consumable-hooks.mts`).
 - **Script lines are operands, not bytes** (`op a, b, c`): `operands.mts` per token and parameter type, expressions
   in `expressions.mts`. Explode keeps a readable operand only if it reads back to the same bytes, else `[hex]`; the
   round trip compares bytes. `<`/`>` are operators except in `<0x…>` cells (`splitTop`).

@@ -9,7 +9,7 @@ title: Alchemy Barrier, Atlas, and stat-buff formula targeting loops and cast di
 confidence: confirmed
 tags: [alchemy, spells, barrier, atlas, targeting, combat]
 evidence: ["disasm: 201 bytes at $8E:8BDE..$8E:8CA6; acknowledges joypad input ($80:8597), validates ingredient quantities, prompts target cursor and applies Barrier/Atlas buffs via $91:CE38; returns via RTS"]
-see: [routines/alchemy_cast_formula_heal_target_loop.md, routines/alchemy_cast_formula_defend_target_loop.md, routines/combat_companion_attack_target_dispatcher.md]
+see: [routines/alchemy_cast_formula_heal_target_loop.md, routines/alchemy_cast_formula_defend_target_loop.md, routines/item_use_on_target.md]
 ---
 Dedicated player targeting and casting dispatchers for defensive and enhancement alchemy formulas (Barrier, Atlas, and stat buffs):
 - Invokes `joypad_acknowledge_or_clear_buttons` (`$80:8597`) on joypad selection.

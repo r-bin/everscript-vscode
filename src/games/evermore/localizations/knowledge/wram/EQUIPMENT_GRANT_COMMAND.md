@@ -10,7 +10,7 @@ tags: [inventory, equipment]
 evidence: ["disasm: func_CF9210 ($8F:9210) checks $243D, sets owned bit in $7E:2261+ using tbl_CCBBB0 / tbl_CCBBD8, recalculates armor stats, and writes $FFFF to $243D"]
 see: [knowledge/wram/WEAPONS_OWNED_FLAGS_0.md, knowledge/wram/ARMOR_QTY_GRASS_VEST.md]
 ---
-One-shot command register used to grant equipment items (weapons, armor, collars) to the player's inventory.
+One-shot command register used to give a named item (a charm or key item, by its entry `2·k` in `$8C:BBB0`) to the player.
 
-When non-negative, `func_CF9210` reads the equipment index in `$7E:243D`, looks up target WRAM offset in `tbl_CCBBB0` (`$7E:2261`..`$7E:2264`) and bitmask in `tbl_CCBBD8`, sets the bit via `ORA`, triggers player stat recalculation (`character_stat_recalculation_armor`), updates active party stats, and resets `$7E:243D` to `$FFFF` (idle).
+When non-negative, `func_CF9210` reads the named item's entry in `$7E:243D`, looks up target WRAM offset in `tbl_CCBBB0` (`$7E:2261`..`$7E:2264`) and bitmask in `tbl_CCBBD8`, sets the bit via `ORA`, triggers player stat recalculation (`character_stat_recalculation_armor`), updates active party stats, and resets `$7E:243D` to `$FFFF` (idle).
 

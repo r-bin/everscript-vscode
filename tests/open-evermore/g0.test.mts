@@ -20,7 +20,7 @@ const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 /** Where a kind lives in the tree when not at the top (folders.mts). */
-const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', palettes: 'maps/palettes', collisions: 'maps/collisions', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels' };
+const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', palettes: 'maps/palettes', collisions: 'maps/collisions', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'characters/animations', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'characters/sprite_blocks_16', sprite_blocks_8: 'characters/sprite_blocks_8', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', animation_modes: 'characters/animation_modes', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels', consumables: 'items/consumables', named_items: 'items/named_items' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -184,6 +184,36 @@ if (!path || !existsSync(path)) {
     }).sort(), ['unknown-reference alchemy/ingredients/salt.json#/icon']);
     console.log('  ✓ a 23rd ingredient: a formula\'s cost, its name, icon and count cell generated, 11 count readers and the alchemy screen redirected; a cell past temp[] and an icon of no vanilla ingredient are errors');
 
+    // A 10th consumable and a 21st named item (docs/todo/growable-items.md C1, N2): the consumable on a debug ring item, its
+    // count, dispatch and tables generated; the named item's four tables, icons and strings moved, every loop one longer
+    // (in game by hand: the Salve heals by its power, the Lucky Coin shows in the Pouch).
+    const it = new Map(tree), json = (v: unknown) => new Uint8Array(Buffer.from(JSON.stringify(v)));
+    editJson(it, 'menus/ring_items/debug_heel.json', v => { v.name = 'Salve'; v.index = 9; });
+    it.set('items/consumables/salve.json', json({ held: 'temp[196]', ring_item: 'debug_heel', target: '$000A', block: 'petals', power: 10 }));
+    editJson(it, 'items/consumables/_enum.json', v => { v.names.push('salve'); });
+    it.set('items/named_items/lucky_coin.json', json({ name: 'Lucky Coin', description: 'A coin.', flag: { flags: '$7E:22DB', bit: '$0040' }, icon: 'wizards_coin' }));
+    editJson(it, 'items/named_items/_enum.json', v => { v.names.push('lucky_coin'); });
+    const ib = implode(it, GAME, KINDS);
+    assert.deepStrictEqual(ib.findings.list.filter(f => f.severity !== 'info'), []);
+    const ii = ib.image!, i24 = (at: number) => ii[at] | (ii[at + 1] << 8) | (ii[at + 2] << 16), i16 = (at: number) => ii[at] | (ii[at + 1] << 8);
+    for (const site of [0x0E8CDC, 0x0E8CE1, 0x0E9B96, 0x0EA817, 0x0EA866]) assert.strictEqual(ii[site], 0x22, `a jsl at ${site.toString(16)}`);
+    assert.strictEqual(ii[0x0E9B70], 10, 'the ring build reads 10 ids');
+    const power = i24(0x0E8CE9) & 0x3FFFFF, ring = i24(0x0E9BA4) & 0x3FFFFF;
+    assert.deepStrictEqual([i16(power + 18), i16(ring + 18), i16(power)], [10, 2 * 1, 40], 'the Salve\'s power and ring item, Petals\' power copied');
+    assert.strictEqual(i16((0x0E0000 | i16(0x0E8002)) + 6), 9, 'debug_heel holds index 9');
+    assert.deepStrictEqual([i16(0x0CC149), i16(0x0CC386), i16(0x0CC3B0), i16(0x0CC401)], [0x28, 0x2A, 0x2A, 0x28], 'the named item loops one longer');
+    const flags = i24(0x0CC0F7) & 0x3FFFFF, names = i24(0x0CC11F) & 0x3FFFFF, coin = ((ii[0x0CC125] << 16) | i16(names + 40)) & 0x3FFFFF;
+    assert.deepStrictEqual([i16(flags + 40), i16(flags + 2 * 21 + 40)], [0x22DB, 0x0040], 'its flag word and mask');
+    assert.strictEqual(Buffer.from(ii.subarray(coin, coin + 11)).toString('latin1'), 'Lucky Coin\0', 'its name in the moved strings');
+    assert.strictEqual(i24((i24(0x0CC35A) & 0x3FFFFF) + 60), i24((i24(0x0CC35A) & 0x3FFFFF) + 39), 'the Wizard\'s Coin\'s icon');
+    assert.deepStrictEqual(rules(t => {
+        t.set('items/consumables/salve.json', json({ held: 'temp[196]', ring_item: 'debug_heel', target: '$000A', block: 'petals', power: 10 }));
+        editJson(t, 'items/consumables/_enum.json', v => { v.names.push('salve'); });
+        t.set('items/named_items/lucky_coin.json', json({ name: 'Lucky Coin', description: 'A coin.', flag: { flags: 'CHARM_FLAGS+1', bit: '$0002' }, icon: 'wizards_coin' }));
+        editJson(t, 'items/named_items/_enum.json', v => { v.names.push('lucky_coin'); });
+    }).sort(), ['invalid-value items/consumables/salve.json#/ring_item', 'invalid-value items/named_items/lucky_coin.json#/flag']);
+    console.log('  ✓ a 10th consumable and a 21st named item: the ring\'s build, count, dispatch and use redirected, the named items\' tables, icons and strings moved; a ring item whose index is not the consumable and a flag another item has are errors');
+
     // An edited metatile: the room is compressed anew, the ROM still builds and explodes back to the edit.
     const edited = new Map(tree);
     editJson(edited, meta, m => { if (m.list[0].inFront) delete m.list[0].inFront; else m.list[0].inFront = true; });
@@ -298,7 +328,7 @@ if (!path || !existsSync(path)) {
     const g = implode(grown, GAME, KINDS);
     assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
-    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16], ['fonts', 2], ['hud', 22], ['animation_modes', 6], ['ring_items', 162], ['rings', 18], ['ring_flows', 12], ['option_actions', 9], ['item_actions', 9], ['alchemy_actions', 36], ['caller_actions', 4], ['spell_actions', 18], ['ingredients', 64]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
+    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16], ['fonts', 2], ['hud', 22], ['animation_modes', 6], ['ring_items', 162], ['rings', 18], ['ring_flows', 12], ['option_actions', 9], ['item_actions', 9], ['alchemy_actions', 36], ['caller_actions', 4], ['spell_actions', 18], ['ingredients', 64], ['consumables', 16], ['named_items', 40]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
     console.log('  ✓ a new tile, string and table script: each table grows and moves, the round trip holds; limits at the engine\'s');
 
     // The table kinds of the table hack: a new animation, character (a record and an ENEMY id) and sprite blocks grow

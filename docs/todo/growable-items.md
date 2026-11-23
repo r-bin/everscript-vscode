@@ -45,14 +45,13 @@ Lifted in v0.460.0 as steps I1-I6 say (resources.md §alchemy, "Adding an ingred
 | text opcode | `$8C:EDF3` prints `$2258 + n` as a number (dialogue) | none | — |
 | new game | `$8C:D816` clears the counts | `temp[]` is cleared anyway | — |
 
-### Consumables (8, plus the Pouch)
+### Consumables (8, plus the Pouch) — lifted in v0.461.0 (resources.md §items)
 
 Counts `$2315 + i` (armour follows at `$231D`), ring items `$8E`-`$9C`, the action table `$8E:A873` (9 words, code from
 `$8E:A885`, `JSR ($A873,x)`: the table must stay in bank `$8E`). Readers of the counts: `$8E:8CDC`, `8E98`, `914D`,
-`9B96`, `9C77`, `A817`, `A9F2`, `AB71`; Call Beads also `$91:A787`, `$91:ADC3`. What a use does (`pick a target and use
-it`) is code per entry: not read yet.
+`9B96`, `9C77`, `A817`, `A9F2`, `AB71`; Call Beads also `$91:A787`, `$91:ADC3`. What a use does is data: `item_use_on_target` (`$8E:8CA7`) reads the target `$C4:5A84`, the block `$C4:5A92` and the power `$C4:5AA0`.
 
-### Named items (20)
+### Named items (20) — lifted in v0.461.0 (resources.md §items)
 
 One list for charms and key items, shown by `$8C:C0E9` (in `pause_menu_sound_and_options_window`), entry `k` = `2·k`:
 
@@ -77,8 +76,8 @@ charm does is code reading its bit; a new one is a key item that scripts set and
 | I3 | Count hooks: every reader above reads a new id's cell (generated code, only when the kind has grown; vanilla bytes otherwise) | ✅ v0.460.0: unit test on the 65816 interpreter; cast and alchemy screen in game |
 | I4 | Alchemy screen: the list's bounds generated, the icon table moved | ✅ v0.460.0: a held new ingredient is listed (two columns of held ones; 23 held at once not tried) |
 | I5 | Formula cost by a new ingredient (cost/`ingredient` accepts ids past 21) | ✅ v0.460.0: Cure costing Salt, cast in game |
-| I6 | Loot: the three loot scripts' branches by hand (resources.md §alchemy), a gourd and a ground pickup proven in game | 🟡 v0.460.0: count-in proven (a script calls it, the cell goes 0→1); the "Found" text and a real gourd not seen in game; reward ids by number (`534`), no `LOOT_REWARD` name |
+| I6 | Loot: the three loot scripts' branches by hand (resources.md §alchemy), a gourd and a ground pickup proven in game | 🟩 v0.461.0: a real gourd gives Salt in game, "Found some Salt"; `PRIZE` takes new items by name (`salt`). A sniff spot runs the same scripts (not seen). Open: the branches are hand-written per item |
 | I7 | Shop: a ring item for the ingredient (ring items growable, bank `$8E`) | 🔴 |
-| C1 | Consumables: as I1-I7, plus the action table (bank `$8E`) and the use effect | 🔴 |
-| N1 | Named items kind: 20 entries `{ name, flag }` (flag by name, `CHARM_FLAGS` bit), in place | 🔴 |
-| N2 | Named items growable: the three tables moved, the bound generated, names in `$C4` (I2) or in a bank of their own (the loop's `#$C4`) | 🔴 |
+| C1 | Consumables: as I1-I7, plus the action table (bank `$8E`) and the use effect | 🟩 v0.461.0 (`items.mts`, `consumable-hooks.mts`): a new one on a `debug_*` ring item, `temp[]` count, target/block/power; seen in game (ring, use, heal by its power). Open: shops (`$C4:5ABE`), loot branches |
+| N1 | Named items kind: 20 entries `{ name, flag }` (flag by name, `CHARM_FLAGS` bit), in place | 🟩 v0.461.0 (with `description`) |
+| N2 | Named items growable: the three tables moved, the bound generated, names in `$C4` (I2) or in a bank of their own (the loop's `#$C4`) | 🟩 v0.461.0: four tables, icons and strings in one generated item, both bank immediates, four loop bounds; seen in game. Open: more than 20 held at once (the list has 20 places) |

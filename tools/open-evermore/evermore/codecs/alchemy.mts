@@ -28,7 +28,10 @@ const FORMULA_BLOCKS = ['cure', 'acid_rain', 'defend', 'flash', 'heal', 'levitat
     'fire_power', 'one_up', 'regrowth', 'explosion', 'lightning_storm', 'slow_burn', 'super_heal', 'stop', 'nitro', 'reflect',
     'call_up', 'energize', 'force_field'];
 const CAST_BLOCKS: Record<number, string> = { 35: 'heat_wave', 36: 'storm', 40: 'confound', 45: 'plague', 47: 'disrupt' };
-export const BLOCKS = Array.from({ length: 53 }, (_, k) => FORMULA_BLOCKS[k] ?? CAST_BLOCKS[k] ?? `block_${k}`);
+/** The consumables' own blocks ($C4:5A92), by the first consumable that plays one (items.mts): 51 heals (Petals, Nectar,
+ *  Honey by their power). */
+const ITEM_BLOCKS: Record<number, string> = { 41: 'pixie_dust', 50: 'essence', 51: 'petals', 52: 'dog_biscuit' };
+export const BLOCKS = Array.from({ length: 53 }, (_, k) => FORMULA_BLOCKS[k] ?? CAST_BLOCKS[k] ?? ITEM_BLOCKS[k] ?? `block_${k}`);
 
 /** Each table has its long-indexed reader (`lda.l`, `and.l`, `ora.l` table,x) in the ROM: the release is this one. The
  *  ingredient names' reader ($C4:5FF3) moves in a grown build: ingredients.mts checks it. */

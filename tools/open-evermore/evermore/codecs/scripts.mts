@@ -46,6 +46,7 @@ import { ANIMATION_COUNT, KIND as ANIMATIONS } from './animations.mts';
 import { CHARACTERS, characterNames } from './characters.mts';
 import { ENTITY_SUB_OPS, KIND as ENTITIES } from './entities.mts';
 import { SOUND_COUNT, SOUNDS } from './music.mts';
+import { REWARD_KINDS } from './operands.mts';
 import type { Refs } from './operands.mts';
 import { KIND as PROJECTILES, PROJECTILE_COUNT } from './projectiles.mts';
 import { assemble, BY_ID, FASTEST, LABEL_RE, LONGER, META, OBJECTS, parse, REF, SCRIPTS, scriptText, SKIP, WINDOW } from './script-lines.mts';
@@ -255,6 +256,8 @@ export const scriptsCodec: Codec = {
             [MAP_DIR, Array.from({ length: count(MAP_DIR) ?? MAP_COUNT }, (_, i) => name(MAP_DIR, i))],
             [FONTS, Array.from({ length: count(FONTS) ?? FONT_COUNT }, (_, i) => name(FONTS, i))],
             [ANIMATION_MODES, Array.from({ length: ANIMATION_MODE_COUNT }, (_, i) => name(ANIMATION_MODES, i))],
+            // The loot reward cell names new items by these (operands.mts REWARD_KINDS).
+            ...REWARD_KINDS.map(([, k, vanilla]): [string, string[]] => [k, Array.from({ length: count(k) ?? vanilla }, (_, i) => name(k, i))]),
         ]);
         const entities: (string | undefined)[] = [];
         for (const op of ENTITY_SUB_OPS) entities[op] = name(ENTITIES, op);

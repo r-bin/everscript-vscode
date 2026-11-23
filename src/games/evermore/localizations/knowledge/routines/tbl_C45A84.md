@@ -3,12 +3,12 @@ addr: C45A84
 end: C45A91
 size: 14
 kind: table
-category: 📋
+category: 🧪
 name: tbl_C45A84
-title: CDL lookup: 7 entries × 2B
+title: Consumables — the target cursor flags of each
 confidence: confirmed
-tags: ["table","cdl","lookup","lookup"]
-evidence: ["CDL recorded table: 7 entries × 2B (out/recomp/asar/tables/tables.json)"]
+tags: [table, items, consumables]
+evidence: ["disasm: item_use_on_target ($8E:8CC0) lda.l $C45A84,x with X = 2·consumable → $05AD, then combat_target_selection_cursor_loop (2026-11-23)", "rom: $000A for Petals, Nectar, Honey, Essence, Pixie Dust; $1402 Dog Biscuit; $0208 Wings"]
+see: [routines/item_use_on_target.md]
 ---
-
-CDL lookup table at $C4:5A84 (14 bytes, 7 entries × 2B). Index: memory > tax. Result: sta $7E05AD. Read by combat_companion_attack_target+$19 (8E:8CC0).
+7 words, consumable `id` at `2·id`: what the target cursor may pick when it is used (same form as a formula's target, `$C4:5BF5`).

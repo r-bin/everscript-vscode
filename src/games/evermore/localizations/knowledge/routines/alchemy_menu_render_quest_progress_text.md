@@ -5,10 +5,10 @@ end: 8CC3CF
 kind: code
 category: 🎮
 name: alchemy_menu_render_quest_progress_text
-title: Render alchemy menu quest milestone / objective text ($8C:C38B)
+title: Prints the description of the picked named item
 confidence: confirmed
-evidence: ["disasm: scans quest bitmask table $8C:BBD8 and WRAM flag pointers $8C:BBB0; decrements quest stage in <$42; if matched, resolves 24-bit text pointer from Bank $C4 table $8C:C3D0 into <$22; initializes window Y=$03A5 via $8C:AF2B and appends text via $8C:9E03; callers: menu renderer $8C:C16C"]
-see: ["routines/window_tilemap_buffer_init.md","routines/dialogue_format_and_append_line.md","routines/sub_8CC16C.md"]
-tags: ["alchemy","menu","text","quest"]
+evidence: ["disasm: $42 = the cursor $0D0D / 2; walks the named items (tbl_8CBBB0 / tbl_8CBBD8), counting held ones down to the picked one, then prints tbl_8CC3D0's line for it into window $03A5 (bank #$C4 at $8C:C3C1) (2026-11-23)"]
+see: ["routines/tbl_8CC3D0.md", "routines/window_tilemap_buffer_init.md", "routines/dialogue_format_and_append_line.md"]
+tags: ["menu","text","charm","item"]
 ---
-Scans completed story/alchemy quest milestone flags in WRAM against table `$8C:BBB0` / `$8C:BBD8`. Retrieves the corresponding description string from Bank `$C4` pointer table `$8C:C3D0`, clears window `$03A5` via `$8C:AF2B`, and prints the quest objective string via `dialogue_format_and_append_line` (`$8C:9E03`).
+The line under the named items list: the description of the held item the cursor is on. The name (quest progress) is a misreading.

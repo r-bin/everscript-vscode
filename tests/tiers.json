@@ -31,6 +31,7 @@
   "tests/open-evermore/formats.test.mts",
   "tests/open-evermore/implode.test.mts",
   "tests/open-evermore/ingredient-hooks.test.mts",
+  "tests/open-evermore/item-hooks.test.mts",
   "tests/open-evermore/wram.test.mts",
   "tests/msu1/msu1.test.mts",
   "tests/debugger/emulator-audio.test.mts",

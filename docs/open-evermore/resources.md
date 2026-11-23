@@ -706,14 +706,48 @@ alchemy/alchemy_levels/level_<n>.json  { experience_per_cast (0-8), power_factor
   `global_loot_part2` says "Found …" and `global_loot_part3` "can't carry more" (new strings). **Proven**: G0 with 22;
   seeds 1, 2026 (vanilla tree) and 1, 7 (grown) round-trip; in game (the user's recording to free play, WRAM written):
   the ingredients page (L/R in the alchemy screen) lists "5× Salt" with Crystal's icon, Cure costing Salt shows "×1" and
-  a cast takes Salt 5→4, Root 2→0; the count-in script adds one Salt. The "Found" text is not seen yet (the intro, where
-  it was called, shows none). Not done: shops (a ring item per ingredient, ring items fixed at 162), a save that keeps
+  a cast takes Salt 5→4, Root 2→0; a real gourd (`prehistoria_jungle_south_where_the_game_starts/loot_02`, `write_word
+  PRIZE, salt`) counts one in and says "Found some Salt" (v0.461.0); a sniff spot runs the same three scripts (not seen). Not done: shops (a ring item per ingredient, ring items fixed at 162), a save that keeps
   the count ([../todo/growable-items.md](../todo/growable-items.md)).
 - **To add a formula** (open): the nine tables touch each other (moving them is possible: every reader is a long
   operand), the ring item ids for formulas are a fixed range (`$48`-`$8C`), the alchemy action table has 36 entries
   with code after it, and WRAM holds 35 of everything, packed: learned bits `$2258`-`$225C` (5 bits free), experience
   `$2F52`, level `$2F98`, casts `$2FDE` (35 words each, back to back). The WRAM is what cannot grow today:
   [wram.md](wram.md).
+
+## items — consumables, named items *(built, v0.461.0)*
+
+```
+items/consumables/<name>.json   { ring_item, target, block, power; held (derived) }   ids 0-8 (8 the Pouch: no fields)
+                                a new one (id 9-15): { held, ring_item, target, block, power }
+items/named_items/<name>.json   { name, description, flag {flags, bit} }              ids 0-19 (0-13 charms, 14-19 key items)
+                                a new one (id 20-39): { name, description, flag {flags, bit}, icon }
+```
+
+Records read in place (`records.mts`, wrapped by `items.mts`); the facts and every reader are in `items.mts`' header and the
+knowledge entries `item_use_on_target`, `tbl_C45A84`, `tbl_C45A92`, `tbl_consumable_items`, `tbl_8CBBB0`, `tbl_8CC3D0`,
+`tbl_C45A12`. With vanilla's count every byte is vanilla's (G0).
+
+- **A consumable** is the ring item's index: using it (`item_use_on_target`) picks a target by `target`, counts one down
+  and plays `block` (an alchemy block by name, as formulas take it: Wings play `escape`) with `power`. **A new one** needs a
+  ring item no ring shows, i.e. a `debug_*` one (11): give it a name (at most its vanilla length), an icon, a palette and
+  `"index": <the consumable's id>`, and name it as `ring_item`. `held` is a `temp[]` cell (wiped on every room load, not
+  saved) or a WRAM name. Implode then generates the four tables (target, block, power, ring item), the count cells and
+  hooks (`consumable-hooks.mts`): the ring build's loop counts every id, its count read, the ring's count shown, the use's
+  count down, and the dispatch (`tax : jsr ($A873,x)` → a `jsl` that enters vanilla's handler, or the use handler for a new
+  id, in bank `$8E`). Limits: the ring holds 16 (the Pouch one of them); shops never list a new one (their catalogs map
+  shop ids through `$C4:5ABE`: not done).
+- **A named item** is an entry of four `$8C` tables: its flag (WRAM word and mask), name, description. **A new one** gives
+  them and a vanilla named item's `icon`; implode moves the tables, the icons and the strings (one bank, the two print
+  loops' bank immediates) and lengthens every loop. A key item needs only a flag that scripts set and test: free saved bits
+  are `$22DB` `$40`/`$80` and `$225C` `$08`-`$40` (a flag outside the save is an info). The list has 20 places: more held
+  at once is not handled (an info). Scripts give one by setting its flag, or by `EQUIPMENT_GRANT_COMMAND` (`$243D` = 2·entry).
+- **Loot**: `PRIZE` takes a new item by its file's name (`write_word PRIZE, salt`): `$0100 + k` a named item, `$0200 + id`
+  an ingredient, `$0800 + id` a consumable (`operands.mts` `REWARD_KINDS`). The three loot scripts need a branch for it
+  (§alchemy, "Adding an ingredient").
+- **Proven** (v0.461.0): G0; seeds 1 and 2026 round-trip, vanilla and grown; the hooks on the 65816 interpreter
+  (`item-hooks.test.mts`). In game: a Salve on `debug_heel` shows "Salve ×3" on the items ring and heals 5 → 15 HP at power
+  10 (count 3 → 2); a Lucky Coin (`$22DB` `$40`, Wizard's Coin's icon) is listed in the Pouch with its description.
 
 ## characters, animations, sprite blocks *(built, 2026-11-20)*
 

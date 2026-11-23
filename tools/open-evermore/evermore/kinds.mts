@@ -20,6 +20,7 @@ import { fontsCodec, hudCodec } from './codecs/graphics.mts';
 import { MENU_KINDS } from './codecs/menus.mts';
 import { EQUIPMENT_KINDS } from './codecs/equipment.mts';
 import { ALCHEMY_KINDS } from './codecs/alchemy.mts';
+import { ITEM_KINDS } from './codecs/items.mts';
 import { wramCodec } from './codecs/wram.mts';
 
 export const GAME = 'evermore';
@@ -36,4 +37,4 @@ export const POINTER_WINDOWS = [SCRIPT_WINDOW];
 
 // wram first: every later kind names WRAM through it.
 export const KINDS: Codec[] = [wramCodec, mapsCodec, palettesCodec, collisionsCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
-    animationsCodec, animationModesCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, musicCodec, soundsCodec, fontsCodec, hudCodec, ...MENU_KINDS, ...EQUIPMENT_KINDS, ...ALCHEMY_KINDS];
+    animationsCodec, animationModesCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, musicCodec, soundsCodec, fontsCodec, hudCodec, ...MENU_KINDS, ...EQUIPMENT_KINDS, ...ALCHEMY_KINDS, ...ITEM_KINDS];

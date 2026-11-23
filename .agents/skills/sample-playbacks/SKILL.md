@@ -61,6 +61,10 @@ update the table.
   Boy's options ring opens, B (`0x8000`) confirms (frame 16600 and earlier: input does nothing yet). With a formula
   known (`$2258` bit), Left ×5 from Player Status is Alchemy; in it L/R shows the ingredients page. Menu screens are
   hi-res: capture all 512 px of the buffer (in-game.test's 256-px crop shows half).
+  Past frame 21800 it has no input: the scripted fall reaches Prehistoria (room `$38`, gourds and sniff spots) at 22323;
+  tap B (40 frames apart) ~40 times through the arrival dialogue, then the Boy walks. A grown build drifts off the
+  recording: run vanilla that far, `_saveState`, start the grown ROM and `_loadState` it (after the dialogue: a state saved
+  mid-text shows an empty window once the strings table moved).
 - **A determinism control.** Run the original twice on the same playback; both traces must be
   identical before any other comparison means anything.
 

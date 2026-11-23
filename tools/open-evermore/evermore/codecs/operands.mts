@@ -88,13 +88,30 @@ export function cellValues(addr: number) {
 export function exprNames(refs: Refs, entities: string): ExprNames {
     const w = wramNames();
     return {
-        value: (a, v) => cellValues(a).name.get(v) ?? '', valueOf: (a, n) => cellValues(a).value.get(n),
+        value: (a, v) => valueNameIn(a, v, refs) ?? '', valueOf: (a, n) => valueIn(a, n, refs),
         entity: op => refs.name(entities, op), entityOf: n => refs.id(entities, n),
         memory: cellName, memoryOf: cellAt,
         flag: (a, m) => w.flag.get(`${a}:${m}`) ?? '', flagOf: n => w.flagOf.get(n),
         field: o => w.field.get(o) ?? '', fieldOf: n => w.fieldOf.get(n),
     };
 }
+
+// ── the loot reward cell: new items by their files' names ──
+/** `PRIZE` ($2391, knowledge routines/loot_count_in): `$0100 + k` gives named item k, `$0200 + id` ingredient id,
+ *  `$0800 + id` consumable id. Vanilla's have compiler names (`WAX`); an item past them is named by its kind's file
+ *  (`write_word PRIZE, salt`), when exactly one of the three kinds has that name. */
+export const PRIZE = 0x2391;
+export const REWARD_KINDS: readonly [base: number, kind: string, vanilla: number][] = [[0x0100, 'named_items', 20], [0x0200, 'ingredients', 22], [0x0800, 'consumables', 9]];
+function rewardName(v: number, refs: Refs): string | undefined {
+    for (const [base, kind, vanilla] of REWARD_KINDS) if (v >= base + vanilla && v < base + 0x100) return refs.name(kind, v - base);
+    return undefined;
+}
+function rewardOf(text: string, refs: Refs): number | undefined {
+    const hits = REWARD_KINDS.flatMap(([base, kind, vanilla]) => { const id = refs.id(kind, text); return id !== undefined && id >= vanilla ? [base + id] : []; });
+    return hits.length === 1 ? hits[0] : undefined;
+}
+const valueNameIn = (a: number, v: number, refs: Refs) => cellValues(a).name.get(v) ?? (a === PRIZE ? rewardName(v, refs) : undefined);
+const valueIn = (a: number, n: string, refs: Refs) => cellValues(a).value.get(n) ?? (a === PRIZE ? rewardOf(n, refs) : undefined);
 
 // ── enum constants: one name per value, kept only where the name reads back to it ──
 const enums = new Map<string, { name: Map<number, string>; value: Map<string, number> } | null>();
@@ -151,7 +168,7 @@ function valueName(v: number, p: Param | undefined, refs: Refs): string | undefi
         if (!parts.length) return undefined;
         return [...parts, ...(rest ? ['0x' + rest.toString(16)] : [])].join(' | ');
     }
-    if (p?.cell !== undefined && !p.enum) return cellValues(p.cell).name.get(v);
+    if (p?.cell !== undefined && !p.enum) return valueNameIn(p.cell, v, refs);
     return enumOf(p?.enum)?.name.get(v);
 }
 /** A name → the value, or undefined. */
@@ -170,7 +187,7 @@ function valueOf(text: string, p: Param | undefined, refs: Refs): number | undef
         }
         return v;
     }
-    if (p?.cell !== undefined && !p.enum) return cellValues(p.cell).value.get(text);
+    if (p?.cell !== undefined && !p.enum) return valueIn(p.cell, text, refs);
     return enumOf(p?.enum)?.value.get(text);
 }
 
