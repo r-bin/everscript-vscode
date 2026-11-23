@@ -14,12 +14,14 @@
 //   wram       a WRAM address: the wram kind's variable by name, "+n" for a byte inside it
 //   routine    a 16-bit code address in `bank`: the routine's name (readers.mts `routines`)
 // A field may apply to some ids only (`ids`); the bytes of the others stay in _base/.
-import type { Codec, ImplodeContext, Item, Span, Write } from '../../codec.mts';
+import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
+import { ANIMATION_GROUPS, animationGroupPlacedOffset, animationGroupRef } from './animation-groups.mts';
 import { hexText, parseHex, routines } from './readers.mts';
 import { RING_ITEMS, ringItemNameKey, ringItemTexts } from './menus.mts';
+import { SPRITE_PALETTES, spritePaletteAddr, spritePaletteName } from './sprite-palettes.mts';
 import { wramAddress, wramHolding, wramName, wramSize } from './wram.mts';
 
 const TEXT_BANK = 0x040000;
@@ -33,7 +35,9 @@ export type Form =
     | { type: 'text' }
     | { type: 'ref'; kind?: string; names?: readonly string[]; scale?: number }
     | { type: 'wram' }
-    | { type: 'routine'; bank: number };
+    | { type: 'routine'; bank: number }
+    | { type: 'sprite_palette'; optional?: boolean }
+    | { type: 'animation_group'; optional?: boolean };
 
 export interface Field {
     /** Where it goes in the file: "name", "cost/0/count" (a number segment makes an array). */
@@ -117,13 +121,32 @@ export function recordsCodec(r: Records): Codec {
     const refNames = (form: Extract<Form, { type: 'ref' }>, ctx?: ImplodeContext) => form.names ? new Map(form.names.map((n, k) => [n, k])) : ctx?.ids.get(form.kind!);
 
     /** A field's value as the file holds it → its number, or the reason it is none (text fields: their text). */
-    function value(f: Field, v: unknown, ctx: ImplodeContext): number | string | { same: string } | { error: string } {
+    function value(f: Field, v: unknown, ctx: ImplodeContext): number | string | { same: string } | { anim: string } | { error: string } {
         const form = f.form, max = form.type === 'number' && form.max !== undefined ? form.max : (f.width ?? 2) === 1 ? 0xFF : 0xFFFF;
         switch (form.type) {
             case 'number': return Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max ? v as number : { error: `a whole number 0-${max}` };
             case 'hex': { const n = parseHex(v, max, form.bank); return n ?? { error: form.bank === undefined ? `"$${'x'.repeat(2 * (f.width ?? 2))}"` : `"$${form.bank.toString(16).toUpperCase()}:xxxx"` }; }
             case 'wram': return wramAt(v) ?? { error: 'a WRAM name (knowledge wram/), "NAME+n" for a byte inside one, or "$7E:xxxx"' };
             case 'routine': return routinesOf(form.bank).at(v) ?? { error: `a routine of bank $${form.bank.toString(16).toUpperCase()} by name (soe://rom/code/), or "$${form.bank.toString(16).toUpperCase()}:xxxx"` };
+            case 'sprite_palette': {
+                if (form.optional && v === null) return 0;
+                const pals = ctx.ids.get(SPRITE_PALETTES);
+                if (pals && typeof v === 'string' && !v.startsWith('$')) {
+                    const id = pals.get(v);
+                    return id !== undefined ? spritePaletteAddr(id) : { error: `"${v}" is no sprite palette in palettes/sprites/` };
+                }
+                const n = parseHex(v, max);
+                return n ?? { error: pals ? `a sprite palette name${form.optional ? ' or null' : ''}` : '"$xxxx"' };
+            }
+            case 'animation_group': {
+                if (form.optional && v === null) return 0;
+                const groups = ctx.names.get(ANIMATION_GROUPS);
+                if (groups && typeof v === 'string' && !v.startsWith('$')) {
+                    return groups.has(v) ? { anim: v } : { error: `"${v}" is no animation group in animations/groups/` };
+                }
+                const n = parseHex(v, max, 0xC4);
+                return n ?? { error: groups ? `an animation group name${form.optional ? ' or null' : ''}` : '"$C4:xxxx"' };
+            }
             case 'text': {
                 const same = (v as { same_as?: unknown } | null)?.same_as;
                 if (typeof same === 'string') return ctx.ids.get(r.kind)?.has(same) ? { same } : { error: `"${same}" is no ${r.kind} entry` };
@@ -167,7 +190,7 @@ export function recordsCodec(r: Records): Codec {
             return [path, json(out)];
         },
 
-        explode(rom, name) {
+        explode(rom, name, _options, countOf, nameAt) {
             r.check?.(rom);
             for (const p of PREPARE) p(rom);
             const texts = ringItemTexts(rom), files: Tree = new Map(), names: string[] = [], tables: Span[] = [], pool: Span[] = [], homes = [];
@@ -185,6 +208,19 @@ export function recordsCodec(r: Records): Codec {
                         case 'hex': out = hexText(x, 2 * width, form.bank); break;
                         case 'wram': out = wramText(x); break;
                         case 'routine': out = routinesOf(form.bank).name(x); break;
+                        case 'sprite_palette': {
+                            if (form.optional && !x) { out = null; break; }
+                            try { out = spritePaletteName(rom, x, name, countOf, nameAt) ?? null; }
+                            catch { out = hexText(x, 2 * width); }
+                            break;
+                        }
+                        case 'animation_group': {
+                            if (form.optional && !x) { out = null; break; }
+                            const ref = animationGroupRef(rom, x, name, countOf, nameAt);
+                            if (ref?.facing) throw new Error(`${r.kind}: ${n} ${f.path} points at interior facing $${x.toString(16)}`);
+                            out = ref ? ref.group : hexText(x, 2 * width, 0xC4);
+                            break;
+                        }
                         case 'ring_text': {
                             const item = texts.get(x);
                             if (item === undefined) throw new Error(`${r.kind}: ${n} ${f.path} points at $C4:${hexText(x, 4)}, which no ring item shows; another release?`);
@@ -241,7 +277,7 @@ export function recordsCodec(r: Records): Codec {
                     const x = value(f, getPath(v, f.path), ctx);
                     if (typeof x === 'object' && 'error' in x) { ctx.findings.error(f.form.type === 'ref' || f.form.type === 'ring_text' || /^"/.test(x.error) ? 'unknown-reference' : 'invalid-value', path, `/${f.path}`, x.error); continue; }
                     if (f.form.type !== 'text') continue;
-                    if (typeof x === 'object') {
+                    if (typeof x === 'object' && 'same' in x) {
                         if (!ownsText(ctx, x.same, f)) ctx.findings.error('unknown-reference', path, `/${f.path}/same_as`, `"${x.same}" has no text of its own here (it is same_as another): name the one that has`);
                         continue;
                     }
@@ -279,10 +315,14 @@ export function recordsCodec(r: Records): Codec {
                         if (at === undefined) { ctx.findings.error('unknown-reference', path, `/${f.path}`, `the text of ring item "${x}" was not placed (explode menus/ring_items with this kind)`); continue; }
                         x = at & 0xFFFF;
                     } else if (f.form.type === 'text') {
-                        const owner = typeof x === 'object' ? (x as { same: string }).same : n;
+                        const owner = typeof x === 'object' && 'same' in x ? x.same : n;
                         const home = homeOf(ctx, owner, f, ctx.ids.get(r.kind)!.get(owner)!);
                         if (!home) continue;
                         x = home.at & 0xFFFF;
+                    } else if (typeof x === 'object' && 'anim' in x) {
+                        const off = animationGroupPlacedOffset(ctx, placed, x.anim);
+                        if (off === null) continue;
+                        x = off;
                     }
                     const width = f.width ?? 2, n16 = x as number;
                     writes.push({ at: fieldAt(f, id), bytes: width === 1 ? Uint8Array.of(n16) : Uint8Array.of(n16 & 0xFF, n16 >> 8), file: path });

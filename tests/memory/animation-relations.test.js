@@ -85,6 +85,18 @@ test('walkScriptCommands visits reachable opcodes without allocating lines', () 
     assert.strictEqual(visited[2].raw, 0x2d);
 });
 
+test('jump_if_linked (0x54) formats its target without branching into unreached bank data', () => {
+    // Script starts at $C8:0000: jump_if_linked $0010, then loop ($2d). At $0010 lies a sprite ($D3:21F3).
+    const rom = new Uint8Array(0x080020);
+    rom.set([0x54, 0x10, 0x00, 0x2d], 0x080000);
+    rom.set([0x2b, 0xf3, 0x21, 0x2d], 0x080010);
+    const lines = disassembleScript(rom, 0xc80000);
+    assert.deepStrictEqual(lines.map(l => l.text), ['jump_if_linked($c80010)', 'loop()']);
+    const visited = [];
+    walkScriptCommands(rom, 0xc80000, (addr) => visited.push(addr));
+    assert.deepStrictEqual(visited, [0xc80000, 0xc80003]);
+});
+
 test('buildSpritesTabHtml includes palette filter group (Default/All) and rich tooltip', () => {
     const html = buildSpritesTabHtml();
     assert(html.includes('id="sp-pal-filter-group"'), 'Contains palette filter group');

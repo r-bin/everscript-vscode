@@ -196,7 +196,7 @@ const BOY_PORTRAIT = 0x8F810F, BOY_PORTRAIT_BANK = 0x8F8116, PORTRAIT_PALETTE = 
 const HUD_WHAT = 'tiles/<name>.png: the 22 tiles in BG3 tile order ($3E9 on, _enum.json), in palette box; palettes: CGRAM entries; '
     + 'box: the frame both boxes show (BG3 map words: tile, palette 0-7, h / v flip, behind: priority 0); boxes: the column each box '
     + 'starts at (column_alone: when the other box is hidden); at: where the engine puts each part from it (BG3 column, row; the '
-    + 'portrait in screen pixels); portraits: the sprites drawn beside the boxes (pixels: characters/sprite_blocks_16/<block>.png; '
+    + 'portrait in screen pixels); portraits: the sprites drawn beside the boxes (pixels: sprites/blocks_16/<block>.png; '
     + 'portraits/<name>.png shows them)';
 
 /** One 2bpp tile (16 bytes) ↔ an 8×8 indexed PNG. */

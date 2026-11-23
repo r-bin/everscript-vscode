@@ -218,7 +218,7 @@ characters, all animation fields, all facings) use it.
 | `3A` | 4 | `jump_pos var[$f], $target` | Jump if `var[$f]` is > 0 (signed). Otherwise fall through | `$908BE4` | — |
 | `3B` | 3 | `jump $target` | Unconditional jump, same bank | `$908BB5` | 4 |
 | `53` | 1 | `end_check` | End-of-cycle hook, just before `loop` in almost every script. State `$0100` in `+0x12` restarts the script here. Otherwise it updates the entity's AI flags (`+0x10`) | `$9083AC` | 825 |
-| `54` | 3 | `jump_if_linked $target` | If the linked entity (`+0x80`) has `$0010&0x100` and `$0016&0x40`, jump; else skip | `$908C09` | 91 |
+| `54` | 3 | `jump_if_linked $target` | If the linked entity (`+0x80`) has `$0010&0x100` and `$0016&0x40`, jump (PC only, bank unchanged); else skip. *(In vanilla `$C8`/`$C9`, all 81 instances carry the hardcoded bank-`$C7` offset `$0075` verbatim — `$C8:0075` lands mid-instruction on `3b 02 80` → `$C8:8002` — never taken at runtime)* | `$908C09` | 91 |
 | `5E` | 25 | `sprite_aim $a, … $h` | Eight 24-bit sprite addresses. `$919932` picks one by angle, so it shows where the entity aims | `$9089C8` | 5 |
 | `5F` | 4 | `sprite_long $bbaaaa` | A sprite by full 24-bit address, drawn at once through `$809033` | `$908984` | 3 |
 | `57` | 2+4g | `segments N: K×$sprite, …` | A segmented body (Tar Skull, Bone Snake): N segments, then groups of `[count K][24-bit sprite]` until all N have one, written into the 14-byte segment list at `+0x86` (`$8FCA02`). The width is read from the operand | `$90886D` | 24 |
@@ -326,7 +326,7 @@ weapon's scripts.
 | `$0008` | run | `$8F:CC4C`, `$90:82B2` | no recharging; the move selector tests it | runs (`$000C`) |
 | `$0010` | attack | `$8F:CC4C`, `$8F:CCEE`, `$90:8459` | no recharging; an entity keeps its attacker link (`+0x80`) only while that attacker has the bit; **`reset` after an animation with the bit empties the charge** and clears `+0x14` bit `$0200` | attacks (`$0010`, `$0014`, `$0810`, `$2210`) |
 | `$0020` | invulnerable | `$8F:B623`, `$8F:B53C`, `$8F:B59A` | strikes skip it; body contact skips it | the dodge, casting (`$0120`) |
-| `$0040` | link | `$90:8C18` | `jump_if_linked` (`54`) jumps when the linked entity has it | no vanilla script sets it |
+| `$0040` | link | `$90:8C18` | `jump_if_linked` (`54`) jumps when the linked entity has it | no vanilla script sets it (`$C8`/`$C9` carry bank-`$C7` `$0075` operands verbatim, which would jump mid-instruction if ever set) |
 | `$0100` | cast | `$91:99DA` | the effect code tests it on the caster | casting (`$0100`, `$0120`) |
 | `$4000`, `$8000` | contact | `$8F:B52C`, `$8F:B58A` | always tested together (`& $C000`), nowhere apart: the two behave the same. See *When contact fires* below | `$4000`: the rollers, slimes, Rimsala, Wisp, Tumble Weed, fan; `$8000`: Rat, Mini-Taur, FootKnight, Widowmaker, Dancin' Fool, Vigor |
 | `$0800` | rooted | nothing found | a marker only: set on exactly the characters that do not walk (stone cobras, flowers, claws, Sphere Bot, Carniflower, Rimsala's stand, the floating fan), in every script they have, and read by no code | as listed |

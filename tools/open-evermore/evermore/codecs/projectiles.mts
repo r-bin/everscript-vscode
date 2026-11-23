@@ -16,12 +16,14 @@
 //             written by the routine's name, looked up in that table (it stays in _base/)
 //   power     +$16; 0: the thrower's attack scaled by its stamina ($8F:C02B)
 import { createRequire } from 'node:module';
-import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
+import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
+import { ANIMATION_GROUPS, animationGroupInitialOffset, animationGroupPlacedOffset, animationGroupRef } from './animation-groups.mts';
 import { ATTACK_PROCS } from './handler-tables.mts';
 import { hexText, parseHex, routines } from './readers.mts';
+import { SPRITE_PALETTES, spritePaletteAddr, spritePaletteName } from './sprite-palettes.mts';
 
 const require = createRequire(import.meta.url);
 const { projectileRecord, PROJECTILE_STRIDE } = require('../../../../dist/games/evermore/maps/projectiles');
@@ -33,16 +35,16 @@ const DIR = KIND, TABLE = 0x10D986, COUNT = PROJECTILE_COUNT, BANK = 0x90, FILE_
 const ATTACK_PROC_COUNT = 15;
 const HANDLERS = routines(BANK);
 
-type Form = 'hex' | 'n' | 's' | 'routine' | 'attack_proc';
+type Form = 'hex' | 'n' | 's' | 'routine' | 'attack_proc' | 'animation_group' | 'sprite_palette';
 /** The record's words: [field, the decoder's name, form]. */
 const FIELDS: [string, string, Form][] = [
-    ['animation', 'animRecord', 'hex'], ['palette', 'palette', 'hex'], ['unknown_04', 'field04', 'hex'], ['unknown_06', 'field06', 'hex'],
+    ['animation', 'animRecord', 'animation_group'], ['palette', 'palette', 'sprite_palette'], ['unknown_04', 'field04', 'hex'], ['unknown_06', 'field06', 'hex'],
     ['routine', 'routine', 'routine'], ['script_routine', 'scriptRoutine', 'routine'], ['behaviour', 'field0c', 'routine'],
     ['speed', 'speed', 'n'], ['lifetime', 'field10', 'n'], ['z_speed', 'field12', 's'], ['attack_proc', 'field14', 'attack_proc'], ['power', 'power', 'n'],
 ];
 const WHAT: Record<string, string> = {
-    animation: '+$00: animation record (bank $C4), started with the thrower\'s facing; $0000: none',
-    palette: '+$02: palette ($90:CD80); $0000 keeps the thrower\'s',
+    animation: '+$00: animation group in animations/groups/, started with the thrower\'s facing; null: none',
+    palette: '+$02: sprite palette in palettes/sprites/; null keeps the thrower\'s',
     routine: '+$08: setup when an animation throws it (0x4C)', script_routine: '+$0A: setup when a script launches it (0xB5)',
     behaviour: '+$0C: what it does each tick (entity +$26)', speed: '+$0E: 1/16 px per tick (routines $02, $04)',
     lifetime: '+$10: ticks (entity +$1E)', z_speed: '+$12: entity +$24 (routines $02, $04, $16, $18)',
@@ -53,11 +55,29 @@ const WHAT: Record<string, string> = {
 const routineWords = (image: Uint8Array): number[] => Array.from({ length: ROUTINE_COUNT }, (_, k) => image[ROUTINES + 2 * k] | (image[ROUTINES + 2 * k + 1] << 8));
 
 /** A field's value as written. */
-function fieldText(v: number, form: Form, words: number[], name: (kind: string, id: number) => string): unknown {
+function fieldText(
+    rom: Uint8Array,
+    v: number,
+    form: Form,
+    words: number[],
+    name: NameOf,
+    countOf: CountOf,
+    nameAt: NameAt,
+): unknown {
     if (form === 'n') return v;
     if (form === 's') return (v << 16) >> 16;
     if (form === 'routine') return v % 2 === 0 && v / 2 < ROUTINE_COUNT ? HANDLERS.name(words[v / 2]) : hexText(v, 4);
     if (form === 'attack_proc') return v % 2 === 0 && v / 2 < ATTACK_PROC_COUNT ? name(ATTACK_PROCS, v / 2) : hexText(v, 4);
+    if (form === 'animation_group') {
+        if (!v) return null;
+        const ref = animationGroupRef(rom, v, name, countOf, nameAt);
+        if (ref?.facing) throw new Error(`${KIND}: animation points to interior facing $${v.toString(16)}`);
+        return ref ? ref.group : hexText(v, 4, 0xC4);
+    }
+    if (form === 'sprite_palette') {
+        if (!v) return null;
+        try { return spritePaletteName(rom, v, name, countOf, nameAt); } catch { return hexText(v, 4); }
+    }
     return hexText(v, 4);
 }
 /** A field as written → its word, or null. */
@@ -66,18 +86,34 @@ function fieldValue(v: unknown, form: Form, words: number[], ctx: ImplodeContext
     if (form === 's') return Number.isInteger(v) && (v as number) >= -0x8000 && (v as number) <= 0x7FFF ? (v as number) & 0xFFFF : null;
     if (form === 'routine' && typeof v === 'string' && !v.startsWith('$')) { const at = HANDLERS.at(v), k = at === null ? -1 : words.indexOf(at); return k < 0 ? null : 2 * k; }
     if (form === 'attack_proc' && typeof v === 'string' && !v.startsWith('$')) { const id = ctx.ids.get(ATTACK_PROCS)?.get(v); return id === undefined ? null : 2 * id; }
+    if (form === 'animation_group') {
+        if (v === null) return 0;
+        const groups = ctx.names.get(ANIMATION_GROUPS);
+        if (groups && typeof v === 'string' && !v.startsWith('$')) return groups.has(v) ? (animationGroupInitialOffset(ctx, v) ?? 0) : null;
+        return parseHex(v, 0xFFFF, 0xC4);
+    }
+    if (form === 'sprite_palette') {
+        if (v === null) return 0;
+        const pals = ctx.ids.get(SPRITE_PALETTES);
+        if (pals && typeof v === 'string' && !v.startsWith('$')) { const id = pals.get(v); return id !== undefined ? spritePaletteAddr(id) : null; }
+        return parseHex(v, 0xFFFF);
+    }
     return parseHex(v, 0xFFFF);
 }
 const expected = (form: Form) => form === 'n' ? 'a whole number 0-65535' : form === 's' ? 'a whole number -32768-32767'
     : form === 'routine' ? 'a routine of the table at $90:D967 by name (soe://rom/code/), or "$xxxx" (the selector)'
-    : form === 'attack_proc' ? `a name in ${ATTACK_PROCS}/, or "$xxxx"` : '"$xxxx"';
+    : form === 'attack_proc' ? `a name in ${ATTACK_PROCS}/, or "$xxxx"`
+    : form === 'animation_group' ? `an animation group name in ${ANIMATION_GROUPS}/ (animations/groups/), or null`
+    : form === 'sprite_palette' ? `a sprite palette name in ${SPRITE_PALETTES}/ (palettes/sprites/), or null`
+    : '"$xxxx"';
 
 /** Each id's record address (16 bits, bank $90). */
 const tableOf = (rom: Uint8Array): number[] => Array.from({ length: COUNT }, (_, i) => rom[TABLE + 2 * i] | (rom[TABLE + 2 * i + 1] << 8));
 const fileOf = (address: number) => (FILE_BANK << 16) | address;
+const projAnimRefs = new WeakMap<ImplodeContext, Map<string, string>>();
 
 export const projectilesCodec: Codec = {
-    kind: KIND, version: 1, path: DIR, folder: `characters/${DIR}`,
+    kind: KIND, version: 2, path: DIR, folder: `characters/${DIR}`,
 
     defaultName: id => `projectile_${String(id).padStart(2, '0')}`,
 
@@ -89,7 +125,7 @@ export const projectilesCodec: Codec = {
         return [path, json(v)];
     },
 
-    explode(rom, name) {
+    explode(rom, name, _options, countOf, nameAt) {
         const files: Tree = new Map(), names: string[] = [], pool = [], homes = [];
         const words = routineWords(rom), addresses = tableOf(rom);
         if (new Set(addresses).size !== COUNT) throw new Error(`${DIR}: two ids share a record; explode would lose which`);
@@ -97,7 +133,7 @@ export const projectilesCodec: Codec = {
             const n = name(KIND, id), at = fileOf(addresses[id]), r = projectileRecord(rom, addresses[id]);
             names.push(n);
             const v: Record<string, unknown> = {};
-            for (const [field, key, form] of FIELDS) v[field] = fieldText(r[key], form, words, name);
+            for (const [field, key, form] of FIELDS) v[field] = fieldText(rom, r[key], form, words, name, countOf, nameAt);
             files.set(`${DIR}/${n}.json`, json({ ...v, what: WHAT }));
             pool.push({ start: at, end: at + PROJECTILE_STRIDE });
             homes.push({ key: `${DIR}/${n}`, at, length: PROJECTILE_STRIDE, sha1: sha1(rom.subarray(at, at + PROJECTILE_STRIDE)) });
@@ -117,7 +153,7 @@ export const projectilesCodec: Codec = {
     },
 
     encode(ctx, names) {
-        const items: Item[] = [], words = routineWords(ctx.base.image);
+        const items: Item[] = [], words = routineWords(ctx.base.image), animRefs = new Map<string, string>();
         // A renamed projectile keeps its id's home: vanilla lists the records in address order, so id k's is the k-th.
         const homes = [...ctx.base.homes].filter(([key]) => key.startsWith(`${DIR}/`)).sort((a, b) => a[1].at - b[1].at);
         const homeOf = (n: string) => {
@@ -133,15 +169,23 @@ export const projectilesCodec: Codec = {
             const bytes = new Uint8Array(PROJECTILE_STRIDE);
             let ok = true;
             FIELDS.forEach(([field, , form], k) => {
-                const w = fieldValue(v[field], form, words, ctx);
-                if (w === null) { ctx.findings.error(form === 'attack_proc' || form === 'routine' ? 'unknown-reference' : 'invalid-value', path, `/${field}`, expected(form)); ok = false; return; }
+                const raw = v[field];
+                const w = fieldValue(raw, form, words, ctx);
+                if (w === null) {
+                    const isRef = form === 'attack_proc' || form === 'routine' || ((form === 'animation_group' || form === 'sprite_palette') && typeof raw === 'string' && !raw.startsWith('$'));
+                    ctx.findings.error(isRef ? 'unknown-reference' : 'invalid-value', path, `/${field}`, expected(form));
+                    ok = false;
+                    return;
+                }
+                if (form === 'animation_group' && typeof raw === 'string' && !raw.startsWith('$')) animRefs.set(n, raw);
                 bytes.set([w & 0xFF, w >> 8], 2 * k);
             });
             const home = homeOf(n);
             if (!home) { ctx.findings.error('no-room', path, '', `"${n}" has no record: animation scripts name records by address, so they stay where they are, and bank $90 has no free byte for a new one; change an existing projectile instead`); continue; }
-            // Pinned: only its home fits.
-            if (ok) items.push({ key, file: path, bytes, rule: { above: home.at, below: home.at + PROJECTILE_STRIDE, bankOffset: home.at & 0xFFFF } });
+            // Pinned: only its home fits; `patched: true` lets tables() update moved/new animation group offsets.
+            if (ok) items.push({ key, file: path, bytes, rule: { above: home.at, below: home.at + PROJECTILE_STRIDE, bankOffset: home.at & 0xFFFF }, patched: true });
         }
+        projAnimRefs.set(ctx, animRefs);
         return items;
     },
 
@@ -149,13 +193,19 @@ export const projectilesCodec: Codec = {
         const ids = ctx.ids.get(KIND);
         if (!ids) return [];
         const table = new Uint8Array(2 * COUNT), byId = new Map([...ids].map(([n, id]) => [id, n]));
+        const animRefs = projAnimRefs.get(ctx), writes: Write[] = [];
         for (let id = 0; id < COUNT; id++) {
             const n = byId.get(id), at = n === undefined ? undefined : placed.get(`${DIR}/${n}`);
             if (n === undefined) { ctx.findings.error('id-gap', `${DIR}/${ENUM}`, `/names/${id}`, `no projectile has id ${id}; the table has no gaps`); continue; }
             if (at === undefined) continue;
             if (at >> 16 !== FILE_BANK) { ctx.findings.error('out-of-range', `${DIR}/${n}.json`, '', 'a record must lie in bank $90 (the table holds 16-bit addresses)'); continue; }
             table.set([at & 0xFF, (at >> 8) & 0xFF], 2 * id);
+            const groupName = animRefs?.get(n);
+            if (groupName) {
+                const off = animationGroupPlacedOffset(ctx, placed, groupName);
+                if (off !== null) writes.push({ at, bytes: Uint8Array.of(off & 0xFF, off >> 8), file: `${DIR}/${n}.json` });
+            }
         }
-        return [{ at: TABLE, bytes: table, file: `${DIR}/${ENUM}` }] satisfies Write[];
+        return [{ at: TABLE, bytes: table, file: `${DIR}/${ENUM}` }, ...writes] satisfies Write[];
     },
 };

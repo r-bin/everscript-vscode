@@ -1,6 +1,6 @@
 # Open Evermore: Animations & Metasprites Architecture
 
-Status: **design & implementation in progress (2026-11-23)**. Back to [README.md](README.md); tracked under step S7 in [progress.md](progress.md).
+Status: **v0.464.0 layout implemented (2026-11-23)** for `palettes/`, `sprites/`, `animations/`, and cleaned-up `characters/`. Back to [README.md](README.md); tracked under S2c and S7a–S7d2a in [progress.md](progress.md).
 Related engine documentation: [../entities/animation_script.md](../entities/animation_script.md), [../entities/animation_format.md](../entities/animation_format.md), and the `animation-script` skill.
 
 ---
@@ -11,10 +11,10 @@ The graphics and motion pipeline of Secret of Evermore operates across three dis
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ Layer 3: Animations (Scripts & Facing Records)                                         │
+│ Layer 3: Animations (Groups, animate() IDs & Facing Records)                              │
 │   • Groups in bank $C4 (1, 4, or 8 facings; 783 groups / 1,752 records)               │
 │   • VM bytecode in banks $C7–$C9 (timing, hold, step, strike, palette, jumps)          │
-│   • Linked to character slots (stand, walk, run, attacks, etc.) and global animate()   │
+│   • Character slots reference groups directly; 212 global animate() IDs stay vanilla   │
 └───────────────────────────────────────────┬────────────────────────────────────────────┘
                                             │ plays
 ┌───────────────────────────────────────────▼────────────────────────────────────────────┐
@@ -46,7 +46,7 @@ The graphics and motion pipeline of Secret of Evermore operates across three dis
 * **Grouping & Reusability**:
   * Blocks are global and shared. Palette-swapped characters (e.g. Boy & Bad Boy, Raptor & Red Raptor) share 100% of their blocks.
   * Idle frames, step frames, and attack poses of the same character reuse common head/torso blocks.
-  * Blocks are indexed through `characters/sprite_blocks_16/<name>.png` and `characters/sprite_blocks_8/<name>.png`.
+  * Blocks are indexed through `sprites/blocks_16/<name>.png` and `sprites/blocks_8/<name>.png`.
 
 ---
 
@@ -72,7 +72,7 @@ Every metasprite in ROM consists of:
    * `block` (2 bytes, little-endian): Index into the 16×16 or 8×8 block table.
 
 ### 3.3 Open Evermore File Format: `open-evermore/metasprite`
-Stored as concise JSON under `characters/metasprites/<character>/<name>.json`:
+Stored as concise JSON under `sprites/metasprites/<owner>/frame_<addr>.json`:
 
 ```jsonc
 {
@@ -106,49 +106,45 @@ Stored as concise JSON under `characters/metasprites/<character>/<name>.json`:
 * **Clean Defaults**: `flip_x`, `flip_y`, and `palette` default to `false` / `0` and can be omitted when unused.
 
 ### 3.4 Grouping & Attribution
-Metasprites are organized into folders by primary owner:
-* Single-owner frames: `characters/metasprites/<character>/` (e.g. `boy/`, `dog/`, `skelesnail/`).
-* Multi-owner frames (shared poses/effects): `characters/metasprites/shared/`.
-* Spells and alchemy visuals: `characters/metasprites/alchemy/`.
-* UI / HUD icons: `characters/metasprites/icon/`.
-* Miscellaneous or unassigned frames: `characters/metasprites/misc/`.
+Metasprites are organized by owner attributed through `animation_groups`:
+* Single-owner frames: `sprites/metasprites/<owner>/` (e.g. `boy/`, `dog/`, `skelesnail/`).
+* Multi-owner frames (shared poses/effects): `sprites/metasprites/shared/`.
+* Spells and alchemy visuals: `sprites/metasprites/alchemy/`.
+* UI / HUD icons & projectiles: `sprites/metasprites/icon/`, `sprites/metasprites/projectile/`.
+* Unreferenced or script-only effect frames: `sprites/metasprites/effect/`, `sprites/metasprites/misc/`.
 
 ---
 
-## 4. Layer 3: Animations (Playback & Scripting)
+## 4. Layer 3: Animations & Top-Level Shared Palettes
 
-### 4.1 Facing Groups in `$C4`
-* 783 groups across 1,752 records in `$C4:3E3A–$5999`.
-* Flags indicate facing direction counts:
-  * **8 facings**: Full omnidirectional walks, runs, and combat stances (N, NE, E, SE, S, SW, W, NW).
-  * **4 facings**: Cardinal directions (N, E, S, W; diagonal movement reuses E/W scripts).
-  * **1 facing**: Static or nondirectional effects (spells, projectile impacts, stationary objects).
-* Each facing points to an entry point in an animation script.
+### 4.1 Facing Groups in `$C4` (`animations/groups/`)
+* All **783 groups / 1,752 four-byte records** in `$C4:3E3A–$5999` live at `animations/groups/<owner>/<name>.json` (`open-evermore/animation-group`):
+  * `"facing_mode"`: `"any"` (1 record, flags `$00`), `"4_way"` (4 records, flags `$40`, indexed via `$90:815B` as `north`, `east`, `south`, `west`), or `"8_way"` (8 records, flags `$80`: `north`, `northeast`, `east`, `southeast`, `south`, `southwest`, `west`, `northwest`).
+  * `"facings"`: compass direction → 24-bit script start address `"$C7:xxxx"`–`"$C9:xxxx"`.
+  * `"palettes"` and `"used_by"`: derived programmatic attribution (ignored by implode).
+* Vanilla groups stay pinned at their `$C4` home offsets (61 code immediates name record offsets). Adding a brand-new group marks `animations/_table` to vacate `$C4:3C92–$3E39`, opening 424 bytes inside bank `$C4` (26 four-facing groups).
 
-### 4.2 Animation Scripts in `$C7–$C9`
-Unlike simple GIF-like timelines, animations are tick-accurate scripts executed by an in-engine VM:
-* `sprite <metasprite>`: Sets current metasprite frame.
-* `hold <ticks>`: Sets frame display duration.
-* `step <dist>`: Moves entity along its current facing vector.
-* `strike`: Arms hitbox for 1 tick to evaluate melee damage.
-* `palette <pal>`: Dynamically sets display palette (used by spells and flash effects).
-* `sound <sfx>`: Triggers audio effects.
-* `jump`, `dec_jnz`, `loop`: Control flow, loop counters, and state loops.
-* `end_check!`: Retires one-shot animations upon landing/finishing.
+### 4.2 `animate()` IDs (`animations/animate_ids/`) and Modes (`animations/modes/`)
+* `animations/animate_ids/<character>/<name>.json` (`open-evermore/animate-id`) keeps vanilla's **212** global `animate()` IDs (growing up to 2,048). Each entry names `"animation"` in `animation_groups/` plus optional `"facing"` (e.g. id 24 targeting slot `west` of its group).
+* `animations/modes/<mode>.json`: the six `$8C:E100` mode handlers (`once`, `once_freeze`, `loop`, `freeze`, `clear_script_pointers`, `pause`).
+* Animation scripts in `$C7–$C9` remain in `_base/` until exploded symbolically. Note: opcode `0x54` (`jump_if_linked`) is never taken in vanilla (`mode & $0040` is unset) and carries the `$C7:0075` helper offset verbatim in `$C8`/`$C9` (`$C8:0075` lands mid-instruction → `$C8:8002` music data), so static walkers must not follow `0x54` targets.
 
-### 4.3 Palette Resolution Hierarchy
-Because not all animations define an inline palette opcode, palettes are resolved using the precedence logic modeled in `src/games/evermore/sprites/animation-catalog.ts`:
+### 4.3 Top-Level Shared Palettes (`palettes/`)
+Because sprite palettes are shared across characters, weapons, Dog forms, projectiles, HUD portraits, ring icons, and animation opcode `0x4B`, palettes live at the top level:
+* `palettes/backgrounds/` (365 map tile families at `$9C:C322`, JSON or PNG stripe via `--palettes png`).
+* `palettes/sprites/` (269 sprite/icon palettes in bank `$90`/`$D0` at `$90:A7EB–$C98A`, 32 bytes each, JSON with derived `used_by` or PNG stripe via `--palettes png`).
+
+`animation-groups.mts` derives group palettes programmatically from:
 1. **Script Opcode `0x4B`**: Explicit palette embedded in script bytecode.
-2. **Equipped Weapon**: Boy attack animations use the equipped weapon's palette slot (`+$04`).
-3. **Dog Form**: Dog act animations use the current Dog form's palette (`$CF945F`).
-4. **Character Record Primary**: Record offset `+$09`.
-5. **Character Record Secondary**: Record offset `+$0B` (used for dual-palette entities like Harry and Vigor).
-6. **Inferred Fallback**: Proximity and shared block analysis for orphaned or cutscene animations.
+2. **Weapon / Ammo Records**: Equipped weapon or Bazooka ammo slot `+$04` (Boy).
+3. **Dog Forms**: Dog form header `+$06` (`$CF:945F`).
+4. **Character Records**: Primary `+$09` and (when metasprite chunks use OAM palette 1) secondary `+$0B`.
+5. **Ring Items & Projectiles**: Icon palette (`+$04`), projectile palette (`+$02`), or thrower fallback.
+6. **Inferred Fallback**: `animate()` targets (`CHAR`), shared metasprite votes, and nearest-character record proximity.
 
-### 4.4 Linking Characters to Animations
-In `characters/records/<character>/character.json`, animation slots replace raw `$C4:xxxx` pointers with symbolic names:
-* Standard 12 slots: `stand`, `walk`, `run`, `attack_0`, `attack_1`, `attack_2`, `attack_3`, `knockback`, `death`, `death_with_drop`, `cast`, `dodge`.
-* Weapons and Dog forms reference their animation groups by name.
+### 4.4 Linking Characters, Equipment, Projectiles & Ring Items
+* `characters/records/<name>.json` stores each 74-byte character record as one file (redundant `animations.json` dumps removed): `palette`/`palette2` reference `palettes/sprites/` and the 12 `animations` slots (`stand`..`dodge`) reference `animations/groups/`.
+* `equipment/weapons/`, `equipment/bazooka_ammo/`, `characters/projectiles/`, and `menus/ring_items/` likewise reference `sprite_palettes` and `animation_groups` by name instead of raw `$90`/`$D0`/`$C4` hex pointers.
 * Event scripts call `animate(entity, mode, @animation_name)`.
 
 ---
@@ -156,14 +152,9 @@ In `characters/records/<character>/character.json`, animation slots replace raw 
 ## 5. Extensibility, Moving, and Imploding
 
 1. **Lossless Round-Trip (G0)**:
-   * Exploding all 4,904 metasprites extracts ~202 KB out of `_base/unexploded.bin` into structured JSON files.
-   * `implode --strict` reassembles all chunks, bounds, and flags to yield the identical vanilla ROM SHA-1.
-2. **Editing Metasprites**:
-   * Authors can edit chunk positions, swap blocks, change priorities, or flip tiles.
-   * New chunks can be added up to SNES OAM limits.
+   * `implode --strict` reassembles palettes, sprite blocks, metasprites, animation groups, animate IDs, characters, equipment, projectiles, and ring items to the identical vanilla ROM SHA-1.
+2. **Editing & Adding**:
+   * Authors can edit character palettes, swap animation group slots across `boy/`, `dog/`, or enemies, add brand-new `animation_groups/` entries (automatically vacating `$C4:3C92` into the upper banks), or extend `animations/animate_ids/` up to 2,048 entries.
 3. **Relocatability**:
-   * *Phase 1 (In-Place)*: While animation scripts remain in `_base/`, metasprites stay at their original ROM home offsets (like `projectiles` and `menus`).
-   * *Phase 2 (Relocatable)*: Once animation scripts are exploded into symbolic names (`sprite @frame_name`), metasprites can be relocated freely within banks `$CA–$D3`, and new metasprites can be created.
-4. **Extending Animations**:
-   * Authors can author new animation scripts combining existing or new metasprites.
-   * New animation records can be placed into the pool freed by the relocated `animate()` ID table.
+   * *Phase 1 (In-Place)*: While animation scripts remain in `_base/`, vanilla `animation_groups` and `metasprites` stay pinned to their ROM offsets.
+   * *Phase 2 (Relocatable)*: Once animation scripts in `$C7–$C9` are exploded into symbolic names, metasprites can relocate freely across banks `$CA–$D3` and new animation scripts can generate metasprites.

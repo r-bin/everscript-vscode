@@ -56,7 +56,10 @@ function runExplode(args: string[], flag: (n: string) => boolean, value: (n: str
     const path = baseRomOrExit(GAME, args[0]);
     const rom: Uint8Array = stripCopierHeader(new Uint8Array(readFileSync(path)));
     const options: Record<string, Record<string, string>> = {};
-    if (palettes && palettes !== 'json') options.palettes = { format: palettes };
+    if (palettes && palettes !== 'json') {
+        options.palettes = { format: palettes };
+        options.sprite_palettes = { format: palettes };
+    }
     if (tiles && tiles !== 'png') options.tiles = { format: tiles };
     if (previews) options.maps = { previews: 'png' };
     const tree = explode(rom, { release: identifyRom(rom).variant, sha1: sha1(rom), explodedWith: TOOL_VERSION }, GAME, kindsOf(only), undefined, options);

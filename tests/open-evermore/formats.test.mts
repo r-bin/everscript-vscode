@@ -6,8 +6,10 @@ import assert from 'node:assert';
 import { createRequire } from 'node:module';
 import { deflateSync } from 'node:zlib';
 import { json, readText } from '../../tools/open-evermore/tree.mts';
+import { ANIMATION_GROUP_NAME_RE, facingOffset } from '../../tools/open-evermore/evermore/codecs/animation-groups.mts';
 import { renderAsciiArt } from '../../tools/open-evermore/evermore/codecs/animation-view.mts';
 import { ANIMATION_NAME_RE } from '../../tools/open-evermore/evermore/codecs/animations.mts';
+import { SPRITE_PALETTE_BASE, SPRITE_PALETTE_COUNT, spritePaletteAddr, spritePaletteId } from '../../tools/open-evermore/evermore/codecs/sprite-palettes.mts';
 import { fromText, toText } from '../../tools/open-evermore/evermore/codecs/strings.mts';
 import { exprBytes, exprText } from '../../tools/open-evermore/evermore/codecs/expressions.mts';
 import type { ExprNames } from '../../tools/open-evermore/evermore/codecs/expressions.mts';
@@ -211,6 +213,20 @@ test('animation ASCII art renders transparent, dark outlines, bright fills, scal
     assert.ok(!ANIMATION_NAME_RE.test('boy/1bad'));
     assert.ok(!ANIMATION_NAME_RE.test('a/b/c'));
     assert.ok(!ANIMATION_NAME_RE.test('BadName'));
+});
+
+test('animation groups: name validation, facing offsets ($90:815B), and sprite palette alignment', () => {
+    assert.ok(ANIMATION_GROUP_NAME_RE.test('boy/walk'));
+    assert.ok(ANIMATION_GROUP_NAME_RE.test('fire_eyes/attack_0'));
+    assert.ok(!ANIMATION_GROUP_NAME_RE.test('a/b/c'));
+    assert.strictEqual(facingOffset('any', 'any'), 0);
+    assert.strictEqual(facingOffset('any', 'north'), null);
+    assert.deepStrictEqual(['north', 'east', 'south', 'west'].map(f => facingOffset('4_way', f)), [0, 4, 8, 12]);
+    assert.deepStrictEqual(['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'].map(f => facingOffset('8_way', f)), [0, 4, 8, 12, 16, 20, 24, 28]);
+    assert.strictEqual(spritePaletteId(SPRITE_PALETTE_BASE), 0);
+    assert.strictEqual(spritePaletteId(spritePaletteAddr(268)), 268);
+    assert.strictEqual(spritePaletteId(SPRITE_PALETTE_BASE + 1), null);
+    assert.strictEqual(spritePaletteId(spritePaletteAddr(SPRITE_PALETTE_COUNT)), null);
 });
 
 test('metasprites format: chunk encoding, bounding box, flip and priority flags round-trip', () => {

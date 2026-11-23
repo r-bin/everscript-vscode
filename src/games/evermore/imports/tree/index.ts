@@ -61,10 +61,9 @@ function createTreeRooms(deps: { roots(): string[]; soeRom(): Rom | null }) {
         if (!trees || Date.now() - trees.at > 5000) trees = { at: Date.now(), list: findTrees(deps.roots()) };
         return trees.list;
     };
-    /** A kind's folder in a tree (v0.458.0: maps/rooms, maps/tiles, maps/palettes, maps/collisions, scripts); older
-     *  trees have them elsewhere, so the first folder holding the kind's _enum.json wins. */
+    /** A kind's folder in a tree (v0.464.0: palettes/backgrounds; older trees: maps/palettes); the first folder holding the kind's _enum.json wins. */
     const FOLDERS: Record<string, string[]> = {
-        maps: ['maps/rooms', 'maps'], tiles: ['maps/tiles', 'tiles'], palettes: ['maps/palettes'], collisions: ['maps/collisions'], scripts: ['scripts', 'scripts/global'],
+        maps: ['maps/rooms', 'maps'], tiles: ['maps/tiles', 'tiles'], palettes: ['palettes/backgrounds', 'maps/palettes'], collisions: ['maps/collisions'], scripts: ['scripts', 'scripts/global'],
     };
     const folderOf = (dir: string, kind: string): string =>
         (FOLDERS[kind] ?? [kind]).find(f => fs.existsSync(path.join(dir, f, '_enum.json'))) ?? kind;

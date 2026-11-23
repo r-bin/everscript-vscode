@@ -38,12 +38,13 @@ with `data.json`; decoder `src/platform/cdl/table-assets.ts`)*. Same JSON as the
 - **Limits.** Each entry's value range, from the table's description (`invalid-value`). A count that disagrees
   with a count byte elsewhere is an error.
 
-## palettes — background palettes *(built, S2; named palettes v0.458.0)*
+## palettes — background palettes *(built, S2; named palettes v0.458.0; moved to `palettes/` v0.464.0)*
 
 What the room format calls a *tile family* is one 16-colour palette; up to 7 a room's set, loaded into BG palettes
-1–7. v0.458.0 calls them what they are (owner: "I can't see the palettes"): the folder was `maps/tile_families/`.
+1–7. v0.458.0 calls them what they are (owner: "I can't see the palettes"): the folder was `maps/tile_families/`, then
+`maps/palettes/`, and now lives at `palettes/backgrounds/` beside shared sprite palettes (`palettes/sprites/`).
 
-**Folder.** `maps/palettes/_enum.json` + one file per palette, by default `<palette>.json`:
+**Folder.** `palettes/backgrounds/_enum.json` + one file per palette, by default `<palette>.json`:
 
 ```jsonc
 { "format": "open-evermore/palette", "version": 1,
@@ -69,8 +70,22 @@ What the room format calls a *tile family* is one 16-colour palette; up to 7 a r
   and no WRAM byte points into it (knowledge `asset_9cc322_background_palettes_tile_families`).
 - **Limits.** Exactly 16 colours, each `#rrggbb` with channels in steps of 8 (`invalid-value`); no gap in the ids
   (`id-gap`).
-- **Later:** sprite palettes (bank `$90`, full) as their own kind once their readers allow it
-  ([../split-and-link/extending.md](../split-and-link/extending.md) §5).
+
+## sprite_palettes — shared sprite and icon palettes *(built, S2c, v0.464.0)*
+
+All **269** 16-colour sprite and ring-icon palettes at `$90:A7EB–$C98A` (`0x10A7EB..0x10C98B`, 32 bytes each; mirror in
+bank `$D0` at `$D0:A7EB`). Shared across characters, weapons, Bazooka ammo, Dog forms, projectiles, HUD portraits, ring
+menu icons, and animation opcode `0x4B`.
+
+**Folder.** `palettes/sprites/_enum.json` + `<name>.json` (`open-evermore/palette` colours + derived `used_by`) or
+`<name>.png` with `--palettes png` (128×8 colour stripe, matching `palettes/backgrounds/`).
+
+- **Names.** Named programmatically from their consumers (`boy_bone_crusher`, `boy_unarmed`, `dog_act1`, `fire_eyes`,
+  `ring_icon_<id>`, `effect_<id>`, else `palette_<id>`).
+- **References.** Referenced by `characters/records/`, `equipment/{weapons,bazooka_ammo}`, `characters/projectiles/`,
+  `menus/ring_items/`, and `animations/groups/` (derived attribution).
+- **Placement.** Pinned to `$90:A7EB–$C98A` while bank-`$90`/`$D0` palette loaders (`$90:CF3A`, `$90:CFD2`, `$8E:AEBC`)
+  remain in `_base/`; counts stay fixed at 269.
 
 ## collisions — collision forms *(built, v0.458.1)*
 
@@ -378,7 +393,7 @@ write_word ENEMY_SPAWNER_QUANTITY, 1     a save-area cell by its WRAM name, then
 write_byte STORY_STATE, signed (Byte)STORY_STATE + 1
 damage dog, 10                           an entity (entities/), then an expression
 text string_0afb                         a string (strings/), sound, animation, enemy, projectile by name too
-animate dog, dog/act2_leap, once     an animation (characters/animations/), a mode (characters/animation_modes/)
+animate dog, dog/act2_leap, once     an animation (animations/animate_ids/), a mode (animations/modes/)
 add_shop_item WATER, 30                  an item of the compiler's SHOP_ITEM enum
 load_map 23, 40, 21                      numbers in decimal (0x… for ids and cells)
 skip 7                                   7 bytes no command reaches: not this script's
@@ -491,7 +506,8 @@ code right after (`handler-tables.mts`). Id `$10`'s handler got its entry (`atta
 
 `characters/projectiles/<name>.json`, one per entry of the table script opcode `0xB5` launches from (`$90:D986`, 16
 record addresses in bank `$90`, read only by `lda.l $90D986,x` at `$8C:E851`, X = the kind = 2·id). A file is the
-24-byte record by field: `animation`, `palette`, `unknown_04`, `unknown_06` (hex words), `routine` (`+$08`, setup when an
+24-byte record by field: `animation` (`animations/groups/` name or `null`; patched in `tables()`), `palette`
+(`palettes/sprites/` name or `null`), `unknown_04`, `unknown_06` (hex words), `routine` (`+$08`, setup when an
 animation throws it), `script_routine` (`+$0A`, setup when a script launches it), `behaviour` (`+$0C`, the tick) by
 routine name (the table `$90:D967`, 2·k, k ≤ 14; a selector outside it as hex), `speed`, `lifetime`, `z_speed`,
 `attack_proc` by its `attack_procs/` name, `power` (0: the thrower's attack by its stamina). Decoder:
@@ -529,13 +545,13 @@ graphics/hud/portraits/<name>.png       preview only: the Boy's and each Dog for
   `$8F:89C4` Dog). Every reader takes the column from the widget, so a column moves the box, its HP, gauge and
   portrait; the rows are immediates in many places and stay. Facts: `docs/disassembly/ui/field-hud.md`.
 - **Portraits** are sprites in bank `$CC` naming 16×16 blocks: their pixels are
-  `characters/sprite_blocks_16/<block>.png` (one owner per byte); `hud.json` names the block, `portraits/` shows it.
+  `sprites/blocks_16/<block>.png` (one owner per byte); `hud.json` names the block, `portraits/` shows it.
 - **Next.** The menu screen as a kind (8bpp tiles, palette, tilemap: all verified, `$8C:B797`); the HUD rows (many
   immediates); moving fonts within bank `$C4` (rewrite `$8C:E6E6` and the `ldx #0` callers).
 
 ## animation modes *(built, 2026-11-21)*
 
-`characters/animation_modes/<mode>.json`: the six handlers `animate`'s mode picks (`$8C:E100`, `JMP ($E100,x)`),
+`animations/modes/<mode>.json`: the six handlers `animate`'s mode picks (`$8C:E100`, `JMP ($E100,x)`),
 each `{ handler, what }` by routine name; `_enum.json` names[mode / 2]. Names: the compiler's `ANIMATION_MODE`
 lowercased (`once`, `once_freeze`, `loop`, `freeze`, `pause`) and `clear_script_pointers` for mode 8, which the
 compiler does not name (the skeleton ship in the Desert of Doom uses it). Scripts write the mode by these names.
@@ -558,8 +574,7 @@ menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (o
 - **ring items** (162, `$8E:8000` → 8-byte entries `$8E:8144`): `name` is the text the ring prints, a plain ASCII
   string in bank `$C4`. Weapon records, formula and ingredient names point at the same strings, so a name changes the
   item everywhere and is written where it was: at most its vanilla length (`no-room`, why: §Why a name keeps its
-  length). `icon` an animation record
-  (`$C4`), `palette` 16 colours (`$D0`). The index is what the ring that shows the item reads: by id range it is an
+  length). `icon` names a group in `animations/groups/`, `palette` names a palette in `palettes/sprites/`. The index is what the ring that shows the item reads: by id range it is an
   `action` (options → `option_actions`, consumables → `item_actions`, Call Bead callers → `caller_actions`, their
   spells → `spell_actions`), a `formula` (`alchemy_actions`: also the number the learned bits and levels use) or a
   plain `index` (weapon, ammo, armour ×2, ingredient). Names from the item's own text (`weapon_bone_crusher`).
@@ -649,9 +664,10 @@ equipment/armour/<armour>.json         { name, ring_item, defense, defense_shown
 
 - **weapons** (14, the weapon index: `fist`, 12 weapons, `bazooka`): `name` is the ring item whose text the record
   shows (the text is the ring item's, menus); `ring_item` the item the weapons ring shows; `owned` the WRAM byte and bit
-  (`$22DA`/`$22DB`: bits `$40`, `$80` of `$22DB` are free); `animations` are the records boy_load_weapon copies into
-  the Boy's character record (`$C4:xxxx`); `description` the weapon skill page's line, written where it was. The fist
-  has only a school; the Bazooka has no record of its own (its ammo's).
+  (`$22DA`/`$22DB`: bits `$40`, `$80` of `$22DB` are free); `palette` names a `palettes/sprites/` entry, `animations` and
+  `unknown_1a`/`unknown_1c` name `animations/groups/` entries `boy_load_weapon` copies into the Boy's character record;
+  `description` the weapon skill page's line, written where it was. The fist has only a school; the Bazooka has no record
+  of its own (its ammo's).
 - **weapon schools** (4: `sword`, `axe`, `spear`, `bazooka`): a weapon's `school` is 2·id. What a school is, is code:
   the weapon skill screen (options ring) jumps by the equipped weapon's school to a draw and a loop of its own page
   (`$8E:93D8`, `$8E:9404`: the Bazooka's are the sword's), and school `sword` adds a quarter of the attack again
@@ -749,54 +765,49 @@ knowledge entries `item_use_on_target`, `tbl_C45A84`, `tbl_C45A92`, `tbl_consuma
   (`item-hooks.test.mts`). In game: a Salve on `debug_heel` shows "Salve ×3" on the items ring and heals 5 → 15 HP at power
   10 (count 3 → 2); a Lucky Coin (`$22DB` `$40`, Wizard's Coin's icon) is listed in the Pouch with its description.
 
-## characters, animations, sprite blocks *(built, 2026-11-20)*
+## characters, animations, sprites *(built, 2026-11-20; v0.464.0 layout)*
 
-The table hack's tables (`tools/table-hack/`, moved and proven there), now resources:
+The table hack's tables (`tools/table-hack/`, moved and proven there) alongside the shared animation and sprite layers:
 
 ```
-characters/records/<name>/character.json    one 74-byte record as named fields (hp, attack, …, palette); `spawn` for the Boy
-                                    and the Dog, whose ENEMY ids spawn from WRAM ($0A26, $0A70); `behaviour` and
-                                    `attack_proc` by name (above); `flags` (+$05, entity +$10's bits) and `flags2`
-                                    (+$07) as bit names, "invincible | inactive", null for none
-characters/records/<name>/animations.json   its twelve animation records (stand, walk, …, dodge), each with a plain-English
-                                            `what` summary, one representative ASCII `art` preview (`same_as` for repeated slots);
-                                            only `record` is read by implode
+characters/records/<name>.json             one 74-byte record as named fields (hp, attack, …), `palette`/`palette2`
+                                           (`palettes/sprites/`), `animations` (12 slots naming `animations/groups/`),
+                                           `behaviour` and `attack_proc`, `flags`/`flags2` as bit names, and `spawn` for
+                                           the Boy/Dog whose ENEMY ids spawn from WRAM ($0A26, $0A70)
 characters/records/_enum.json              names[ENEMY id], what spawn opcodes take; null: an id with no record
 characters/records/_records.json           the record block in order: record k at $xx:B678 + 74·k
-characters/animations/<character>/<name>.json  an id `animate()` plays, attributed to its character (with `placeholder/`
-                                               for cutscene/effect animations and `shared/` for multi-character/empty ones):
-                                               its record (`$C4:xxxx`), `what`, `used_in`, and a read-only `preview` with
-                                               palette-shaded ASCII art frames (`.` transparent, `:-=+*#%@` dark→light)
-characters/sprite_blocks_16/<name>.png       16×16 sprite block pixels, indexed, grey (the palette comes from the entity)
-characters/sprite_blocks_8/<name>.png        8×8; sprite_blocks_8/block_17c5.json: an alias (below)
+animations/groups/<owner>/<name>.json      all 783 facing groups in $C4:3E3A-$5999 (`facing_mode`, compass `facings`
+                                           → script address, derived `palettes` & `used_by`)
+animations/animate_ids/<char>/<name>.json  the 212 global ids `animate()` plays: { animation, facing? }, plus derived
+                                           `used_in_scripts` / `played_on` (limit 2,048)
+animations/modes/<mode>.json               the 6 mode handlers at $8C:E100
+sprites/blocks_16/<name>.png               4,854 16×16 sprite blocks, indexed grey PNG
+sprites/blocks_8/<name>.png                6,265 8×8 sprite blocks (plus block_17c5.json alias)
 ```
 
-- **Names.** Characters: our compiler's ENEMY names (`language/data/index.json`), `boy`, `dog`; animations: attributed
-  `<character>/<name>` using script `spawn*`→`animate` chains, character records, weapons, Dog forms, and
-  `ANIMATION_BOY` / `_DOG` / `_ENEMY` / `_ALL` / `_PLACEHOLDER` names (direct `0x...` values, not enum references),
-  stripping redundant character prefixes, else `animation_<id>`; `block_<id>`.
-- **Characters.** One item: the records stay a block at offset `$B678` of a bank in the `$80–$BF` form
-  (`Rule.bankOffset`), because the game keeps them by 16-bit address (ENEMY index, entity `+$60`, and five code
-  immediates that name records). Only the bank moves: implode writes it into the `mvn` at `$8F:8046` and the 131
-  `op $8E00xx,X` operands. `_records.json` order is identity: add records at the end. 254 at most (to the end of
-  the bank). The ENEMY index (`$8E:B55A`, four `lda.l` in the spawn handlers) is a generated item; 256 ids.
-- **Animations.** The id table (`$C4:3C92`, one `lda.l` at `$8C:E13C`) is a generated item; the records, scripts
-  and sprite infos stay in `_base/` ([animations.md](animations.md)): a file's `record` is what implode reads, the
-  `what` summary, `used_in`, and ASCII `preview` frames are derived from the ROM (`animation-view.mts`). 2,048 ids.
-- **Sprite blocks.** Each block is a resource placed anywhere from its base bank (`$D9` / `$D1`) to the end of the
-  4 MiB (`Rule.above`, `below`), never across a bank; the tables (`$EC:0000`, `$D8:0000`, three `lda.l` each) are
-  generated. Stored compressed exactly when shorter (vanilla's rule for all 11,119), so the PNG is the whole block.
-  8×8 block 6085 reads raw the bytes of blocks 0 and 407 compressed: `{ "bytes_of": [...], "compressed": false }`,
-  placed as one run. 21,845 ids each.
+- **Names.** Characters: our compiler's ENEMY names (`language/data/index.json`), `boy`, `dog`. Animation groups &
+  `animate()` IDs: attributed `<owner>/<name>` using character records, weapons, Dog forms, ring items, projectiles,
+  alchemy, script chains, and enums, stripping redundant prefixes.
+- **Characters.** Single `<name>.json` per character (redundant `animations.json` dumps removed in v0.464.0). Records
+  stay a block at offset `$B678` of a bank in `$80–$BF` form (`Rule.bankOffset`); `patched: true` lets `tables()` update
+  moved/new animation group offsets. 254 records, 256 ENEMY ids max.
+- **Animation groups (`animation_groups`).** All 783 groups in `$C4:3E3A–$5999` with explicit `facing_mode` (`any`,
+  `4_way` in `$90:815B` order `[N, E, S, W]`, or `8_way`) and programmatic palette attribution (`animation-groups.mts`).
+  Vanilla groups keep their `$C4` offset; adding a new group marks `animations/_table` (`vacate_c4`) so `$C4:3C92–$3E39`
+  opens inside bank `$C4` (`layout.mts` places single-bank items before loose items).
+- **Animations (`animations`).** Kept at vanilla's 212 global IDs (`animations/animate_ids/`), each referencing a group
+  in `animations/groups/` (and optional interior `facing`); `$C4:3C92` moves out of bank `$C4` when a new group claims it.
+- **Sprite blocks.** `sprites/blocks_16/` and `sprites/blocks_8/`, compressed exactly when shorter (plus alias `block_17c5`),
+  21,845 ids each.
 - **Proven (G1).** See [progress.md](progress.md).
 
-## metasprites — composite sprite frames *(built, S7d)*
+## metasprites — composite sprite frames *(built, S7d; `sprites/` v0.464.0)*
 
 The 4,904 discrete composite sprite frames (metasprites) assembled from 16×16 and 8×8 sprite blocks across banks `$CA–$D3`.
 Each file describes the chunks, signed offsets from the origin anchor (feet), flags (size, flipX, flipY, priority, palette),
 and hardware bounding box.
 
-**Folder.** `characters/metasprites/<character>/<frame>.json`, organized by character or `shared/`, `alchemy/`, `icon/`, `misc/`.
+**Folder.** `sprites/metasprites/<owner>/<frame>.json`, organized by owner attributed via `animation_groups` (`boy/`, `dog/`, enemies, `shared/`, `alchemy/`, `icon/`, `projectile/`, `effect/`, `misc/`).
 
 ```jsonc
 { "format": "open-evermore/metasprite", "version": 1,
@@ -807,31 +818,16 @@ and hardware bounding box.
 }
 ```
 
-- **Names.** `<character>/frame_<addr>` (e.g. `boy/frame_ca0003`, `shared/frame_cb1230`).
+- **Names.** `<owner>/frame_<addr>` (e.g. `boy/frame_ca0003`, `shared/frame_cb1230`).
 - **References.** Used by animation scripts (`sprite` opcodes `0x22–0x2B`, `sprite2`, `sprite_long`, `sprite_aim`). References `sprite_blocks_16` and `sprite_blocks_8` by block name.
-- **Implode generates**: The exact byte sequences for `$CA–$D3` sprite records (chunk count, first offset, bounding box, 5-byte chunk descriptors).
-- **Placement**: Pinned to home addresses while animation bytecode in `_base/` remains address-bound; relocatable across banks `$CA–$D3` once scripts become symbolic.
+- **Implode generates**: The exact byte sequences for `$CA–$D3` sprite records (validated bounds, chunk fields, block refs, and record length).
+- **Placement**: Pinned to home addresses (with same-length rename support) while animation bytecode in `$C7–$C9` remains in `_base/`.
 
-## characters, sprites, animations — the rest
+## animation scripts — `$C7–$C9` bytecode *(remaining)*
 
-Explored 2026-11-20, designed 2026-11-23: [animations.md](animations.md) (what binds each layer, what can be exploded first).
-
-**Folder.**
-
-```
-characters/<character>/   character.json (the record), referencing sprites, palette, animations by name
-sprites/<block>/          sprite.png (+ block layout)
-animations/<animation>/   animation.json (the decoded animation script)
-```
-
-- **Facts *(repo)*.** 142 characters (`soe://rom/assets/characters/`); character records and enemies in bank
-  `$8E`; sprite blocks at `$EC0000` and `$D80000` (moved and proven); animation records bound to bank `$C4`,
-  212 ids ([../extension-tables.md](../extension-tables.md), `animation-script` skill).
-- **Implode generates**: the enemy index, the record bank, the sprite block tables, the animation record pool
-  and `animate()` ids.
-- **Limits.** Animation records stay in `$C4` (`bank-bound`); records stay in `$8E` until readers take a bank.
-- **Codec.** Decoders *(repo)*; encoders: the table hack moved these tables (`tools/table-hack/` *(repo)*), the
-  block encoder and new animation content are open ([../todo/table-hack.md](../todo/table-hack.md)).
+Explored 2026-11-20, architecture in [animations.md](animations.md). Once animation script VM bytecode in banks
+`$C7–$C9` is exploded into symbolic `sprite` / frame commands (`sprite @frame_name`), metasprites can relocate freely
+across banks `$CA–$D3` and new frames/scripts can be authored without fixed ROM offsets.
 
 ## wram — WRAM variables *(built, W1, v0.459.0)*
 

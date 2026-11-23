@@ -30,16 +30,18 @@ const word = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
 const C4 = 0x040000, POINTERS = C4 + 0x3874, WEAPON_RECORDS = C4 + 0x38E6, AMMO_RECORDS = C4 + 0x3A96, ARMOUR_RECORDS = C4 + 0x3B02;
 const RECORD = 36, WEAPON_COUNT = 14, AMMO_COUNT = 3, ARMOUR_COUNT = 40, ARMOUR_RECORD = 10;
 const RING_ITEM: Form = { type: 'ref', kind: 'ring_items', scale: 2 };
-const ANIMATION: Form = { type: 'hex', bank: 0xC4 };
+const ANIMATION: Form = { type: 'animation_group' };
+const ANIMATION_OPT: Form = { type: 'animation_group', optional: true };
+const PALETTE: Form = { type: 'sprite_palette' };
 
 /** The weapon record's fields, at `base` + 36·id + offset; `ids` the ids that have a record. */
 function recordFields(base: number, ids?: (id: number) => boolean): Field[] {
     const f = (path: string, offset: number, form: Form): Field => ({ path, at: base + offset, stride: RECORD, form, ids });
     return [
         f('name', 0x02, { type: 'ring_text' }), f('ring_item', 0x1E, RING_ITEM), f('attack', 0x00, { type: 'number' }),
-        f('range', 0x06, { type: 'number' }), f('palette', 0x04, { type: 'hex' }),
+        f('range', 0x06, { type: 'number' }), f('palette', 0x04, PALETTE),
         ...['stand', 'walk', 'run', 'attack_0', 'attack_1', 'attack_2', 'attack_3', 'dodge', 'knockback'].map((n, k) => f(`animations/${n}`, 0x08 + 2 * k, ANIMATION)),
-        f('unknown_1a', 0x1A, { type: 'hex' }), f('unknown_1c', 0x1C, { type: 'hex' }),
+        f('unknown_1a', 0x1A, ANIMATION_OPT), f('unknown_1c', 0x1C, ANIMATION_OPT),
     ];
 }
 

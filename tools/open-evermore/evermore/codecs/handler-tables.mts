@@ -29,13 +29,15 @@ interface Table {
     why: string;
     /** The group folder (default characters). */
     group?: string;
+    /** Override tree folder (default `${group ?? 'characters'}/${kind}`). */
+    folder?: string;
 }
 
 export function handlerTable(t: Table): Codec {
     const DIR = t.kind, BANK = 0x80 | (t.at >> 16), COUNT = t.entries.length, HANDLERS = routines(BANK);
     const bank = `$${BANK.toString(16).toUpperCase()}`;
     return {
-        kind: t.kind, version: 1, path: DIR, folder: `${t.group ?? 'characters'}/${DIR}`,
+        kind: t.kind, version: 1, path: DIR, folder: t.folder ?? `${t.group ?? 'characters'}/${DIR}`,
         defaultName: id => t.entries[id]?.[0] ?? `${t.kind}_${(2 * id).toString(16).padStart(2, '0')}`,
 
         // Only the handler is the entry; `what` is for the reader.
@@ -142,7 +144,7 @@ export const behavioursCodec = handlerTable({
 export const ANIMATION_MODE_COUNT = 6;
 
 export const animationModesCodec = handlerTable({
-    kind: ANIMATION_MODES, at: 0x0CE100,
+    kind: ANIMATION_MODES, at: 0x0CE100, group: 'animations', folder: 'animations/modes',
     why: "animate()'s mode is 2·id into the table at $8C:E100 (JMP ($E100,x) at $8C:E0FD, handlers in bank $8C), 6 entries with code right after them; every handler ends in the animation start $8C:E139",
     entries: [
         ['once', 'plays the animation, nothing more'],

@@ -7,7 +7,7 @@ category: 🎮
 name: animation_script_branch_if_entity_active
 title: Conditionally branch animation script if linked entity is active ($90:8C09)
 confidence: confirmed
-evidence: ["disasm: checks linked entity $0080,Y; if active and flags +$10,X bit 8 set and +$16,X bit 6 set, branches script PC to target [<$5D]; else skips target by 2 bytes"]
+evidence: ["disasm: checks linked entity $0080,Y; if active and flags +$10,X bit 8 set and +$16,X bit 6 set, branches script PC to target [<$5D] without changing bank $5F; else skips target by 2 bytes", "rom: all 141 vanilla 0x54 commands carry $0075 (111x) or $0078 (30x) — the bank-$C7 linked-hold helper offset — emitted verbatim into banks $C8 (10x) and $C9 (71x); mode bit $0040 is never set in vanilla, so $C8:0075 (mid-instruction `3b 02 80` → $C8:8002 music data) is unreached at runtime"]
 see: []
 tags: ["animation","entity","branch","active"]
 ---

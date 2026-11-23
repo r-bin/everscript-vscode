@@ -1,44 +1,38 @@
-// The `characters` kind (docs/open-evermore/resources.md §characters): every character record, one folder each.
-//   characters/<name>/character.json   the record's fields by name (docs/entities/character_table.md); `spawn` when
-//                                      the ENEMY id spawns from another address (the Boy, the Dog: WRAM)
-//   characters/<name>/animations.json  the record's twelve animation ids, each with what it shows (animation-view.mts)
-//   characters/_enum.json              names[ENEMY id]: what spawn opcodes take (null: no record, address 0)
-//   characters/_records.json           the record block's order: a record's place is its 16-bit address
-// Implode writes the records as one block, the ENEMY index wherever it lands, and the bank byte of every operand that
-// reads the records.
+// The `characters` kind (docs/open-evermore/resources.md §characters): every character record, one file each.
+//   characters/<name>.json        the record's fields by name (`palette`, `palette2` by sprite_palettes name, and
+//                                 `animations` mapping the 12 slots to animation_groups names); `spawn` when the
+//                                 ENEMY id spawns from another address (the Boy, the Dog: WRAM)
+//   characters/_enum.json         names[ENEMY id]: what spawn opcodes take (null: no record, address 0)
+//   characters/_records.json      the record block's order: a record's place is its 16-bit address
+// Implode writes the records as one block, patches animation slot offsets if any moved/new group was placed, writes
+// the ENEMY index wherever it lands, and updates the bank byte of every operand that reads the records.
 //
-// Facts used (docs/entities/character_table.md, knowledge routines/character_records.md, tools/table-hack/tables.js,
-// where both tables were moved and proven):
+// Facts used (docs/entities/character_table.md, knowledge routines/character_records.md, tools/table-hack/tables.js):
 //   records   74 bytes apart from $8E:B678, 142 in vanilla (records 0 and 1: the Boy's and the Dog's templates, copied
 //             to WRAM $0A26 by `mvn` at $8F:8046). Code reads a field as `op $8E00xx,X` with X = the record's 16-bit
-//             address: 131 such operands in the code banks, all in the $8E form (bank $8E mirrors low WRAM, so the
-//             same reads reach the Boy and Dog in WRAM). Records are kept by their 16-bit address (the ENEMY index,
-//             entity +$60, and five code immediates, knowledge character_records), so the block keeps offset $B678
-//             and its order; only its bank moves, in the $80-$BF form. Room for 254
+//             address: 131 such operands in the code banks, all in the $8E form. Records keep offset $B678 and order;
+//             only the bank moves, in the $80-$BF form. Room for 254
 //   ENEMY     the index at $8E:B55A, one word per id (a record's 16-bit address), read by `lda.l $8EB55A,x` in the
-//             four spawn handlers ($8C:DC9A/DCC3/DCD9/DCEC); 143 ids: 0 and 1 the Boy's and Dog's WRAM records, one
-//             0, the rest one record each; 0xBA/0xC2 take a byte id: 256 at most
-//   fields    behaviour (+$03) and attack proc (+$30) are even ids into the jump tables of handler-tables.mts: written
-//             by those kinds' names; the flag words +$05 (OR'd into entity +$10 at spawn) and +$07 as their bits' names,
-//             `a | b`, null for none (docs/entities/entities-reference.md §+0x10 bits, character-properties.md §+$07)
-// Names: our compiler's ENEMY names (language/data/index.json; D4); `boy`, `dog` for ids 0 and 1.
+//             four spawn handlers ($8C:DC9A/DCC3/DCD9/DCEC); 143 ids; 0xBA/0xC2 take a byte id: 256 at most
+//   fields    behaviour (+$03) and attack proc (+$30) are handler-table names; flags (+$05, +$07) as bit names (`a | b`,
+//             null for none); palettes (+$09, +$0B) as sprite_palettes names; animations (+$32..+$48) as animation_groups names
 import { createRequire } from 'node:module';
 import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
-import { describeAnimation } from './animation-view.mts';
+import { ANIMATION_GROUPS, animationGroupInitialOffset, animationGroupPlacedOffset, animationGroupRef } from './animation-groups.mts';
 import { ATTACK_PROCS, BEHAVIOURS } from './handler-tables.mts';
 import { hexText, parseHex, readerSpans, readerWrites, tableAt } from './readers.mts';
 import type { Reader } from './readers.mts';
+import { SPRITE_PALETTES, spritePaletteAddr, spritePaletteName } from './sprite-palettes.mts';
 
 const require = createRequire(import.meta.url);
 const ENEMY_NAMES: { name: string; value: string }[] = require('../../../../src/games/evermore/language/data/index.json').enums.ENEMY ?? [];
 const { readWeaponAnimations } = require('../../../../dist/games/evermore/sprites/character-model');
 
 export const CHARACTERS = 'characters';
-const DIR = CHARACTERS, RECORDS_FILE = '_records.json', CHARACTER = 'character.json', ANIMS = 'animations.json';
-const ANIMS_FORMAT = 'open-evermore/character-animations';
+const DIR = CHARACTERS, RECORDS_FILE = '_records.json';
 const RECORDS = `${DIR}/_records`, INDEX = `${DIR}/_enemy_index`;
 /** The pseudo kind whose symbols tell a round trip each record's place. */
 const RECORD = 'characters.record';
@@ -56,20 +50,16 @@ const SPAWN_FLAGS = ['hidden', 'invincible', 'party', 'parked', 'never_sleeps', 
     'awake', 'asleep', 'phasing', 'following', 'no_gravity', 'hides_after_fall', 'takes_no_damage', 'bit_15'];
 const FLAGS2 = ['segmented_body', 'partner_hit_penalty', 'ring_menu_target', 'mask_4000_target', 'projectile_immune',
     ...Array.from({ length: 11 }, (_, k) => `bit_${k + 5}`)];
-/** How a field is written: a number, hex (`$xxxx`; the name pointer `$xxxxxx`), an entry of a handler-table kind by
- *  name (the record holds 2·id), or flags by their bits' names. */
-type Form = 'n' | 'hex' | { kind: string } | { bits: string[] };
+type Form = 'n' | 'hex' | 'sprite_palette' | { kind: string } | { bits: string[] };
 type Field = [string, number, number, Form];
 const FIELDS: Field[] = [
     ['name', 0x00, 3, 'hex'], ['behaviour', 0x03, 2, { kind: BEHAVIOURS }], ['flags', 0x05, 2, { bits: SPAWN_FLAGS }], ['flags2', 0x07, 2, { bits: FLAGS2 }],
-    ['palette', 0x09, 2, 'hex'], ['palette2', 0x0B, 2, 'hex'], ['radius', 0x0D, 2, 'n'], ['hp', 0x0F, 2, 'n'],
+    ['palette', 0x09, 2, 'sprite_palette'], ['palette2', 0x0B, 2, 'sprite_palette'], ['radius', 0x0D, 2, 'n'], ['hp', 0x0F, 2, 'n'],
     ['unknown_11', 0x11, 2, 'n'], ['aggro_range', 0x13, 2, 'n'], ['aggro_chance', 0x15, 2, 'n'], ['leash', 0x17, 2, 'n'],
     ['attack', 0x19, 2, 'n'], ['defense', 0x1B, 2, 'n'], ['magic_defense', 0x1D, 2, 'n'], ['evade', 0x1F, 2, 'n'],
     ['hit_rate', 0x21, 2, 'n'], ['exp', 0x23, 4, 'n'], ['money', 0x27, 2, 'n'], ['prize_chance', 0x29, 1, 'n'],
     ['level', 0x2A, 2, 'n'], ['charge_limit', 0x2C, 2, 'n'], ['charge_speed', 0x2E, 2, 'n'], ['attack_proc', 0x30, 2, { kind: ATTACK_PROCS }],
 ];
-/** The animation ids at +$32-+$48, by what the game plays them for (character-model.ts): animation record offsets. */
-/** Entries of the handler tables (handler-tables.mts): an id past them is written as hex. */
 const TABLE_SIZE: Record<string, number> = { [ATTACK_PROCS]: 15, [BEHAVIOURS]: 15 };
 /** The character's 12 animations at +$32, by what the game plays them for; `animate` names them with bit 15 set. */
 export const ANIMATION_SLOTS = ['stand', 'walk', 'run', 'attack_0', 'attack_1', 'attack_2', 'attack_3', 'knockback', 'death', 'death_with_drop', 'cast', 'dodge'];
@@ -77,25 +67,77 @@ const ANIMATIONS = ANIMATION_SLOTS, ANIM_AT = 0x32;
 
 const word = (b: Uint8Array, at: number, n: number) => { let v = 0; for (let k = n - 1; k >= 0; k--) v = v * 256 + b[at + k]; return v; };
 
-/** A record file pair → its 74 bytes; problems are findings. */
-function recordBytes(c: any, a: any, dir: string, ctx: ImplodeContext): Uint8Array | null {
+/** A record JSON → its 74 bytes + named animation group refs for patching in `tables()`; problems are findings. */
+function recordBytes(
+    c: any,
+    path: string,
+    ctx: ImplodeContext,
+): { bytes: Uint8Array; animRefs: (string | null)[] } | null {
     const out = new Uint8Array(STRIDE);
     let ok = true;
-    const put = (value: unknown, at: number, size: number, form: Form, path: string, pointer: string) => {
+    const put = (value: unknown, at: number, size: number, form: Form, pointer: string) => {
         const max = 2 ** (8 * size) - 1;
         const n = fieldValue(value, form, max, ctx);
-        if (n === null) { ctx.findings.error(typeof form === 'object' && 'kind' in form && typeof value === 'string' && !value.startsWith('$') ? 'unknown-reference' : 'invalid-value', path, pointer, expected(form, size, max)); ok = false; return; }
+        if (n === null) {
+            const unknownRef = (form === 'sprite_palette' || (typeof form === 'object' && 'kind' in form)) && typeof value === 'string' && !value.startsWith('$');
+            ctx.findings.error(unknownRef ? 'unknown-reference' : 'invalid-value', path, pointer, expected(form, size, max));
+            ok = false;
+            return;
+        }
         for (let k = 0, x = n; k < size; k++, x = Math.floor(x / 256)) out[at + k] = x & 0xFF;
     };
-    for (const [n, at, size, form] of FIELDS) put(c?.[n], at, size, form, `${dir}/${CHARACTER}`, `/${n}`);
-    ANIMATIONS.forEach((n, k) => put(a?.[n]?.record, ANIM_AT + 2 * k, 2, 'hex', `${dir}/${ANIMS}`, `/${n}/record`));
-    return ok ? out : null;
+    for (const [n, at, size, form] of FIELDS) put(c?.[n], at, size, form, `/${n}`);
+
+    const groups = ctx.names.get(ANIMATION_GROUPS);
+    const animRefs: (string | null)[] = new Array(ANIMATIONS.length).fill(null);
+    if (!c?.animations || typeof c.animations !== 'object' || Array.isArray(c.animations)) {
+        ctx.findings.error('invalid-value', path, '/animations', 'an object mapping the 12 animation slots to animation_groups names (or null)');
+        ok = false;
+    } else {
+        ANIMATIONS.forEach((slot, k) => {
+            const v = c.animations[slot];
+            let rec16: number | null = null;
+            if (v === null) {
+                rec16 = 0;
+            } else if (typeof v === 'string') {
+                if (groups && !v.startsWith('$')) {
+                    if (groups.has(v)) {
+                        animRefs[k] = v;
+                        rec16 = animationGroupInitialOffset(ctx, v) ?? 0;
+                    } else {
+                        ctx.findings.error('unknown-reference', path, `/animations/${slot}`, `"${v}" is no animation group in animations/groups/`);
+                        ok = false;
+                        return;
+                    }
+                } else {
+                    rec16 = parseHex(v, 0xFFFF, 0xC4);
+                }
+            }
+            if (rec16 === null) {
+                ctx.findings.error('invalid-value', path, `/animations/${slot}`, groups ? 'an animation group name or null' : '"$xxxx" or "$C4:xxxx"');
+                ok = false;
+                return;
+            }
+            out[ANIM_AT + 2 * k] = rec16 & 0xFF;
+            out[ANIM_AT + 2 * k + 1] = rec16 >> 8;
+        });
+    }
+    return ok ? { bytes: out, animRefs } : null;
 }
 
 /** A field as written → its value, or null. */
 function fieldValue(v: unknown, form: Form, max: number, ctx: ImplodeContext): number | null {
     if (form === 'n') return Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max ? v as number : null;
     if (form === 'hex') return parseHex(v, max);
+    if (form === 'sprite_palette') {
+        if (v === null) return 0;
+        const pals = ctx.ids.get(SPRITE_PALETTES);
+        if (pals && typeof v === 'string' && !v.startsWith('$')) {
+            const id = pals.get(v);
+            return id !== undefined ? spritePaletteAddr(id) : null;
+        }
+        return parseHex(v, max);
+    }
     if ('kind' in form) { const id = typeof v === 'string' ? ctx.ids.get(form.kind)?.get(v) : undefined; return id !== undefined ? 2 * id : parseHex(v, max); }
     if (v === null) return 0;
     if (typeof v !== 'string') return null;
@@ -103,13 +145,31 @@ function fieldValue(v: unknown, form: Form, max: number, ctx: ImplodeContext): n
     for (const t of v.split('|').map(x => x.trim())) { const b = form.bits.indexOf(t); if (b < 0) return null; n |= 1 << b; }
     return n;
 }
+
 const expected = (form: Form, size: number, max: number) => form === 'n' ? `a whole number 0-${max}` : form === 'hex' ? `"$${'x'.repeat(size * 2)}"`
+    : form === 'sprite_palette' ? `a name in ${SPRITE_PALETTES}/, or null`
     : 'kind' in form ? `a name in ${form.kind}/` : `null, or bits joined by " | " (${form.bits.filter(b => !b.startsWith('bit_')).join(', ')}, bit_<n>)`;
+
 /** A field's value as written. */
-function fieldText(v: number, form: Form, size: number, name: (kind: string, id: number) => string, count: (kind: string) => number): unknown {
+function fieldText(
+    rom: Uint8Array,
+    v: number,
+    form: Form,
+    size: number,
+    name: NameOf,
+    countOf: CountOf,
+    nameAt: NameAt,
+): unknown {
     if (form === 'n') return v;
     if (form === 'hex') return hexText(v, size * 2);
-    if ('kind' in form) return v % 2 === 0 && v / 2 < count(form.kind) ? name(form.kind, v / 2) : hexText(v, size * 2);
+    if (form === 'sprite_palette') {
+        if (!v) return null;
+        try { return spritePaletteName(rom, v, name, countOf, nameAt); } catch { return hexText(v, size * 2); }
+    }
+    if ('kind' in form) {
+        const c = countOf(form.kind) ?? TABLE_SIZE[form.kind];
+        return v % 2 === 0 && v / 2 < c ? name(form.kind, v / 2) : hexText(v, size * 2);
+    }
     return v ? form.bits.filter((_, b) => v & (1 << b)).join(' | ') : null;
 }
 
@@ -183,51 +243,27 @@ export function characterNames(rom: Uint8Array, name: NameOf, countOf: CountOf, 
 }
 
 export const charactersCodec: Codec = {
-    kind: CHARACTERS, version: 3, path: DIR, folder: `${DIR}/records`, listedIdsOnly: true,
+    kind: CHARACTERS, version: 4, path: DIR, folder: `${DIR}/records`, listedIdsOnly: true,
 
     defaultName: id => ENEMY_DEFAULT.get(id) ?? `enemy_${id.toString(16).padStart(2, '0')}`,
-
-    // animations.json is the twelve record ids; what each shows is derived for the reader.
-    canonical(path, bytes) {
-        if (!path.endsWith('/' + ANIMS)) return [path, bytes];
-        const v = JSON.parse(readText(bytes));
-        return [path, json(Object.fromEntries(ANIMATIONS.map(n => [n, v[n]?.record])))];
-    },
 
     explode(rom, name, _options, countOf, nameAt) {
         const at = recordsAt(rom), { records, enemies, spawn } = characterNames(rom, name, countOf, nameAt);
         const files: Tree = new Map();
         records.forEach((n, k) => {
             const b = rom.subarray(at + STRIDE * k, at + STRIDE * (k + 1)), c: Record<string, unknown> = {};
-            for (const [f, off, size, form] of FIELDS) c[f] = fieldText(word(b, off, size), form, size, name, k => countOf(k) ?? TABLE_SIZE[k]);
+            for (const [f, off, size, form] of FIELDS) c[f] = fieldText(rom, word(b, off, size), form, size, name, countOf, nameAt);
             if (spawn.has(n)) c.spawn = hexText(spawn.get(n)!, 4);
-            files.set(`${DIR}/${n}/${CHARACTER}`, json(c));
-
-            const { palette, palette2 } = characterPalettes(rom, k);
-            const seen = new Map<number, string>();
-            const animObj: Record<string, unknown> = {
-                format: ANIMS_FORMAT,
-                version: 1,
-                note: "Only each slot's `record` is read by implode; `what`, `art`, and `same_as` are read-only previews ('.' transparent, ':-=+*#%@' dark->light).",
-            };
+            const anims: Record<string, unknown> = {};
             ANIMATIONS.forEach((f, i) => {
                 const r = word(b, ANIM_AT + 2 * i, 2);
-                if (!r) { animObj[f] = { record: hexText(r, 4), what: 'none' }; return; }
-                const first = seen.get(r);
-                if (first) { animObj[f] = { record: hexText(r, 4), same_as: first }; return; }
-                seen.set(r, f);
-                animObj[f] = {
-                    record: hexText(r, 4),
-                    ...describeAnimation(rom, r, {
-                        paletteAddr: palette,
-                        palette2Addr: palette2,
-                        oneShot: i >= 3,
-                        mode: 'slot',
-                        preferStrike: i >= 3 && i <= 6,
-                    }),
-                };
+                if (!r) { anims[f] = null; return; }
+                const ref = animationGroupRef(rom, r, name, countOf, nameAt);
+                if (ref && ref.facing) throw new Error(`${CHARACTERS}: ${n}.${f} points to interior facing $${r.toString(16)}`);
+                anims[f] = ref ? ref.group : hexText(r, 4, 0xC4);
             });
-            files.set(`${DIR}/${n}/${ANIMS}`, json(animObj));
+            c.animations = anims;
+            files.set(`${DIR}/${n}.json`, json(c));
         });
         files.set(`${DIR}/${ENUM}`, enumFile({ kind: CHARACTERS, limit: ENEMY_LIMIT, names: enemies as string[], why: 'ENEMY ids, what spawn opcodes take (0xBA/0xC2: one byte); null: an id with no record' }));
         files.set(`${DIR}/${RECORDS_FILE}`, json({ why: `the record block in order: record k is at $xx:${OFFSET.toString(16).toUpperCase()} + 74·k, the address code and save data keep; add at the end (${RECORD_LIMIT} at most)`, names: records }));
@@ -247,9 +283,9 @@ export const charactersCodec: Codec = {
         const names = new Set<string>();
         for (const path of tree.keys()) {
             if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}` || path === `${DIR}/${RECORDS_FILE}`) continue;
-            const m = /^characters\/([^/]+)\/([^/]+)$/.exec(path);
-            if (m && (m[2] === CHARACTER || m[2] === ANIMS)) names.add(m[1]);
-            else findings.warning('unknown-file', path, '', `a character is a folder with ${CHARACTER} and ${ANIMS}; ignored`);
+            const m = /^characters\/([^/]+)\.json$/.exec(path);
+            if (m) names.add(m[1]);
+            else findings.warning('unknown-file', path, '', 'a character is one <name>.json in characters/records/; ignored');
         }
         return names;
     },
@@ -261,27 +297,30 @@ export const charactersCodec: Codec = {
         if (!Array.isArray(order) || order.length > RECORD_LIMIT) { findings.error('schema', recordsPath, '/names', `a list of at most ${RECORD_LIMIT} characters`); return []; }
         const place = new Map<string, number>();
         order.forEach((n, k) => {
-            if (!names.has(n)) findings.error('unknown-reference', recordsPath, `/names/${k}`, `"${n}" is no character folder`);
+            if (!names.has(n)) findings.error('unknown-reference', recordsPath, `/names/${k}`, `"${n}" is no character file`);
             else if (place.has(n)) findings.error('duplicate-name', recordsPath, `/names/${k}`, `"${n}" is also record ${place.get(n)}`);
             else place.set(n, k);
         });
-        const bytes = new Uint8Array(STRIDE * order.length), spawn = new Map<string, number>();
+        const bytes = new Uint8Array(STRIDE * order.length), spawn = new Map<string, number>(), animRefs = new Map<number, (string | null)[]>();
         for (const n of names) {
-            const dir = `${DIR}/${n}`;
-            if (!NAME_RE.test(n)) { findings.error('bad-name', `${dir}/${CHARACTER}`, '', `"${n}": snake_case, at most 80 characters`); continue; }
-            if (!place.has(n)) { findings.error('not-placed', `${dir}/${CHARACTER}`, '', `list "${n}" in ${recordsPath}: a record's place is its address`); continue; }
-            let c: any, a: any;
-            try { c = JSON.parse(readText(tree.get(`${dir}/${CHARACTER}`) ?? new Uint8Array())); } catch (e) { findings.error('parse-error', `${dir}/${CHARACTER}`, '', (e as Error).message); continue; }
-            try { a = JSON.parse(readText(tree.get(`${dir}/${ANIMS}`) ?? new Uint8Array())); } catch (e) { findings.error('parse-error', `${dir}/${ANIMS}`, '', (e as Error).message); continue; }
-            if (c.spawn !== undefined) { const v = parseHex(c.spawn, 0xFFFF); if (v === null) findings.error('invalid-value', `${dir}/${CHARACTER}`, '/spawn', '"$xxxx": the address its ENEMY id spawns from'); else spawn.set(n, v); }
-            const b = recordBytes(c, a, dir, ctx);
-            if (b) bytes.set(b, STRIDE * place.get(n)!);
+            const path = `${DIR}/${n}.json`;
+            if (!NAME_RE.test(n)) { findings.error('bad-name', path, '', `"${n}": snake_case, at most 80 characters`); continue; }
+            if (!place.has(n)) { findings.error('not-placed', path, '', `list "${n}" in ${recordsPath}: a record's place is its address`); continue; }
+            let c: any;
+            try { c = JSON.parse(readText(tree.get(path) ?? new Uint8Array())); } catch (e) { findings.error('parse-error', path, '', (e as Error).message); continue; }
+            if (c.spawn !== undefined) { const v = parseHex(c.spawn, 0xFFFF); if (v === null) findings.error('invalid-value', path, '/spawn', '"$xxxx": the address its ENEMY id spawns from'); else spawn.set(n, v); }
+            const res = recordBytes(c, path, ctx);
+            if (res) {
+                const idx = place.get(n)!;
+                bytes.set(res.bytes, STRIDE * idx);
+                animRefs.set(idx, res.animRefs);
+            }
         }
-        state.set(ctx, { place, spawn });
+        state.set(ctx, { place, spawn, animRefs });
         const count = Math.max(-1, ...(ctx.ids.get(CHARACTERS)?.values() ?? [])) + 1;
-        // Offset $B678 in a bank the readers reach in the $80-$BF form; the index, long-indexed, inside one bank.
+        // Offset $B678 in a bank the readers reach in the $80-$BF form; patched: true lets tables() write moved/new animation offsets.
         return [
-            { key: RECORDS, file: recordsPath, bytes, rule: { bankOffset: OFFSET, upperHalf: true, below: 0x400000 } },
+            { key: RECORDS, file: recordsPath, bytes, rule: { bankOffset: OFFSET, upperHalf: true, below: 0x400000 }, patched: true },
             { key: INDEX, file: `${DIR}/${ENUM}`, bytes: new Uint8Array(2 * count), rule: { noCrossBank: true }, generated: true },
         ] satisfies Item[];
     },
@@ -296,6 +335,15 @@ export const charactersCodec: Codec = {
         if (at === undefined || index === undefined || !ids || !s) return [];
         const bank = Uint8Array.of(0x80 | (at >> 16));
         const writes: Write[] = ctx.base.tables.filter(t => t.kind === CHARACTERS && t.end - t.start === 1).map(t => ({ at: t.start, bytes: bank, file: `${DIR}/${RECORDS_FILE}` }));
+        for (const [n, k] of s.place) {
+            const refs = s.animRefs.get(k);
+            if (!refs) continue;
+            refs.forEach((groupName, slotIdx) => {
+                if (!groupName) return;
+                const off = animationGroupPlacedOffset(ctx, placed, groupName);
+                if (off !== null) writes.push({ at: at + STRIDE * k + ANIM_AT + 2 * slotIdx, bytes: Uint8Array.of(off & 0xFF, off >> 8), file: `${DIR}/${n}.json` });
+            });
+        }
         const count = Math.max(-1, ...ids.values()) + 1, table = new Uint8Array(2 * count), byId = new Map([...ids].map(([n, id]) => [id, n]));
         for (let id = 0; id < count; id++) {
             const n = byId.get(id);
@@ -306,4 +354,4 @@ export const charactersCodec: Codec = {
     },
 };
 
-const state = new WeakMap<ImplodeContext, { place: Map<string, number>; spawn: Map<string, number> }>();
+const state = new WeakMap<ImplodeContext, { place: Map<string, number>; spawn: Map<string, number>; animRefs: Map<number, (string | null)[]> }>();

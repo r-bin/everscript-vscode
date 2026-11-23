@@ -65,7 +65,8 @@ else; the linear walker reads `opcode()` too.
   retired. Bytes after it are not commands.
 - Variables are byte offsets into the entity's own slot (`$7E` and `$09` are the usual
   scratch). `dec_jnz` (`0x39`) / `jump_pos` (`0x3A`) / `jump` (`0x3B`) /
-  `jump_if_linked` (`0x54`) all jump to a u16 in the script's own bank.
+  `jump_if_linked` (`0x54`) all jump to a u16 in the script's own bank. Do not follow
+  `jump_if_linked` in static walks: `link` (`$0040`) is never set in vanilla, and `$C8` carries bank-`$C7` `$0075` verbatim (mid-instruction → `$C8:8002` music data).
 
 - **Motion** (`runAnimation(rom, script, facing)`): `step n` moves `(n + f) >> 2` px
   with `f` dithering 0, 3, 1, 2 (`$0F36`), so n/4 px per tick on average, along

@@ -4,6 +4,7 @@
 import type { Codec } from '../codec.mts';
 import { mapsCodec } from './codecs/maps.mts';
 import { palettesCodec } from './codecs/palettes.mts';
+import { spritePalettesCodec } from './codecs/sprite-palettes.mts';
 import { collisionsCodec } from './codecs/collisions.mts';
 import { tilesCodec } from './codecs/tiles.mts';
 import { stringsCodec } from './codecs/strings.mts';
@@ -11,6 +12,7 @@ import { scriptsCodec, WINDOW as SCRIPT_WINDOW } from './codecs/scripts.mts';
 import { opcodesCodec } from './codecs/opcodes.mts';
 import { entitiesCodec } from './codecs/entities.mts';
 import { projectilesCodec } from './codecs/projectiles.mts';
+import { animationGroupsCodec } from './codecs/animation-groups.mts';
 import { animationsCodec } from './codecs/animations.mts';
 import { animationModesCodec, attackProcsCodec, behavioursCodec } from './codecs/handler-tables.mts';
 import { charactersCodec } from './codecs/characters.mts';
@@ -37,5 +39,6 @@ export const PAST_END = [{ start: 0x30E293, end: 0x30E293 + 0x780 + 0x40 }];
 export const POINTER_WINDOWS = [SCRIPT_WINDOW];
 
 // wram first: every later kind names WRAM through it.
-export const KINDS: Codec[] = [wramCodec, mapsCodec, palettesCodec, collisionsCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
-    animationsCodec, animationModesCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, metaspritesCodec, musicCodec, soundsCodec, fontsCodec, hudCodec, ...MENU_KINDS, ...EQUIPMENT_KINDS, ...ALCHEMY_KINDS, ...ITEM_KINDS];
+// spritePalettesCodec before animationGroups/characters/projectiles/menus/equipment; animationGroupsCodec before animationsCodec (vacate_c4 mark).
+export const KINDS: Codec[] = [wramCodec, mapsCodec, palettesCodec, spritePalettesCodec, collisionsCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
+    animationGroupsCodec, animationsCodec, animationModesCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, metaspritesCodec, musicCodec, soundsCodec, fontsCodec, hudCodec, ...MENU_KINDS, ...EQUIPMENT_KINDS, ...ALCHEMY_KINDS, ...ITEM_KINDS];

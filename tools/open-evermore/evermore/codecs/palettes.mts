@@ -24,14 +24,22 @@ const { decodePng, encodePng } = require('../../../../dist/platform/png');
 const CELL = 8;
 
 export const KIND = 'palettes';
+export const PALETTE_ENTRY = 32, PALETTE_FORMAT = 'open-evermore/palette', PALETTE_VERSION = 1;
 const DIR = KIND, ARRAY = `${DIR}/array`;
-const ENTRY = 32, LIMIT = 1024;
-const FORMAT = 'open-evermore/palette', VERSION = 1;
+const ENTRY = PALETTE_ENTRY, LIMIT = 1024;
+const FORMAT = PALETTE_FORMAT, VERSION = PALETTE_VERSION;
 // The loader's two instructions; implode rewrites their operands, so explode reads them (vanilla: $C322, $9C).
 const ADC = { at: 0x10D065, opcode: 0x69 }, LDA = { at: 0x10D079, opcode: 0xA9 };
 
-const channels = (c: number) => [c & 31, (c >> 5) & 31, (c >> 10) & 31].map(v => v << 3);
-const hexColour = (c: number) => '#' + [c & 31, (c >> 5) & 31, (c >> 10) & 31].map(v => (v << 3).toString(16).padStart(2, '0')).join('');
+export const channels = (c: number) => [c & 31, (c >> 5) & 31, (c >> 10) & 31].map(v => v << 3);
+export const hexColour = (c: number) => '#' + [c & 31, (c >> 5) & 31, (c >> 10) & 31].map(v => (v << 3).toString(16).padStart(2, '0')).join('');
+
+/** 16 BGR555 colours → 128×8 indexed-style RGBA stripe PNG (8×8 cell per colour). */
+export function paletteStripePng(bgr: number[]): Uint8Array {
+    const rgba = new Uint8Array(16 * CELL * CELL * 4);
+    for (let y = 0; y < CELL; y++) for (let x = 0; x < 16 * CELL; x++) rgba.set([...channels(bgr[x >> 3]), 255], (y * 16 * CELL + x) * 4);
+    return new Uint8Array(encodePng(16 * CELL, CELL, rgba));
+}
 
 /** The array's file offset and palette count, from the loader operands and the rooms. */
 function locate(rom: Uint8Array, blobs: number[]): { start: number; count: number } {
@@ -50,7 +58,7 @@ export function paletteColours(rom: Uint8Array, blobs: number[]): number[][][] {
 }
 
 /** A 128×8 stripe → `{ colours }` like a JSON palette; every 8×8 cell must be one opaque colour. */
-function fromPng(bytes: Uint8Array, file: string, findings: import('../../findings.mts').Findings): { colours: string[] } | null {
+export function fromPng(bytes: Uint8Array, file: string, findings: import('../../findings.mts').Findings): { colours: string[] } | null {
     let img: { width: number; height: number; rgba: Uint8Array };
     try { img = decodePng(bytes); }
     catch (e) { findings.error('parse-error', file, '', (e as Error).message); return null; }
@@ -68,8 +76,33 @@ function fromPng(bytes: Uint8Array, file: string, findings: import('../../findin
     return { colours };
 }
 
+/** Reads `<dir>/<n>.png` or `<dir>/<n>.json` into 32 BGR555 bytes; returns null on validation error. */
+export function readPaletteBytes(tree: Tree, dir: string, n: string, findings: Findings): Uint8Array | null {
+    const png = tree.has(`${dir}/${n}.png`), file = `${dir}/${n}.${png ? 'png' : 'json'}`;
+    let v: any;
+    if (png) {
+        v = fromPng(tree.get(file)!, file, findings);
+        if (!v) return null;
+    } else {
+        try { v = JSON.parse(readText(tree.get(file)!)); }
+        catch (e) { findings.error('parse-error', file, '', (e as Error).message); return null; }
+        if (v?.format !== FORMAT || v?.version !== VERSION) { findings.error('schema', file, '/format', `"${FORMAT}", version ${VERSION}`); return null; }
+    }
+    if (!Array.isArray(v.colours) || v.colours.length !== 16) { findings.error('invalid-value', file, '/colours', 'exactly 16 colours'); return null; }
+    const out = new Uint8Array(ENTRY);
+    let good = true;
+    v.colours.forEach((c: unknown, i: number) => {
+        const m = typeof c === 'string' ? /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/.exec(c) : null;
+        const rgb = m ? m.slice(1).map(x => parseInt(x, 16)) : null;
+        if (!rgb || rgb.some(x => x & 7)) { good = false; return findings.error('invalid-value', file, `/colours/${i}`, `"${c}": #rrggbb with each channel a multiple of 8 (the SNES has 5 bits per channel)`); }
+        const bgr = (rgb[0] >> 3) | ((rgb[1] >> 3) << 5) | ((rgb[2] >> 3) << 10);
+        out.set([bgr & 0xFF, bgr >> 8], i * 2);
+    });
+    return good ? out : null;
+}
+
 export const palettesCodec: Codec = {
-    kind: KIND, version: 1, path: DIR, folder: `maps/${DIR}`,
+    kind: KIND, version: 2, path: DIR, folder: `palettes/backgrounds`,
 
     defaultName: id => 'palette_' + id.toString(16).padStart(3, '0'),
     canonical: (path, bytes) => {
@@ -93,9 +126,7 @@ export const palettesCodec: Codec = {
             const n = name(KIND, id);
             names.push(n);
             if (format === 'png') {
-                const rgba = new Uint8Array(16 * CELL * CELL * 4);
-                for (let y = 0; y < CELL; y++) for (let x = 0; x < 16 * CELL; x++) rgba.set([...channels(bgr[x >> 3]), 255], (y * 16 * CELL + x) * 4);
-                files.set(`${DIR}/${n}.png`, new Uint8Array(encodePng(16 * CELL, CELL, rgba)));
+                files.set(`${DIR}/${n}.png`, paletteStripePng(bgr));
             } else {
                 files.set(`${DIR}/${n}.json`, json({ format: FORMAT, version: VERSION, colours: bgr.map(hexColour), maps: users[id].sort() }));
             }
@@ -130,29 +161,14 @@ export const palettesCodec: Codec = {
         const bytes = new Uint8Array(count * ENTRY);
         const ok = new Set<number>();
         for (const n of names) {
-            const png = tree.has(`${DIR}/${n}.png`), file = `${DIR}/${n}.${png ? 'png' : 'json'}`;
+            const file = `${DIR}/${n}.${tree.has(`${DIR}/${n}.png`) ? 'png' : 'json'}`;
             if (!NAME_RE.test(n)) { findings.error('bad-name', file, '', `"${n}": snake_case, at most 80 characters`); continue; }
-            let v: any;
-            if (png) {
-                v = fromPng(tree.get(file)!, file, findings);
-                if (!v) continue;
-            } else {
-                try { v = JSON.parse(readText(tree.get(file)!)); }
-                catch (e) { findings.error('parse-error', file, '', (e as Error).message); continue; }
-                if (v?.format !== FORMAT || v?.version !== VERSION) { findings.error('schema', file, '/format', `"${FORMAT}", version ${VERSION}`); continue; }
-            }
-            if (!Array.isArray(v.colours) || v.colours.length !== 16) { findings.error('invalid-value', file, '/colours', 'exactly 16 colours'); continue; }
+            const bgrBytes = readPaletteBytes(tree, DIR, n, findings);
+            if (!bgrBytes) continue;
             const id = ids.get(n);
             if (id === undefined) continue;
-            let good = true;
-            v.colours.forEach((c: unknown, i: number) => {
-                const m = typeof c === 'string' ? /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/.exec(c) : null;
-                const rgb = m ? m.slice(1).map(x => parseInt(x, 16)) : null;
-                if (!rgb || rgb.some(x => x & 7)) { good = false; return findings.error('invalid-value', file, `/colours/${i}`, `"${c}": #rrggbb with each channel a multiple of 8 (the SNES has 5 bits per channel)`); }
-                const bgr = (rgb[0] >> 3) | ((rgb[1] >> 3) << 5) | ((rgb[2] >> 3) << 10);
-                bytes.set([bgr & 0xFF, bgr >> 8], id * ENTRY + i * 2);
-            });
-            if (good) ok.add(id);
+            bytes.set(bgrBytes, id * ENTRY);
+            ok.add(id);
         }
         for (let id = 0; id < count; id++) {
             if (!ok.has(id) && ![...ids.values()].includes(id)) findings.error('id-gap', `${DIR}/${ENUM}`, `/names/${id}`, `no palette has id ${id}; the array cannot skip one`);

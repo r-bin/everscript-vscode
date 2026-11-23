@@ -324,7 +324,9 @@ export function walkScriptCommands(rom: Uint8Array, script: number, onCommand: (
             const o = opcode(raw);
             if (!o || o.kind === 'loop') break;
             if (o.kind === 'jump') { p = jumpTarget(rom, p, o.kind); continue; }
-            if (o.kind === 'dec_jnz' || o.kind === 'jump_pos' || o.kind === 'jump_if_linked') {
+            // 0x54 (jump_if_linked, $90:8C09) never fires in vanilla (mode bit $0040 is unset) and carries
+            // bank-$C7 helper offset $0075 verbatim in banks $C8/$C9 ($C8:0075 is mid-instruction → $C8:8002 data).
+            if (o.kind === 'dec_jnz' || o.kind === 'jump_pos') {
                 work.push(jumpTarget(rom, p, o.kind));
             }
             p += lengthAt(rom, p);
@@ -350,7 +352,9 @@ export function disassembleScript(rom: Uint8Array, script: number, options?: Ind
             const o = opcode(line.bytes[0]);
             if (!o || o.kind === 'loop') break;
             if (o.kind === 'jump') { p = jumpTarget(rom, p, o.kind); continue; }
-            if (o.kind === 'dec_jnz' || o.kind === 'jump_pos' || o.kind === 'jump_if_linked') {
+            // 0x54 (jump_if_linked, $90:8C09) never fires in vanilla (mode bit $0040 is unset) and carries
+            // bank-$C7 helper offset $0075 verbatim in banks $C8/$C9 ($C8:0075 is mid-instruction → $C8:8002 data).
+            if (o.kind === 'dec_jnz' || o.kind === 'jump_pos') {
                 work.push(jumpTarget(rom, p, o.kind));
             }
             p += line.bytes.length;

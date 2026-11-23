@@ -12,7 +12,7 @@ evidence: ["rom: $8C:E100 = 39 E1 15 E1 1D E1 30 E1 0C E1 25 E1, read by `jmp ($
 see: ["routines/script_op_78_animate.md", "routines/animate_id_to_record.md", "docs/disassembly/script-vm/animate.md"]
 ---
 The six handlers animate()'s mode picks, by mode value (a byte offset, so even values 0-10). Open Evermore
-writes them as `characters/animation_modes/`, the compiler's `ANIMATION_MODE` names lowercased.
+writes them as `animations/modes/`, the compiler's `ANIMATION_MODE` names lowercased.
 
 | Mode | Target | Name | Effect, then `$E139` starts the animation |
 |---:|---:|---|---|

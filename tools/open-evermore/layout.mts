@@ -168,6 +168,7 @@ export function allocate(items: Item[], pool: Span[], extra: Span[], homes: Map<
     const homed = unpinned.filter(i => homes.has(i.key)).sort((a, b) => homes.get(a.key)!.at - homes.get(b.key)!.at);
     const rest: Item[] = unpinned.filter(i => !homes.has(i.key));
 
+    const tight = (i: Item) => i.rule.bankOffset !== undefined ? 0 : (i.rule.above !== undefined && i.rule.below !== undefined && i.rule.below - i.rule.above <= BANK) ? 1 : 2;
     if (seed === undefined) {
         for (const item of homed) {
             const { at: home, length } = homes.get(item.key)!;
@@ -175,7 +176,7 @@ export function allocate(items: Item[], pool: Span[], extra: Span[], homes: Map<
             const ok = item.bytes.length <= length && fits && place(item, home);
             if (!ok) rest.push(item);
         }
-        for (const item of rest) if (!place(item, free.firstFit(item.bytes.length, item.rule))) failed.push(item);
+        for (const item of [...rest].sort((a, b) => tight(a) - tight(b))) if (!place(item, free.firstFit(item.bytes.length, item.rule))) failed.push(item);
     } else {
         const next = rng(seed);
         const spans = normalise(pool);
@@ -210,9 +211,7 @@ export function allocate(items: Item[], pool: Span[], extra: Span[], homes: Map<
                 else rest.push(item);
             }
         }
-        // Items held to an offset in their bank go first, then the largest: placed after the others, they would find
-        // no run left (a 20 KB group of scripts in the window). Where each goes stays random.
-        const tight = (i: Item) => i.rule.bankOffset !== undefined ? 0 : 1;
+        // Items held to an offset in their bank go first, then single-bank items, then the largest: placed after loose items they would find no room left.
         for (const item of shuffle(rest, next).sort((a, b) => tight(a) - tight(b) || b.bytes.length - a.bytes.length)) if (!place(item, free.randomFit(item.bytes.length, item.rule, next))) failed.push(item);
     }
     const moved = [...at].filter(([key, where]) => homes.get(key)?.at !== where).length;
