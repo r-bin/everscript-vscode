@@ -333,9 +333,25 @@ if (!path || !existsSync(path)) {
 
     // The table kinds of the table hack: a new animation, character (a record and an ENEMY id) and sprite blocks grow
     // their tables, which move; the records stay one block at $xx:B678; an alias keeps its run together.
+    const animEnum = JSON.parse(Buffer.from(tree.get('characters/animations/_enum.json')!).toString()).names as string[];
+    for (const expected of ['boy/kneel', 'dog/act2_leap', 'placeholder/bucket', 'placeholder/leaves_falling_2', 'shared/invisible']) {
+        assert.ok(animEnum.includes(expected), `missing attributed animation ${expected}`);
+    }
+    assert.ok(animEnum.filter(n => n.startsWith('placeholder/')).length >= 60, 'placeholder owns >= 60 animations');
+    assert.ok(!animEnum.some(n => n.includes('boy_boy_')), 'no double-prefixed boy_boy_* names');
+    assert.strictEqual(animEnum[5], 'placeholder/leaves_falling_2', 'id 0x05 is leaves_falling_2 (not enum-ref magmar_roll)');
+
+    const kneel = JSON.parse(Buffer.from(tree.get('characters/animations/boy/kneel.json')!).toString());
+    assert.strictEqual(kneel.character, 'boy');
+    assert.ok(typeof kneel.what === 'string' && kneel.what.includes('frames') && Array.isArray(kneel.preview?.frames[0]?.art) && kneel.preview.frames[0].art.length > 0 && !('pieces' in kneel.preview.frames[0]));
+    const fireAnims = JSON.parse(Buffer.from(tree.get('characters/records/fire_eyes/animations.json')!).toString());
+    assert.strictEqual(fireAnims.run.same_as, 'walk');
+    assert.ok(typeof fireAnims.stand.what === 'string' && Array.isArray(fireAnims.stand.art) && fireAnims.stand.art.length > 0 && !('north' in fireAnims.stand));
+
     const more = new Map(tree);
-    const firstAnimation = JSON.parse(Buffer.from(tree.get('characters/animations/_enum.json')!).toString()).names[0];
+    const firstAnimation = animEnum[0];
     grow('characters/animations', firstAnimation, 'animation_new', 'json')(more);
+    grow('characters/animations', firstAnimation, 'placeholder/custom_anim', 'json')(more);
     for (const f of ['character.json', 'animations.json']) more.set(`characters/records/fire_eyes_copy/${f}`, more.get(`characters/records/fire_eyes/${f}`)!);
     editJson(more, 'characters/records/_enum.json', e => { e.names.push('fire_eyes_copy'); });
     editJson(more, 'characters/records/_records.json', e => { e.names.push('fire_eyes_copy'); });

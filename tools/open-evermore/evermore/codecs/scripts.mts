@@ -42,7 +42,7 @@ import type { Tree } from '../../tree.mts';
 import { locate as locateMaps, roomBlobs } from './maps.mts';
 import { objectNames, triggerNames } from './room-names.mts';
 import { DEFAULT_OPCODE, KIND as OPCODES } from './opcodes.mts';
-import { ANIMATION_COUNT, KIND as ANIMATIONS } from './animations.mts';
+import { KIND as ANIMATIONS, animationNames } from './animations.mts';
 import { CHARACTERS, characterNames } from './characters.mts';
 import { ENTITY_SUB_OPS, KIND as ENTITIES } from './entities.mts';
 import { SOUND_COUNT, SOUNDS } from './music.mts';
@@ -250,7 +250,7 @@ export const scriptsCodec: Codec = {
         const lists = new Map<string, (string | null | undefined)[]>([
             [STRINGS, Array.from({ length: count(STRINGS) ?? STRING_COUNT }, (_, i) => name(STRINGS, i))],
             [SOUNDS, Array.from({ length: count(SOUNDS) ?? SOUND_COUNT }, (_, i) => name(SOUNDS, i))],
-            [ANIMATIONS, Array.from({ length: count(ANIMATIONS) ?? ANIMATION_COUNT }, (_, i) => name(ANIMATIONS, i))],
+            [ANIMATIONS, animationNames(rom, name, count, nameAt)],
             [PROJECTILES, Array.from({ length: count(PROJECTILES) ?? PROJECTILE_COUNT }, (_, i) => name(PROJECTILES, i))],
             [CHARACTERS, characterNames(rom, name, count, nameAt).enemies],
             [MAP_DIR, Array.from({ length: count(MAP_DIR) ?? MAP_COUNT }, (_, i) => name(MAP_DIR, i))],

@@ -33,7 +33,7 @@ and the order to fix it in. The kinds themselves: [resources.md](resources.md); 
 | collision form | `"solid"`, `"diagonal_sw_slides"` (level and flags are fields) | `maps/collisions/` | built (v0.458.1) |
 | string | `string_0afb` | `strings/` (dialogue) | built for dialogue; **names and UI text (`$C4`) are pointers** (§4) |
 | sprite palette | `palette_<name>` | a kind of its own | **missing**: sprite and icon palettes (`$90`, `$D0`) are addresses |
-| animation | `dog_act2_leap` | `characters/animations/` | built for ids; **records and frames are addresses** (S7d) |
+| animation | `dog/act2_leap` | `characters/animations/` | built for ids (character-attributed, ASCII previews); **records stay in `$C4`** (S7d) |
 | WRAM | `LEVEL_LOW_CURE`, `temp[n]` | `wram/` (v0.459.0, from names.json, the compiler and the WRAM map) | built: scripts, records, rings name it through `wram/`; **unnamed cells stay `$7E:xxxx`**; moving: W2 ([wram.md](wram.md)) |
 | flag | `WEAPONS_OWNED_FLAGS_0+1` and its bit | knowledge entries, compiler FLAG enum | the word by name; **the bit is a number** |
 | routine | `script_op_5c_set_object_state` | `soe://rom/code/` | built (handlers) |
@@ -61,9 +61,9 @@ scripts have none (247 of 73,540 lines keep a `<0x…>` WRAM cell). Score: again
 | `music/sounds` | 6 | 0 | only `{ sfx, package }` | — |
 | `equipment/weapons`, `bazooka_ammo` | 5 | 193 | 9 `$C4:` animation slots, `palette`, `unknown_1a`/`1c`, `skill: "WEAPON_SKILL_FIST+16"`, `name` = `ring_item` | steps 4, 5, 6; research the two words |
 | `characters/projectiles` | 5 | 64 | `projectile_NN`, `animation`, `palette`, `unknown_04`/`06`, a 12-line `what` per file | steps 4, 5; research the two words |
-| `characters/records` | 4 | 17,905 | `character.json` is fine (8), `animations.json` (~2,600 lines) is a derived dump implode ignores (R4); `name: "$C4705A"`, `palette` | step 5 or the dump to `--previews`; steps 3, 4 |
+| `characters/records` | 7 | ~284 | `character.json` has `name: "$C4705A"`, `palette`; `animations.json` slimmed to `what` + ASCII `art` + `same_as` | steps 3, 4, 5 |
 | `music/packages` | 4 | 3,754 | 2,650 opaque `data_N.bin`; `to` is ARAM (the sound CPU's RAM), legitimate | decode sequences and samples; named ARAM regions |
-| `characters/animations` | 3 | 1,690 | every `record`, `script`, `sprite` an address | step 5 |
+| `characters/animations` | 6 | 212 | character-attributed with `what`, `used_in`, ASCII `art` previews; `record` is still `$C4:xxxx` | step 5 (S7d) |
 
 Overall ~6.5: maps and scripts are near the product, everything that points into `$C4`, palettes or animations is
 still a lab dump. Steps 3–5 fix ~20k of the ~24k addresses left.

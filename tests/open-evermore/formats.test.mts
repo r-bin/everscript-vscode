@@ -6,6 +6,8 @@ import assert from 'node:assert';
 import { createRequire } from 'node:module';
 import { deflateSync } from 'node:zlib';
 import { json, readText } from '../../tools/open-evermore/tree.mts';
+import { renderAsciiArt } from '../../tools/open-evermore/evermore/codecs/animation-view.mts';
+import { ANIMATION_NAME_RE } from '../../tools/open-evermore/evermore/codecs/animations.mts';
 import { fromText, toText } from '../../tools/open-evermore/evermore/codecs/strings.mts';
 import { exprBytes, exprText } from '../../tools/open-evermore/evermore/codecs/expressions.mts';
 import type { ExprNames } from '../../tools/open-evermore/evermore/codecs/expressions.mts';
@@ -168,6 +170,47 @@ test('script expressions: infix text with names, read back to the same bytes', (
     }
     assert.strictEqual(exprText([0x29, 0x31, 0x9A], names), null, 'a push with nothing before it is no plain postfix');
     assert.throws(() => exprBytes('cat + 1', names), /no entity, flag or WRAM cell/);
+});
+
+test('compact JSON keeps multiline ASCII art arrays one row per line', () => {
+    const out = readText(json({ art: ['..+..', '.+#+.'], pair: ['a', 'b'] }));
+    assert.strictEqual(out, [
+        '{',
+        '  "art": [',
+        '    "..+..",',
+        '    ".+#+."',
+        '  ],',
+        '  "pair": ["a", "b"]',
+        '}',
+        '',
+    ].join('\n'));
+});
+
+test('animation ASCII art renders transparent, dark outlines, bright fills, scaling, and subfolder names', () => {
+    const pal = Array.from({ length: 16 }, (_, i) => i === 1 ? [0, 0, 0] : i === 2 ? [255, 255, 255] : [128, 128, 128]) as [number, number, number][];
+    // 5x5 (<12 px tall): stays 1:1 vertically; index 0 -> '.', index 1 (black) -> ':', index 2 (white) -> '@'
+    const small = new Int16Array(25);
+    small[6] = 1; small[7] = 2; small[8] = 1;
+    const smallArt = renderAsciiArt({ width: 5, height: 5, pixels: small }, pal)!;
+    assert.deepStrictEqual([smallArt.width, smallArt.height, smallArt.scale], [3, 1, 1]);
+    assert.deepStrictEqual(smallArt.art, [':@:']);
+
+    // 4x14 (>=12 px tall): uses 2:1 half-height rows (7 rows)
+    const tall = new Int16Array(4 * 14).fill(2);
+    const tallArt = renderAsciiArt({ width: 4, height: 14, pixels: tall }, pal)!;
+    assert.deepStrictEqual([tallArt.width, tallArt.height, tallArt.scale, tallArt.art.length], [4, 14, 1, 7]);
+
+    // 120x160 giant sprite scales down cleanly within 48x24
+    const huge = new Int16Array(120 * 160).fill(2);
+    const hugeArt = renderAsciiArt({ width: 120, height: 160, pixels: huge }, pal)!;
+    assert.ok(hugeArt.scale > 1 && hugeArt.art[0].length <= 48 && hugeArt.art.length <= 24);
+
+    assert.ok(ANIMATION_NAME_RE.test('boy/kneel'));
+    assert.ok(ANIMATION_NAME_RE.test('placeholder/shell_boat'));
+    assert.ok(ANIMATION_NAME_RE.test('animation_new'));
+    assert.ok(!ANIMATION_NAME_RE.test('boy/1bad'));
+    assert.ok(!ANIMATION_NAME_RE.test('a/b/c'));
+    assert.ok(!ANIMATION_NAME_RE.test('BadName'));
 });
 
 console.log(`  ${passed} passed`);

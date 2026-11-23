@@ -27,20 +27,23 @@ import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Span, Write 
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
-import { describeRecord } from './animation-view.mts';
+import { describeAnimation } from './animation-view.mts';
 import { ATTACK_PROCS, BEHAVIOURS } from './handler-tables.mts';
 import { hexText, parseHex, readerSpans, readerWrites, tableAt } from './readers.mts';
 import type { Reader } from './readers.mts';
 
 const require = createRequire(import.meta.url);
 const ENEMY_NAMES: { name: string; value: string }[] = require('../../../../src/games/evermore/language/data/index.json').enums.ENEMY ?? [];
+const { readWeaponAnimations } = require('../../../../dist/games/evermore/sprites/character-model');
 
 export const CHARACTERS = 'characters';
 const DIR = CHARACTERS, RECORDS_FILE = '_records.json', CHARACTER = 'character.json', ANIMS = 'animations.json';
+const ANIMS_FORMAT = 'open-evermore/character-animations';
 const RECORDS = `${DIR}/_records`, INDEX = `${DIR}/_enemy_index`;
 /** The pseudo kind whose symbols tell a round trip each record's place. */
 const RECORD = 'characters.record';
-const OFFSET = 0xB678, STRIDE = 74, VANILLA_RECORDS = 142, VANILLA_ENEMIES = 143, ENEMY_LIMIT = 256;
+export const STRIDE = 74;
+const OFFSET = 0xB678, VANILLA_RECORDS = 142, VANILLA_ENEMIES = 143, ENEMY_LIMIT = 256;
 const RECORD_LIMIT = Math.floor((0x10000 - OFFSET) / STRIDE);
 /** `mvn $8E,$8E` at $8F:8046: the source bank (byte 2) is the records' bank. */
 const MVN = 0x0F8046;
@@ -118,9 +121,20 @@ for (const e of ENEMY_NAMES) {
 }
 
 /** The records' file offset (their bank from the `mvn`, offset $B678). */
-function recordsAt(rom: Uint8Array): number {
+export function recordsAt(rom: Uint8Array): number {
     if (rom[MVN] !== 0x54) throw new Error('characters: no `mvn` at $8F:8046; another release?');
     return ((rom[MVN + 2] & 0x3F) << 16) | OFFSET;
+}
+
+/** The character's primary (+$09) and secondary (+$0B) palette addresses; the Boy uses his first weapon's palette. */
+export function characterPalettes(rom: Uint8Array, recordIndex: number): { palette: number; palette2: number } {
+    const off = recordsAt(rom) + STRIDE * recordIndex;
+    const palette2 = word(rom, off + 0x0B, 2);
+    if (recordIndex === 0) {
+        const wp = (readWeaponAnimations(rom)[0] as { paletteAddr?: number } | undefined)?.paletteAddr;
+        if (wp) return { palette: wp, palette2 };
+    }
+    return { palette: word(rom, off + 0x09, 2), palette2 };
 }
 
 /** The operand bytes naming the records' bank: the `mvn` source and every long operand into a record. */
@@ -169,7 +183,7 @@ export function characterNames(rom: Uint8Array, name: NameOf, countOf: CountOf, 
 }
 
 export const charactersCodec: Codec = {
-    kind: CHARACTERS, version: 2, path: DIR, folder: `${DIR}/records`, listedIdsOnly: true,
+    kind: CHARACTERS, version: 3, path: DIR, folder: `${DIR}/records`, listedIdsOnly: true,
 
     defaultName: id => ENEMY_DEFAULT.get(id) ?? `enemy_${id.toString(16).padStart(2, '0')}`,
 
@@ -188,10 +202,32 @@ export const charactersCodec: Codec = {
             for (const [f, off, size, form] of FIELDS) c[f] = fieldText(word(b, off, size), form, size, name, k => countOf(k) ?? TABLE_SIZE[k]);
             if (spawn.has(n)) c.spawn = hexText(spawn.get(n)!, 4);
             files.set(`${DIR}/${n}/${CHARACTER}`, json(c));
-            files.set(`${DIR}/${n}/${ANIMS}`, json(Object.fromEntries(ANIMATIONS.map((f, i) => {
+
+            const { palette, palette2 } = characterPalettes(rom, k);
+            const seen = new Map<number, string>();
+            const animObj: Record<string, unknown> = {
+                format: ANIMS_FORMAT,
+                version: 1,
+                note: "Only each slot's `record` is read by implode; `what`, `art`, and `same_as` are read-only previews ('.' transparent, ':-=+*#%@' dark->light).",
+            };
+            ANIMATIONS.forEach((f, i) => {
                 const r = word(b, ANIM_AT + 2 * i, 2);
-                return [f, { record: hexText(r, 4), ...(describeRecord(rom, r, name) ?? {}) }];
-            }))));
+                if (!r) { animObj[f] = { record: hexText(r, 4), what: 'none' }; return; }
+                const first = seen.get(r);
+                if (first) { animObj[f] = { record: hexText(r, 4), same_as: first }; return; }
+                seen.set(r, f);
+                animObj[f] = {
+                    record: hexText(r, 4),
+                    ...describeAnimation(rom, r, {
+                        paletteAddr: palette,
+                        palette2Addr: palette2,
+                        oneShot: i >= 3,
+                        mode: 'slot',
+                        preferStrike: i >= 3 && i <= 6,
+                    }),
+                };
+            });
+            files.set(`${DIR}/${n}/${ANIMS}`, json(animObj));
         });
         files.set(`${DIR}/${ENUM}`, enumFile({ kind: CHARACTERS, limit: ENEMY_LIMIT, names: enemies as string[], why: 'ENEMY ids, what spawn opcodes take (0xBA/0xC2: one byte); null: an id with no record' }));
         files.set(`${DIR}/${RECORDS_FILE}`, json({ why: `the record block in order: record k is at $xx:${OFFSET.toString(16).toUpperCase()} + 74·k, the address code and save data keep; add at the end (${RECORD_LIMIT} at most)`, names: records }));

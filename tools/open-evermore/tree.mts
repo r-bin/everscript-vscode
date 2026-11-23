@@ -24,19 +24,21 @@ export const text = (s: string): Uint8Array => encoder.encode(s);
  */
 export const json = (value: unknown, line = LINE): Uint8Array => text(format(value, '', line) + '\n');
 const LINE = 120;
-function format(v: unknown, indent: string, line: number): string {
+const MULTILINE_KEYS = new Set(['art', 'shape']);
+function format(v: unknown, indent: string, line: number, multiline = false): string {
     if (v === null || typeof v !== 'object') return JSON.stringify(v);
     const inline = (x: unknown): string => x === null || typeof x !== 'object' ? JSON.stringify(x)
         : Array.isArray(x) ? `[${x.map(inline).join(', ')}]`
         : `{ ${Object.entries(x).filter(([, e]) => e !== undefined).map(([k, e]) => `${JSON.stringify(k)}: ${inline(e)}`).join(', ')} }`;
     const one = inline(v);
     if (Array.isArray(v) && v.every(e => typeof e === 'number')) return one;
-    const flat = Array.isArray(v) ? v.every(e => e === null || typeof e !== 'object') : true;
+    const hasMultiline = !Array.isArray(v) && Object.entries(v).some(([k, e]) => MULTILINE_KEYS.has(k) && Array.isArray(e));
+    const flat = !multiline && !hasMultiline && (Array.isArray(v) ? v.every(e => e === null || typeof e !== 'object') : true);
     if (flat && indent.length + one.length <= line) return one;
     const inner = indent + '  ';
     if (Array.isArray(v)) return v.length ? `[\n${v.map(e => inner + format(e, inner, line)).join(',\n')}\n${indent}]` : '[]';
     const entries = Object.entries(v).filter(([, e]) => e !== undefined);
-    return entries.length ? `{\n${entries.map(([k, e]) => `${inner}${JSON.stringify(k)}: ${format(e, inner, line)}`).join(',\n')}\n${indent}}` : '{}';
+    return entries.length ? `{\n${entries.map(([k, e]) => `${inner}${JSON.stringify(k)}: ${format(e, inner, line, MULTILINE_KEYS.has(k))}`).join(',\n')}\n${indent}}` : '{}';
 }
 export const readText = (bytes: Uint8Array): string => decoder.decode(bytes);
 

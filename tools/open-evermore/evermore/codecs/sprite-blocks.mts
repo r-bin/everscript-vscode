@@ -222,11 +222,49 @@ function blockCodec(s: Spec): Codec {
     };
 }
 
-export const spriteBlocks16Codec = blockCodec({
+const SPEC_16: Spec = {
     kind: 'sprite_blocks_16', size: 16, bytes: 128, base: 0xD9, vanilla: 4854, where: '$EC:0000',
     readers: [{ at: 0x009743, add: 1 }, { at: 0x009752, add: 0 }, { at: 0x00A2E7, add: 0 }],
-});
-export const spriteBlocks8Codec = blockCodec({
+};
+const SPEC_8: Spec = {
     kind: 'sprite_blocks_8', size: 8, bytes: 32, base: 0xD1, vanilla: 6265, where: '$D8:0000',
     readers: [{ at: 0x00A4FD, add: 1 }, { at: 0x00A50C, add: 0 }, { at: 0x00A801, add: 0 }],
-});
+};
+
+const blockTableCache = new WeakMap<Uint8Array, { large: number; small: number }>();
+
+/** Decode one 16×16 or 8×8 sprite block from `rom`, following relocated block tables when moved. */
+export function decodeSpriteBlockFromRom(rom: Uint8Array, id: number, large: boolean): { size: number; pixels: Uint8Array } | null {
+    let tables = blockTableCache.get(rom);
+    if (!tables) {
+        tables = {
+            large: tableAt(rom, SPEC_16.readers, SPEC_16.kind),
+            small: tableAt(rom, SPEC_8.readers, SPEC_8.kind),
+        };
+        blockTableCache.set(rom, tables);
+    }
+    const s = large ? SPEC_16 : SPEC_8;
+    const e = (large ? tables.large : tables.small) + 3 * id;
+    if (e < 0 || e + 3 > rom.length) return null;
+    const hi = rom[e + 2];
+    const at = ((s.base - 0xC0 + (hi & 0x7F)) << 16) | rom[e] | (rom[e + 1] << 8);
+    const compressed = (hi & 0x80) !== 0;
+    if (at < 0 || at >= rom.length || (!compressed && at + s.bytes > rom.length)) return null;
+    try {
+        if (compressed) {
+            let p = at;
+            for (let g = 0; g < s.bytes; g += GROUP) {
+                if (p >= rom.length) return null;
+                const m = rom[p++];
+                for (let w = 0; w < 8; w++) if (!(m & (1 << w))) p += 2;
+            }
+            if (p > rom.length) return null;
+        }
+        return { size: s.size, pixels: pixelsOf(decodeAt(rom, s, at, compressed), s.size) };
+    } catch {
+        return null;
+    }
+}
+
+export const spriteBlocks16Codec = blockCodec(SPEC_16);
+export const spriteBlocks8Codec = blockCodec(SPEC_8);

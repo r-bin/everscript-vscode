@@ -378,7 +378,7 @@ write_word ENEMY_SPAWNER_QUANTITY, 1     a save-area cell by its WRAM name, then
 write_byte STORY_STATE, signed (Byte)STORY_STATE + 1
 damage dog, 10                           an entity (entities/), then an expression
 text string_0afb                         a string (strings/), sound, animation, enemy, projectile by name too
-animate dog, dog_act2_leap, once         an animation (characters/animations/), a mode (characters/animation_modes/)
+animate dog, dog/act2_leap, once     an animation (characters/animations/), a mode (characters/animation_modes/)
 add_shop_item WATER, 30                  an item of the compiler's SHOP_ITEM enum
 load_map 23, 40, 21                      numbers in decimal (0x… for ids and cells)
 skip 7                                   7 bytes no command reaches: not this script's
@@ -758,18 +758,23 @@ characters/records/<name>/character.json    one 74-byte record as named fields (
                                     and the Dog, whose ENEMY ids spawn from WRAM ($0A26, $0A70); `behaviour` and
                                     `attack_proc` by name (above); `flags` (+$05, entity +$10's bits) and `flags2`
                                     (+$07) as bit names, "invincible | inactive", null for none
-characters/records/<name>/animations.json   its twelve animation records (stand, walk, …, dodge), each with its facings,
-                                    frames and the sprite blocks every frame shows (for the reader)
+characters/records/<name>/animations.json   its twelve animation records (stand, walk, …, dodge), each with a plain-English
+                                            `what` summary, one representative ASCII `art` preview (`same_as` for repeated slots);
+                                            only `record` is read by implode
 characters/records/_enum.json              names[ENEMY id], what spawn opcodes take; null: an id with no record
 characters/records/_records.json           the record block in order: record k at $xx:B678 + 74·k
-characters/animations/<name>.json            an id `animate()` plays: its record ($C4:xxxx) and what it shows
+characters/animations/<character>/<name>.json  an id `animate()` plays, attributed to its character (with `placeholder/`
+                                               for cutscene/effect animations and `shared/` for multi-character/empty ones):
+                                               its record (`$C4:xxxx`), `what`, `used_in`, and a read-only `preview` with
+                                               palette-shaded ASCII art frames (`.` transparent, `:-=+*#%@` dark→light)
 characters/sprite_blocks_16/<name>.png       16×16 sprite block pixels, indexed, grey (the palette comes from the entity)
 characters/sprite_blocks_8/<name>.png        8×8; sprite_blocks_8/block_17c5.json: an alias (below)
 ```
 
-- **Names.** Characters: our compiler's ENEMY names (`language/data/index.json`), `boy`, `dog`; animations: its
-  `ANIMATION_BOY` / `_DOG` / `_ENEMY` / `_ALL` / `_PLACEHOLDER` names (values 2·id), else `animation_<id>`;
-  `block_<id>`.
+- **Names.** Characters: our compiler's ENEMY names (`language/data/index.json`), `boy`, `dog`; animations: attributed
+  `<character>/<name>` using script `spawn*`→`animate` chains, character records, weapons, Dog forms, and
+  `ANIMATION_BOY` / `_DOG` / `_ENEMY` / `_ALL` / `_PLACEHOLDER` names (direct `0x...` values, not enum references),
+  stripping redundant character prefixes, else `animation_<id>`; `block_<id>`.
 - **Characters.** One item: the records stay a block at offset `$B678` of a bank in the `$80–$BF` form
   (`Rule.bankOffset`), because the game keeps them by 16-bit address (ENEMY index, entity `+$60`, and five code
   immediates that name records). Only the bank moves: implode writes it into the `mvn` at `$8F:8046` and the 131
@@ -777,7 +782,7 @@ characters/sprite_blocks_8/<name>.png        8×8; sprite_blocks_8/block_17c5.js
   the bank). The ENEMY index (`$8E:B55A`, four `lda.l` in the spawn handlers) is a generated item; 256 ids.
 - **Animations.** The id table (`$C4:3C92`, one `lda.l` at `$8C:E13C`) is a generated item; the records, scripts
   and sprite infos stay in `_base/` ([animations.md](animations.md)): a file's `record` is what implode reads, the
-  facings and frames are derived from the ROM by the repo's decoders. 2,048 ids.
+  `what` summary, `used_in`, and ASCII `preview` frames are derived from the ROM (`animation-view.mts`). 2,048 ids.
 - **Sprite blocks.** Each block is a resource placed anywhere from its base bank (`$D9` / `$D1`) to the end of the
   4 MiB (`Rule.above`, `below`), never across a bank; the tables (`$EC:0000`, `$D8:0000`, three `lda.l` each) are
   generated. Stored compressed exactly when shorter (vanilla's rule for all 11,119), so the PNG is the whole block.
