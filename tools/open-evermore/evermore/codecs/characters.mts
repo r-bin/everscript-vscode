@@ -1,10 +1,10 @@
 // The `characters` kind (docs/open-evermore/resources.md §characters): every character record, one file each.
 //   characters/<name>.json        the record's fields by name (`palette`, `palette2` by sprite_palettes name, and
-//                                 `animations` mapping the 12 slots to animation_groups names); `spawn` when the
+//                                 `animations` mapping the 12 slots to animation names); `spawn` when the
 //                                 ENEMY id spawns from another address (the Boy, the Dog: WRAM)
 //   characters/_enum.json         names[ENEMY id]: what spawn opcodes take (null: no record, address 0)
 //   characters/_records.json      the record block's order: a record's place is its 16-bit address
-// Implode writes the records as one block, patches animation slot offsets if any moved/new group was placed, writes
+// Implode writes the records as one block, patches animation slot offsets if any moved/new animation was placed, writes
 // the ENEMY index wherever it lands, and updates the bank byte of every operand that reads the records.
 //
 // Facts used (docs/entities/character_table.md, knowledge routines/character_records.md, tools/table-hack/tables.js):
@@ -15,13 +15,13 @@
 //   ENEMY     the index at $8E:B55A, one word per id (a record's 16-bit address), read by `lda.l $8EB55A,x` in the
 //             four spawn handlers ($8C:DC9A/DCC3/DCD9/DCEC); 143 ids; 0xBA/0xC2 take a byte id: 256 at most
 //   fields    behaviour (+$03) and attack proc (+$30) are handler-table names; flags (+$05, +$07) as bit names (`a | b`,
-//             null for none); palettes (+$09, +$0B) as sprite_palettes names; animations (+$32..+$48) as animation_groups names
+//             null for none); palettes (+$09, +$0B) as sprite_palettes names; animations (+$32..+$48) as animation names
 import { createRequire } from 'node:module';
 import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
-import { ANIMATION_GROUPS, animationGroupInitialOffset, animationGroupPlacedOffset, animationGroupRef } from './animation-groups.mts';
+import { ANIMATIONS as ANIMATION_KIND, animationInitialOffset, animationPlacedOffset, animationRef } from './animations.mts';
 import { ATTACK_PROCS, BEHAVIOURS } from './handler-tables.mts';
 import { hexText, parseHex, readerSpans, readerWrites, tableAt } from './readers.mts';
 import type { Reader } from './readers.mts';
@@ -88,10 +88,10 @@ function recordBytes(
     };
     for (const [n, at, size, form] of FIELDS) put(c?.[n], at, size, form, `/${n}`);
 
-    const groups = ctx.names.get(ANIMATION_GROUPS);
+    const anims = ctx.names.get(ANIMATION_KIND);
     const animRefs: (string | null)[] = new Array(ANIMATIONS.length).fill(null);
     if (!c?.animations || typeof c.animations !== 'object' || Array.isArray(c.animations)) {
-        ctx.findings.error('invalid-value', path, '/animations', 'an object mapping the 12 animation slots to animation_groups names (or null)');
+        ctx.findings.error('invalid-value', path, '/animations', 'an object mapping the 12 animation slots to animation names (or null)');
         ok = false;
     } else {
         ANIMATIONS.forEach((slot, k) => {
@@ -100,12 +100,12 @@ function recordBytes(
             if (v === null) {
                 rec16 = 0;
             } else if (typeof v === 'string') {
-                if (groups && !v.startsWith('$')) {
-                    if (groups.has(v)) {
+                if (anims && !v.startsWith('$')) {
+                    if (anims.has(v)) {
                         animRefs[k] = v;
-                        rec16 = animationGroupInitialOffset(ctx, v) ?? 0;
+                        rec16 = animationInitialOffset(ctx, v) ?? 0;
                     } else {
-                        ctx.findings.error('unknown-reference', path, `/animations/${slot}`, `"${v}" is no animation group in animations/groups/`);
+                        ctx.findings.error('unknown-reference', path, `/animations/${slot}`, `"${v}" is no animation in animations/`);
                         ok = false;
                         return;
                     }
@@ -114,7 +114,7 @@ function recordBytes(
                 }
             }
             if (rec16 === null) {
-                ctx.findings.error('invalid-value', path, `/animations/${slot}`, groups ? 'an animation group name or null' : '"$xxxx" or "$C4:xxxx"');
+                ctx.findings.error('invalid-value', path, `/animations/${slot}`, anims ? 'an animation name or null' : '"$xxxx" or "$C4:xxxx"');
                 ok = false;
                 return;
             }
@@ -258,9 +258,9 @@ export const charactersCodec: Codec = {
             ANIMATIONS.forEach((f, i) => {
                 const r = word(b, ANIM_AT + 2 * i, 2);
                 if (!r) { anims[f] = null; return; }
-                const ref = animationGroupRef(rom, r, name, countOf, nameAt);
+                const ref = animationRef(rom, r, name, countOf, nameAt);
                 if (ref && ref.facing) throw new Error(`${CHARACTERS}: ${n}.${f} points to interior facing $${r.toString(16)}`);
-                anims[f] = ref ? ref.group : hexText(r, 4, 0xC4);
+                anims[f] = ref ? ref.animation : hexText(r, 4, 0xC4);
             });
             c.animations = anims;
             files.set(`${DIR}/${n}.json`, json(c));
@@ -338,9 +338,9 @@ export const charactersCodec: Codec = {
         for (const [n, k] of s.place) {
             const refs = s.animRefs.get(k);
             if (!refs) continue;
-            refs.forEach((groupName, slotIdx) => {
-                if (!groupName) return;
-                const off = animationGroupPlacedOffset(ctx, placed, groupName);
+            refs.forEach((animName, slotIdx) => {
+                if (!animName) return;
+                const off = animationPlacedOffset(ctx, placed, animName);
                 if (off !== null) writes.push({ at: at + STRIDE * k + ANIM_AT + 2 * slotIdx, bytes: Uint8Array.of(off & 0xFF, off >> 8), file: `${DIR}/${n}.json` });
             });
         }

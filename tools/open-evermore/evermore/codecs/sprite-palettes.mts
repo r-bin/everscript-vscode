@@ -76,10 +76,12 @@ function analyzeSpritePalettes(
     nameAt: NameAt,
 ): PaletteAnalysis {
     const isRoundTrip = countOf(DIR) !== undefined;
-    if (!isRoundTrip) {
-        const hit = analysisCache.get(rom);
-        if (hit) return hit;
+    if (isRoundTrip) {
+        const n = countOf(DIR)!;
+        return { names: Array.from({ length: n }, (_, id) => name(DIR, id)), usedBy: Array.from({ length: n }, () => []) };
     }
+    const hit = analysisCache.get(rom);
+    if (hit) return hit;
 
     const uses: SlotUsage[] = Array.from({ length: SPRITE_PALETTE_COUNT }, () => ({
         chars: [], chars2: [], weapons: [], ammo: [], dog: [], projs: [], rings: [], hud: false, script4b: false,

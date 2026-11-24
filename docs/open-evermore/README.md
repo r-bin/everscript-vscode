@@ -84,7 +84,7 @@ out/open-evermore/                 GENERATED from the user's ROM; never committe
   maps/collisions/                 the 16 collision forms by name (metatiles name them)
   palettes/backgrounds/, palettes/sprites/   shared background (365) & sprite/icon (269) palettes
   sprites/{blocks_16,blocks_8,metasprites}/  sprite blocks (PNG) and owner-attributed metasprites (JSON)
-  animations/{groups,animate_ids,modes}/     783 $C4 facing groups, 212 global animate() IDs, 6 modes
+  animations/{<owner>/,animate.json,modes/}  783 animations with inline scripts, the animate() table (212 ids), 6 modes
   scripts/rooms/<map>/, scripts/global/      the scripts rooms run first (named in their scripts.json), the rest
   scripts/opcodes/, scripts/entities/        the script VM's opcodes; entity operands
   strings/                         text

@@ -1,6 +1,6 @@
 # Open Evermore: Animations & Metasprites Architecture
 
-Status: **v0.464.0 layout implemented (2026-11-23)** for `palettes/`, `sprites/`, `animations/`, and cleaned-up `characters/`. Back to [README.md](README.md); tracked under S2c and S7a–S7d2a in [progress.md](progress.md).
+Status: **v0.465.0 (2026-11-24): `animations/` unified**: one file per animation with its scripts inline, plus `animate.json`. Back to [README.md](README.md); tracked under S2c and S7a–S7d2b in [progress.md](progress.md).
 Related engine documentation: [../entities/animation_script.md](../entities/animation_script.md), [../entities/animation_format.md](../entities/animation_format.md), and the `animation-script` skill.
 
 ---
@@ -12,9 +12,9 @@ The graphics and motion pipeline of Secret of Evermore operates across three dis
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │ Layer 3: Animations (Groups, animate() IDs & Facing Records)                              │
-│   • Groups in bank $C4 (1, 4, or 8 facings; 783 groups / 1,752 records)               │
-│   • VM bytecode in banks $C7–$C9 (timing, hold, step, strike, palette, jumps)          │
-│   • Character slots reference groups directly; 212 global animate() IDs stay vanilla   │
+│   • 783 animations (1, 4 or 8 facings), each file holds its symbolic scripts           │
+│   • animations/animate.json: parameter name → animation (212 vanilla, up to 2,048)     │
+│   • Character slots reference animations by name; no ROM pointers in any file          │
 └───────────────────────────────────────────┬────────────────────────────────────────────┘
                                             │ plays
 ┌───────────────────────────────────────────▼────────────────────────────────────────────┐
@@ -106,7 +106,7 @@ Stored as concise JSON under `sprites/metasprites/<owner>/frame_<addr>.json`:
 * **Clean Defaults**: `flip_x`, `flip_y`, and `palette` default to `false` / `0` and can be omitted when unused.
 
 ### 3.4 Grouping & Attribution
-Metasprites are organized by owner attributed through `animation_groups`:
+Metasprites are organized by owner attributed through `animations`, named `<owner>/frame_NNN`:
 * Single-owner frames: `sprites/metasprites/<owner>/` (e.g. `boy/`, `dog/`, `skelesnail/`).
 * Multi-owner frames (shared poses/effects): `sprites/metasprites/shared/`.
 * Spells and alchemy visuals: `sprites/metasprites/alchemy/`.
@@ -117,24 +117,27 @@ Metasprites are organized by owner attributed through `animation_groups`:
 
 ## 4. Layer 3: Animations & Top-Level Shared Palettes
 
-### 4.1 Facing Groups in `$C4` (`animations/groups/`)
-* All **783 groups / 1,752 four-byte records** in `$C4:3E3A–$5999` live at `animations/groups/<owner>/<name>.json` (`open-evermore/animation-group`):
-  * `"facing_mode"`: `"any"` (1 record, flags `$00`), `"4_way"` (4 records, flags `$40`, indexed via `$90:815B` as `north`, `east`, `south`, `west`), or `"8_way"` (8 records, flags `$80`: `north`, `northeast`, `east`, `southeast`, `south`, `southwest`, `west`, `northwest`).
-  * `"facings"`: compass direction → 24-bit script start address `"$C7:xxxx"`–`"$C9:xxxx"`.
-  * `"palettes"` and `"used_by"`: derived programmatic attribution (ignored by implode).
-* Vanilla groups stay pinned at their `$C4` home offsets (61 code immediates name record offsets). Adding a brand-new group marks `animations/_table` to vacate `$C4:3C92–$3E39`, opening 424 bytes inside bank `$C4` (26 four-facing groups).
+### 4.1 One animation = one file (`animations/<owner>/<name>.json`, v0.465.0)
+An animation is a single file holding its facings **and the scripts themselves** (no ROM pointers anywhere). All **783** animations (1,752 four-byte `$C4:3E3A–$5999` records, 1,595 unique `$C7–$C9` scripts, 52,122 bytes) are exploded this way (`open-evermore/animation`):
+* `"facing_mode"`: `"any"` (1 record), `"4_way"` (`north`, `east`, `south`, `west`, `$90:815B` order) or `"8_way"` (compass order).
+* `"facings"`: per facing either the script as symbolic lines (`"reset"`, `"hurtbox 14, -8"`, `"sprite boy/frame_706"`, `"sleep 12"`, `"step 0!"`, `"loop"`; a trailing `!` is the end-of-frame bit) or `{ "same_as": "<facing | animation[#facing]>" }` where vanilla shares a script. Metasprites are named `<owner>/frame_NNN`, palettes and projectiles by name, jumps as labels, and a jump into another animation's script as `@<animation[#facing]>`.
+* `"palettes"` and `"used_by"`: derived, ignored by implode.
+* Example, how the Boy is dragged: `animations/boy/dragged.json`.
+* Every script is re-assembled from its lines at explode time and compared byte for byte with the ROM (a script that does not round-trip aborts explode). Scripts and records relocate freely; implode generates the `$C4` records, labels, sprite references and projectile references.
 
-### 4.2 `animate()` IDs (`animations/animate_ids/`) and Modes (`animations/modes/`)
-* `animations/animate_ids/<character>/<name>.json` (`open-evermore/animate-id`) keeps vanilla's **212** global `animate()` IDs (growing up to 2,048). Each entry names `"animation"` in `animation_groups/` plus optional `"facing"` (e.g. id 24 targeting slot `west` of its group).
+### 4.2 `animate()` parameters (`animations/animate.json`) and modes (`animations/modes/`)
+* `animations/animate.json` is the table at `$C4:3C92` read by `animate()` (`lda.l $C43C92,x`, `$8C:E13C`): `entries` maps a **parameter name** (what event scripts write) to an **animation** (`boy/dragged`), `animation#facing` (`dog/act1_stick_walk#west`) or `null`. Order = id; 212 vanilla entries, limit 2,048.
+* **Extending**: add `animations/<owner>/<name>.json` and a line in `animate.json`; implode builds the table (vacating `$C4:3C92` into upper banks if new records need bank `$C4`), and a script can call `animate boy, boy/custom_drag, once`.
 * `animations/modes/<mode>.json`: the six `$8C:E100` mode handlers (`once`, `once_freeze`, `loop`, `freeze`, `clear_script_pointers`, `pause`).
-* Animation scripts in `$C7–$C9` remain in `_base/` until exploded symbolically. Note: opcode `0x54` (`jump_if_linked`) is never taken in vanilla (`mode & $0040` is unset) and carries the `$C7:0075` helper offset verbatim in `$C8`/`$C9` (`$C8:0075` lands mid-instruction → `$C8:8002` music data), so static walkers must not follow `0x54` targets.
+* Opcode `0x54` (`jump_if_linked`) is never taken in vanilla (`mode & $0040` unset); its `$C7:0075` helper offset is carried verbatim, so static walkers must not follow `0x54` targets.
+* **Timing rule for placement**: the VM steps its script pointer with `INC $5D : BNE +2 : INC $5E` (`$90:80F3`, `$90:838E`, `$90:844C`), which costs 4 extra cycles when a script crosses a 256-byte page. Under `--strict`, a script keeps its page behaviour (`Rule.noPageCross`, or `Rule.pageOffset` for the 195 that cross a page in vanilla) so lockstep proofs stay exact.
 
 ### 4.3 Top-Level Shared Palettes (`palettes/`)
 Because sprite palettes are shared across characters, weapons, Dog forms, projectiles, HUD portraits, ring icons, and animation opcode `0x4B`, palettes live at the top level:
 * `palettes/backgrounds/` (365 map tile families at `$9C:C322`, JSON or PNG stripe via `--palettes png`).
 * `palettes/sprites/` (269 sprite/icon palettes in bank `$90`/`$D0` at `$90:A7EB–$C98A`, 32 bytes each, JSON with derived `used_by` or PNG stripe via `--palettes png`).
 
-`animation-groups.mts` derives group palettes programmatically from:
+`animation-analysis.mts` derives animation palettes programmatically from:
 1. **Script Opcode `0x4B`**: Explicit palette embedded in script bytecode.
 2. **Weapon / Ammo Records**: Equipped weapon or Bazooka ammo slot `+$04` (Boy).
 3. **Dog Forms**: Dog form header `+$06` (`$CF:945F`).
@@ -143,18 +146,14 @@ Because sprite palettes are shared across characters, weapons, Dog forms, projec
 6. **Inferred Fallback**: `animate()` targets (`CHAR`), shared metasprite votes, and nearest-character record proximity.
 
 ### 4.4 Linking Characters, Equipment, Projectiles & Ring Items
-* `characters/records/<name>.json` stores each 74-byte character record as one file (redundant `animations.json` dumps removed): `palette`/`palette2` reference `palettes/sprites/` and the 12 `animations` slots (`stand`..`dodge`) reference `animations/groups/`.
-* `equipment/weapons/`, `equipment/bazooka_ammo/`, `characters/projectiles/`, and `menus/ring_items/` likewise reference `sprite_palettes` and `animation_groups` by name instead of raw `$90`/`$D0`/`$C4` hex pointers.
+* `characters/records/<name>.json` stores each 74-byte character record as one file (redundant `animations.json` dumps removed): `palette`/`palette2` reference `palettes/sprites/` and the 12 `animations` slots (`stand`..`dodge`) reference `animations/`.
+* `equipment/weapons/`, `equipment/bazooka_ammo/`, `characters/projectiles/`, and `menus/ring_items/` likewise reference `sprite_palettes` and `animations` by name instead of raw `$90`/`$D0`/`$C4` hex pointers.
 * Event scripts call `animate(entity, mode, @animation_name)`.
 
 ---
 
 ## 5. Extensibility, Moving, and Imploding
 
-1. **Lossless Round-Trip (G0)**:
-   * `implode --strict` reassembles palettes, sprite blocks, metasprites, animation groups, animate IDs, characters, equipment, projectiles, and ring items to the identical vanilla ROM SHA-1.
-2. **Editing & Adding**:
-   * Authors can edit character palettes, swap animation group slots across `boy/`, `dog/`, or enemies, add brand-new `animation_groups/` entries (automatically vacating `$C4:3C92` into the upper banks), or extend `animations/animate_ids/` up to 2,048 entries.
-3. **Relocatability**:
-   * *Phase 1 (In-Place)*: While animation scripts remain in `_base/`, vanilla `animation_groups` and `metasprites` stay pinned to their ROM offsets.
-   * *Phase 2 (Relocatable)*: Once animation scripts in `$C7–$C9` are exploded into symbolic names, metasprites can relocate freely across banks `$CA–$D3` and new animation scripts can generate metasprites.
+1. **Lossless Round-Trip (G0)**: `implode --strict` rebuilds the vanilla ROM SHA-1 from palettes, sprite blocks, metasprites, animations (scripts, records, `animate.json`), characters, equipment, projectiles and ring items.
+2. **Editing & Adding**: edit a script's lines (a longer script relocates), add `animations/<owner>/<name>.json`, extend `animate.json` (up to 2,048), swap animation slots of characters and weapons.
+3. **Relocatability**: scripts (`$C7–$C9`, or anywhere below 4 MiB), animation records, the `animate()` table and new metasprites all move; vanilla metasprites referenced from `_base/` stay pinned.

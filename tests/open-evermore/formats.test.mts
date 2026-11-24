@@ -6,9 +6,10 @@ import assert from 'node:assert';
 import { createRequire } from 'node:module';
 import { deflateSync } from 'node:zlib';
 import { json, readText } from '../../tools/open-evermore/tree.mts';
-import { ANIMATION_GROUP_NAME_RE, facingOffset } from '../../tools/open-evermore/evermore/codecs/animation-groups.mts';
+import { Findings } from '../../tools/open-evermore/findings.mts';
+import { ANIMATION_NAME_RE, facingOffset } from '../../tools/open-evermore/evermore/codecs/animations.mts';
+import { assembleAnimationScript, canonicalScriptLines } from '../../tools/open-evermore/evermore/codecs/animation-scripts.mts';
 import { renderAsciiArt } from '../../tools/open-evermore/evermore/codecs/animation-view.mts';
-import { ANIMATION_NAME_RE } from '../../tools/open-evermore/evermore/codecs/animations.mts';
 import { SPRITE_PALETTE_BASE, SPRITE_PALETTE_COUNT, spritePaletteAddr, spritePaletteId } from '../../tools/open-evermore/evermore/codecs/sprite-palettes.mts';
 import { fromText, toText } from '../../tools/open-evermore/evermore/codecs/strings.mts';
 import { exprBytes, exprText } from '../../tools/open-evermore/evermore/codecs/expressions.mts';
@@ -215,10 +216,10 @@ test('animation ASCII art renders transparent, dark outlines, bright fills, scal
     assert.ok(!ANIMATION_NAME_RE.test('BadName'));
 });
 
-test('animation groups: name validation, facing offsets ($90:815B), and sprite palette alignment', () => {
-    assert.ok(ANIMATION_GROUP_NAME_RE.test('boy/walk'));
-    assert.ok(ANIMATION_GROUP_NAME_RE.test('fire_eyes/attack_0'));
-    assert.ok(!ANIMATION_GROUP_NAME_RE.test('a/b/c'));
+test('animations: name validation, facing offsets ($90:815B), and sprite palette alignment', () => {
+    assert.ok(ANIMATION_NAME_RE.test('boy/walk'));
+    assert.ok(ANIMATION_NAME_RE.test('fire_eyes/attack_0'));
+    assert.ok(!ANIMATION_NAME_RE.test('a/b/c'));
     assert.strictEqual(facingOffset('any', 'any'), 0);
     assert.strictEqual(facingOffset('any', 'north'), null);
     assert.deepStrictEqual(['north', 'east', 'south', 'west'].map(f => facingOffset('4_way', f)), [0, 4, 8, 12]);
@@ -227,6 +228,71 @@ test('animation groups: name validation, facing offsets ($90:815B), and sprite p
     assert.strictEqual(spritePaletteId(spritePaletteAddr(268)), 268);
     assert.strictEqual(spritePaletteId(SPRITE_PALETTE_BASE + 1), null);
     assert.strictEqual(spritePaletteId(spritePaletteAddr(SPRITE_PALETTE_COUNT)), null);
+});
+
+test('animation scripts: symbolic assembly, canonical lines, zero $ pointers, and errors', () => {
+    const lines = [
+        'reset',
+        'hurtbox 14, -8',
+        'sprite boy/frame_000',
+        'sleep 12',
+        'sleep 45',
+        'step 0!',
+        'step -4',
+        'nop',
+        'nop2',
+        'clear entity.scratch',
+        'clear16 entity.sprite',
+        'mode walk | contact',
+        'blend_palette 0, boy_bone_crusher+2, boy_bone_crusher+2, 16',
+        'poke ANIM_SCRIPT_OAM_BUFFER_OFFSET, 0',
+        'segment #0, -2, 10, 20, -4, 8',
+        'jump_if_linked',
+        'label_loop:',
+        'dec_jnz entity.scratch, label_loop',
+        'jump @shared/invisible_fade',
+        'loop',
+    ];
+    assert.ok(lines.every(l => !l.includes('$')), 'symbolic script lines carry zero $ pointers');
+    const r = {
+        hasMetasprite: (n: string) => n === 'boy/frame_000',
+        metasprite: (n: string) => n === 'boy/frame_000' ? 0xCA1234 : null,
+        palette: (n: string) => n === 'boy_bone_crusher' ? spritePaletteAddr(41) : null,
+        sound: () => null,
+        hasProjectile: () => false,
+        projectile: () => null,
+        formula: () => null,
+        hasExtTarget: (n: string) => n === 'shared/invisible_fade',
+        extTarget: (n: string) => n === 'shared/invisible_fade' ? 0x008D : null,
+    };
+    const f = new Findings();
+    const res = assembleAnimationScript(lines, r, f, 'boy/test.json', '/facings/any');
+    assert.deepStrictEqual(f.list, []);
+    assert.strictEqual(res.ok, true);
+    assert.deepStrictEqual([...res.bytes.subarray(0, 15)], [
+        0x52,                         // reset
+        0x50, 14, 0, 0xF8, 0xFF,      // hurtbox 14, -8
+        0x22, 0x34, 0x12,             // sprite boy/frame_000 ($CA:1234)
+        12,                           // sleep 12
+        0x20, 45,                     // sleep 45
+        0xC1,                         // step 0!
+        0x42, 0xFC,                   // step -4
+    ]);
+    assert.ok(res.patches.some(p => p.kind === 'sprite_short' && p.metasprite === 'boy/frame_000'));
+    assert.ok(res.patches.some(p => p.kind === 'label'));
+    assert.ok(res.patches.some(p => p.kind === 'ext_jump' && p.target === 'shared/invisible_fade'));
+    assert.deepStrictEqual(
+        canonicalScriptLines(['my_lbl:', '  mode   walk|contact  ', 'dec_jnz   entity.scratch ,  my_lbl', 'jump_if_linked  my_lbl', 'loop']),
+        ['label_1:', 'mode walk | contact', 'dec_jnz entity.scratch, label_1', 'jump_if_linked label_1', 'loop'],
+    );
+    const ef = new Findings();
+    assembleAnimationScript(['sprite missing/frame', 'palette bad_pal', 'jump missing_lbl', 'bogus_cmd'], r, ef, 'boy/bad.json', '/facings/any');
+    assert.deepStrictEqual(ef.list.map(x => `${x.rule}${x.pointer}`), [
+        'unknown-reference/facings/any/0',
+        'unknown-reference/facings/any/1',
+        'invalid-value/facings/any/3',
+        'unknown-reference/facings/any/2',
+    ]);
 });
 
 test('metasprites format: chunk encoding, bounding box, flip and priority flags round-trip', () => {

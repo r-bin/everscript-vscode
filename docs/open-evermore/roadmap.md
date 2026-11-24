@@ -33,7 +33,7 @@ and the order to fix it in. The kinds themselves: [resources.md](resources.md); 
 | collision form | `"solid"`, `"diagonal_sw_slides"` (level and flags are fields) | `maps/collisions/` | built (v0.458.1) |
 | string | `string_0afb` | `strings/` (dialogue) | built for dialogue; **names and UI text (`$C4`) are pointers** (§4) |
 | sprite palette | `"boy_bone_crusher"`, `"ring_icon_04d"` | `palettes/sprites/` | built (v0.464.0; 269 bank `$90`/`$D0` palettes) |
-| animation | `"boy/walk"` (`animation_groups`), `"dog/act2_leap"` (`animate_ids`) | `animations/groups/`, `animations/animate_ids/` | built (v0.464.0: all 783 groups + 212 ids; **$C7–$C9 scripts stay in `_base/`**) |
+| animation | `"boy/walk"`, `"dog/act2_leap"` (`animate.json` keys) | `animations/` (`animate.json` for ids) | built (v0.465.0: 783 animations with inline scripts + 212 `animate()` ids; no addresses) |
 | WRAM | `LEVEL_LOW_CURE`, `temp[n]` | `wram/` (v0.459.0, from names.json, the compiler and the WRAM map) | built: scripts, records, rings name it through `wram/`; **unnamed cells stay `$7E:xxxx`**; moving: W2 ([wram.md](wram.md)) |
 | flag | `WEAPONS_OWNED_FLAGS_0+1` and its bit | knowledge entries, compiler FLAG enum | the word by name; **the bit is a number** |
 | routine | `script_op_5c_set_object_state` | `soe://rom/code/` | built (handlers) |
@@ -63,7 +63,7 @@ scripts have none (247 of 73,540 lines keep a `<0x…>` WRAM cell). Score: again
 | `characters/projectiles` | 7.5 | 32 | `animation` and `palette` named (v0.464.0); `projectile_NN`, `unknown_04`/`06`, `what` per file | README |
 | `characters/records` | 8 | 142 | single `<name>.json` per character with named `palette`/`palette2` and 12 `animations` (v0.464.0); `name: "$C4705A"` | step 3 |
 | `music/packages` | 4 | 3,754 | 2,650 opaque `data_N.bin`; `to` is ARAM (the sound CPU's RAM), legitimate | decode sequences and samples; named ARAM regions |
-| `animations/groups`, `animate_ids` | 8.5 | 0 | all 783 groups (`facing_mode` + compass `facings` + programmatic palettes) and 212 `animate_ids` named (v0.464.0) | `$C7–$C9` animation scripts kind |
+| `animations` | 9 | 0 | 783 animations with `facing_mode`, inline symbolic scripts and programmatic palettes; `animate.json` (v0.465.0) | name unnamed frames by pose |
 
 Overall ~6.5: maps and scripts are near the product, everything that points into `$C4`, palettes or animations is
 still a lab dump. Steps 3–5 fix ~20k of the ~24k addresses left.
@@ -100,8 +100,8 @@ The Rooms tab already draws a tree's rooms from their files (`src/games/evermore
 | 2 | Small naming gaps: pickup objects, animation channels, ring flags and flag bits by name | R2, R3 in scripts and menus |
 | 3 | `$C4` names and UI text as a strings kind (movable, any length) | names of characters, items, weapons, formulas (review §9.2) |
 | 4 *(built, v0.464.0)* | Sprite palettes (`palettes/sprites/`, 269 entries at `$90:A7EB-$C98A`) | R2 for characters, items, equipment, projectiles |
-| 5a *(built, v0.464.0)* | Animation groups (`animations/groups/`, all 783 groups + facing modes + programmatic palettes); single-file `characters/records/<name>.json` (`animations.json` dumps removed); `sprites/{blocks_16,blocks_8,metasprites}/` | R1, R2, R4 for characters & animations; adding groups (`vacate_c4`) |
-| 5b | `$C7–$C9` animation script VM bytecode as a relocatable kind | relocatable metasprites & edited scripts |
+| 5a *(built, v0.464.0, unified v0.465.0)* | Animations (`animations/<owner>/<name>.json`, all 783 + facing modes + programmatic palettes + inline scripts, `animate.json`); single-file `characters/records/<name>.json` (`animations.json` dumps removed); `sprites/{blocks_16,blocks_8,metasprites}/` | R1, R2, R4 for characters & animations; adding groups (`vacate_c4`) |
+| 5b *(built, v0.465.0)* | `$C7–$C9` animation scripts inline in `animations/` (relocatable, symbolic) | relocatable metasprites & edited scripts |
 | 6 | WRAM names for every remaining `$7E:` field ([wram.md](wram.md)) | R2 everywhere |
 | 7 | Editor §5.1–5.3 | one look, one click |
 | 8 | Growable in-place tables (ring items, item actions, weapons, formulas); ingredients, consumables, named items first: [../todo/growable-items.md](../todo/growable-items.md) | adding, not repurposing (review §4) |

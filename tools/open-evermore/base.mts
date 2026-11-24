@@ -44,7 +44,7 @@ export function baseFiles(rom: Uint8Array, kinds: { kind: string; out: Exploded 
     for (const { kind, out } of kinds) {
         for (const s of normalise(out.pool)) { image.fill(FILL, s.start, s.end); index.pool.push(range(s, kind)); }
         for (const s of normalise(out.tables)) { image.fill(FILL, s.start, s.end); index.tables.push(range(s, kind)); }
-        for (const [path, bytes] of out.files) if (path.endsWith('/_enum.json')) index.enums[path] = sha1(bytes);
+        for (const [path, bytes] of out.files) if (path.endsWith('/_enum.json') || path === 'animations/animate.json') index.enums[path] = sha1(bytes);
         for (const h of out.homes) index.homes[h.key] = { at: formatAddr(busOf(h.at)), length: h.length, sha1: h.sha1 };
     }
     index.sha1 = sha1(image);

@@ -18,7 +18,7 @@ import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Span, Write 
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
-import { ANIMATION_GROUPS, animationGroupPlacedOffset, animationGroupRef } from './animation-groups.mts';
+import { ANIMATIONS, animationPlacedOffset, animationRef } from './animations.mts';
 import { hexText, parseHex, routines } from './readers.mts';
 import { RING_ITEMS, ringItemNameKey, ringItemTexts } from './menus.mts';
 import { SPRITE_PALETTES, spritePaletteAddr, spritePaletteName } from './sprite-palettes.mts';
@@ -37,7 +37,7 @@ export type Form =
     | { type: 'wram' }
     | { type: 'routine'; bank: number }
     | { type: 'sprite_palette'; optional?: boolean }
-    | { type: 'animation_group'; optional?: boolean };
+    | { type: 'animation'; optional?: boolean };
 
 export interface Field {
     /** Where it goes in the file: "name", "cost/0/count" (a number segment makes an array). */
@@ -138,14 +138,14 @@ export function recordsCodec(r: Records): Codec {
                 const n = parseHex(v, max);
                 return n ?? { error: pals ? `a sprite palette name${form.optional ? ' or null' : ''}` : '"$xxxx"' };
             }
-            case 'animation_group': {
+            case 'animation': {
                 if (form.optional && v === null) return 0;
-                const groups = ctx.names.get(ANIMATION_GROUPS);
-                if (groups && typeof v === 'string' && !v.startsWith('$')) {
-                    return groups.has(v) ? { anim: v } : { error: `"${v}" is no animation group in animations/groups/` };
+                const anims = ctx.names.get(ANIMATIONS);
+                if (anims && typeof v === 'string' && !v.startsWith('$')) {
+                    return anims.has(v) ? { anim: v } : { error: `"${v}" is no animation in animations/` };
                 }
                 const n = parseHex(v, max, 0xC4);
-                return n ?? { error: groups ? `an animation group name${form.optional ? ' or null' : ''}` : '"$C4:xxxx"' };
+                return n ?? { error: anims ? `an animation name${form.optional ? ' or null' : ''}` : '"$C4:xxxx"' };
             }
             case 'text': {
                 const same = (v as { same_as?: unknown } | null)?.same_as;
@@ -214,11 +214,11 @@ export function recordsCodec(r: Records): Codec {
                             catch { out = hexText(x, 2 * width); }
                             break;
                         }
-                        case 'animation_group': {
+                        case 'animation': {
                             if (form.optional && !x) { out = null; break; }
-                            const ref = animationGroupRef(rom, x, name, countOf, nameAt);
+                            const ref = animationRef(rom, x, name, countOf, nameAt);
                             if (ref?.facing) throw new Error(`${r.kind}: ${n} ${f.path} points at interior facing $${x.toString(16)}`);
-                            out = ref ? ref.group : hexText(x, 2 * width, 0xC4);
+                            out = ref ? ref.animation : hexText(x, 2 * width, 0xC4);
                             break;
                         }
                         case 'ring_text': {
@@ -320,7 +320,7 @@ export function recordsCodec(r: Records): Codec {
                         if (!home) continue;
                         x = home.at & 0xFFFF;
                     } else if (typeof x === 'object' && 'anim' in x) {
-                        const off = animationGroupPlacedOffset(ctx, placed, x.anim);
+                        const off = animationPlacedOffset(ctx, placed, x.anim);
                         if (off === null) continue;
                         x = off;
                     }

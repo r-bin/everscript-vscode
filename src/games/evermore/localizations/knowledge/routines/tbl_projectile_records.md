@@ -15,6 +15,6 @@ Each record specifies an animation record in bank `$C4` (`+0x00`), palette group
 movement dispatch routine ID (`+0x08`), behavior type (`+0x0C`: falling, timed, orbit),
 speed in 1/16 px per tick (`+0x0E`), and base power (`+0x16`). Spawned by animation command `$4C`.
 `+0x0A` is the setup routine when script opcode `0xB5` launches the record (`$90:DCDD`), `+0x14` its attack proc
-(2·id, `g_attack_proc_table`). 16 of the 21 are listed by `SCRIPT_PROJECTILE_TABLE`; Open Evermore writes those as
-`characters/projectiles/`.
+(2·id, `g_attack_proc_table`). 16 of the 21 are listed by `SCRIPT_PROJECTILE_TABLE` and written as
+`characters/projectiles/projectile_NN`; the other five (`$D9EE`, `$DB0E`, `$DB26`, `$DB56`, `$DB6E`) only animation scripts throw (opcode `$4C`) and are `anim_projectile_00`..`04` (v0.465.0).
 

@@ -16,3 +16,4 @@ starts (`$C43E3A`).
 
 Moving it is the cheapest way to free space inside `$C4`, where every animation record must live:
 424 bytes, i.e. 26 four-facing groups.
+Open Evermore writes it as `animations/animate.json` (key = the parameter name scripts pass to `animate()`, value = animation); implode rebuilds this table and moves it when new records need bank `$C4`.

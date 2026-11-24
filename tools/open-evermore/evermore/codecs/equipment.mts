@@ -30,8 +30,8 @@ const word = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
 const C4 = 0x040000, POINTERS = C4 + 0x3874, WEAPON_RECORDS = C4 + 0x38E6, AMMO_RECORDS = C4 + 0x3A96, ARMOUR_RECORDS = C4 + 0x3B02;
 const RECORD = 36, WEAPON_COUNT = 14, AMMO_COUNT = 3, ARMOUR_COUNT = 40, ARMOUR_RECORD = 10;
 const RING_ITEM: Form = { type: 'ref', kind: 'ring_items', scale: 2 };
-const ANIMATION: Form = { type: 'animation_group' };
-const ANIMATION_OPT: Form = { type: 'animation_group', optional: true };
+const ANIMATION: Form = { type: 'animation' };
+const ANIMATION_OPT: Form = { type: 'animation', optional: true };
 const PALETTE: Form = { type: 'sprite_palette' };
 
 /** The weapon record's fields, at `base` + 36·id + offset; `ids` the ids that have a record. */

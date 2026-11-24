@@ -68,6 +68,7 @@ for (let id = 0; id < SOUND_COUNT; id++) {
     if ([...SOUND_NAMES.values()].includes(name)) name = `${name}_${hex2(id)}`;
     SOUND_NAMES.set(id, name);
 }
+export const defaultSoundName = (id: number): string => SOUND_NAMES.get(id) ?? `sound_${hex2(id)}`;
 
 interface Transfer { length: number; source: number; to: number }
 /** Every package's descriptor and transfers, and the data pieces they read (overlapping reads merged). */

@@ -30,8 +30,12 @@ export interface Rule {
     /** Starts at this 16-bit offset in its bank (records the game keeps by their 16-bit address: only the bank
      *  moves). */
     bankOffset?: number;
+    /** Starts at this 8-bit offset inside a 256-byte page (keeps the byte where `INC $5D / BNE / INC $5E` wraps). */
+    pageOffset?: number;
     /** Never across a 64 KiB bank boundary. */
     noCrossBank?: boolean;
+    /** Never crossing a 256-byte page boundary nor ending on `$xxFF` (`INC $5D` after any byte stays on one page). */
+    noPageCross?: boolean;
     /** Never ending on a bank's last byte: a reader that steps on after its last byte (`iny` / `bne`) turns the bank
      *  there, which costs cycles vanilla never spent (music: docs/open-evermore/progress.md §2). */
     noBankEnd?: boolean;
@@ -154,6 +158,8 @@ export interface Codec {
     canonical?(path: string, bytes: Uint8Array, ctx?: ImplodeContext): [string, Uint8Array] | null;
     /** The names of the resources in the tree (folder or file names, unordered); stray files are warnings. */
     names(ctx: ImplodeContext): Set<string>;
+    /** Custom id table resolution when a kind's ids come from a file other than `_enum.json`. */
+    resolveIds?(ctx: ImplodeContext, names: Set<string>): Map<string, number> | null;
     /** Reads, validates and encodes the resources; findings go to ctx.findings. */
     encode(ctx: ImplodeContext, names: Set<string>): Item[];
     /** Named addresses inside this kind's items, once they are placed (ImplodeContext.symbols). */

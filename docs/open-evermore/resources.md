@@ -83,7 +83,7 @@ menu icons, and animation opcode `0x4B`.
 - **Names.** Named programmatically from their consumers (`boy_bone_crusher`, `boy_unarmed`, `dog_act1`, `fire_eyes`,
   `ring_icon_<id>`, `effect_<id>`, else `palette_<id>`).
 - **References.** Referenced by `characters/records/`, `equipment/{weapons,bazooka_ammo}`, `characters/projectiles/`,
-  `menus/ring_items/`, and `animations/groups/` (derived attribution).
+  `menus/ring_items/`, and `animations/` (derived attribution).
 - **Placement.** Pinned to `$90:A7EB–$C98A` while bank-`$90`/`$D0` palette loaders (`$90:CF3A`, `$90:CFD2`, `$8E:AEBC`)
   remain in `_base/`; counts stay fixed at 269.
 
@@ -393,7 +393,7 @@ write_word ENEMY_SPAWNER_QUANTITY, 1     a save-area cell by its WRAM name, then
 write_byte STORY_STATE, signed (Byte)STORY_STATE + 1
 damage dog, 10                           an entity (entities/), then an expression
 text string_0afb                         a string (strings/), sound, animation, enemy, projectile by name too
-animate dog, dog/act2_leap, once     an animation (animations/animate_ids/), a mode (animations/modes/)
+animate dog, dog/act2_leap, once     an animation (a key of animations/animate.json), a mode (animations/modes/)
 add_shop_item WATER, 30                  an item of the compiler's SHOP_ITEM enum
 load_map 23, 40, 21                      numbers in decimal (0x… for ids and cells)
 skip 7                                   7 bytes no command reaches: not this script's
@@ -506,7 +506,7 @@ code right after (`handler-tables.mts`). Id `$10`'s handler got its entry (`atta
 
 `characters/projectiles/<name>.json`, one per entry of the table script opcode `0xB5` launches from (`$90:D986`, 16
 record addresses in bank `$90`, read only by `lda.l $90D986,x` at `$8C:E851`, X = the kind = 2·id). A file is the
-24-byte record by field: `animation` (`animations/groups/` name or `null`; patched in `tables()`), `palette`
+24-byte record by field: `animation` (`animations/` name or `null`; patched in `tables()`), `palette`
 (`palettes/sprites/` name or `null`), `unknown_04`, `unknown_06` (hex words), `routine` (`+$08`, setup when an
 animation throws it), `script_routine` (`+$0A`, setup when a script launches it), `behaviour` (`+$0C`, the tick) by
 routine name (the table `$90:D967`, 2·k, k ≤ 14; a selector outside it as hex), `speed`, `lifetime`, `z_speed`,
@@ -574,7 +574,7 @@ menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (o
 - **ring items** (162, `$8E:8000` → 8-byte entries `$8E:8144`): `name` is the text the ring prints, a plain ASCII
   string in bank `$C4`. Weapon records, formula and ingredient names point at the same strings, so a name changes the
   item everywhere and is written where it was: at most its vanilla length (`no-room`, why: §Why a name keeps its
-  length). `icon` names a group in `animations/groups/`, `palette` names a palette in `palettes/sprites/`. The index is what the ring that shows the item reads: by id range it is an
+  length). `icon` names an animation in `animations/`, `palette` names a palette in `palettes/sprites/`. The index is what the ring that shows the item reads: by id range it is an
   `action` (options → `option_actions`, consumables → `item_actions`, Call Bead callers → `caller_actions`, their
   spells → `spell_actions`), a `formula` (`alchemy_actions`: also the number the learned bits and levels use) or a
   plain `index` (weapon, ammo, armour ×2, ingredient). Names from the item's own text (`weapon_bone_crusher`).
@@ -665,7 +665,7 @@ equipment/armour/<armour>.json         { name, ring_item, defense, defense_shown
 - **weapons** (14, the weapon index: `fist`, 12 weapons, `bazooka`): `name` is the ring item whose text the record
   shows (the text is the ring item's, menus); `ring_item` the item the weapons ring shows; `owned` the WRAM byte and bit
   (`$22DA`/`$22DB`: bits `$40`, `$80` of `$22DB` are free); `palette` names a `palettes/sprites/` entry, `animations` and
-  `unknown_1a`/`unknown_1c` name `animations/groups/` entries `boy_load_weapon` copies into the Boy's character record;
+  `unknown_1a`/`unknown_1c` name `animations/` entries `boy_load_weapon` copies into the Boy's character record;
   `description` the weapon skill page's line, written where it was. The fist has only a school; the Bazooka has no record
   of its own (its ammo's).
 - **weapon schools** (4: `sword`, `axe`, `spear`, `bazooka`): a weapon's `school` is 2·id. What a school is, is code:
@@ -771,15 +771,14 @@ The table hack's tables (`tools/table-hack/`, moved and proven there) alongside 
 
 ```
 characters/records/<name>.json             one 74-byte record as named fields (hp, attack, …), `palette`/`palette2`
-                                           (`palettes/sprites/`), `animations` (12 slots naming `animations/groups/`),
+                                           (`palettes/sprites/`), `animations` (12 slots naming `animations/`),
                                            `behaviour` and `attack_proc`, `flags`/`flags2` as bit names, and `spawn` for
                                            the Boy/Dog whose ENEMY ids spawn from WRAM ($0A26, $0A70)
 characters/records/_enum.json              names[ENEMY id], what spawn opcodes take; null: an id with no record
 characters/records/_records.json           the record block in order: record k at $xx:B678 + 74·k
-animations/groups/<owner>/<name>.json      all 783 facing groups in $C4:3E3A-$5999 (`facing_mode`, compass `facings`
-                                           → script address, derived `palettes` & `used_by`)
-animations/animate_ids/<char>/<name>.json  the 212 global ids `animate()` plays: { animation, facing? }, plus derived
-                                           `used_in_scripts` / `played_on` (limit 2,048)
+animations/<owner>/<name>.json             all 783 animations: `facing_mode`, per facing the symbolic script (or `same_as`),
+                                           derived `palettes` & `used_by`; no ROM pointers
+animations/animate.json                    the `$C4:3C92` table the `animate()` opcode reads: parameter name → animation[#facing] | null (212, limit 2,048)
 animations/modes/<mode>.json               the 6 mode handlers at $8C:E100
 sprites/blocks_16/<name>.png               4,854 16×16 sprite blocks, indexed grey PNG
 sprites/blocks_8/<name>.png                6,265 8×8 sprite blocks (plus block_17c5.json alias)
@@ -791,12 +790,7 @@ sprites/blocks_8/<name>.png                6,265 8×8 sprite blocks (plus block_
 - **Characters.** Single `<name>.json` per character (redundant `animations.json` dumps removed in v0.464.0). Records
   stay a block at offset `$B678` of a bank in `$80–$BF` form (`Rule.bankOffset`); `patched: true` lets `tables()` update
   moved/new animation group offsets. 254 records, 256 ENEMY ids max.
-- **Animation groups (`animation_groups`).** All 783 groups in `$C4:3E3A–$5999` with explicit `facing_mode` (`any`,
-  `4_way` in `$90:815B` order `[N, E, S, W]`, or `8_way`) and programmatic palette attribution (`animation-groups.mts`).
-  Vanilla groups keep their `$C4` offset; adding a new group marks `animations/_table` (`vacate_c4`) so `$C4:3C92–$3E39`
-  opens inside bank `$C4` (`layout.mts` places single-bank items before loose items).
-- **Animations (`animations`).** Kept at vanilla's 212 global IDs (`animations/animate_ids/`), each referencing a group
-  in `animations/groups/` (and optional interior `facing`); `$C4:3C92` moves out of bank `$C4` when a new group claims it.
+- **Animations (`animations`, v0.465.0).** All 783 animations in one file each, with explicit `facing_mode` (`any`, `4_way` in `$90:815B` order `[N, E, S, W]`, or `8_way`), the symbolic `$C7–$C9` scripts inline (1,595 scripts, re-assembled byte for byte at explode) and programmatic palette attribution (`animation-analysis.mts`, `animation-scripts.mts`). Vanilla `$C4` records keep their offset; a new animation marks `animations/_table` (`vacate_c4`) so `$C4:3C92–$3E39` opens inside bank `$C4`. `animations/animate.json` keeps vanilla's 212 `animate()` ids (key = parameter name) and grows to 2,048. Scripts, records and the table are generated and relocate; format and extending: [animations.md](animations.md).
 - **Sprite blocks.** `sprites/blocks_16/` and `sprites/blocks_8/`, compressed exactly when shorter (plus alias `block_17c5`),
   21,845 ids each.
 - **Proven (G1).** See [progress.md](progress.md).
@@ -807,7 +801,7 @@ The 4,904 discrete composite sprite frames (metasprites) assembled from 16×16 a
 Each file describes the chunks, signed offsets from the origin anchor (feet), flags (size, flipX, flipY, priority, palette),
 and hardware bounding box.
 
-**Folder.** `sprites/metasprites/<owner>/<frame>.json`, organized by owner attributed via `animation_groups` (`boy/`, `dog/`, enemies, `shared/`, `alchemy/`, `icon/`, `projectile/`, `effect/`, `misc/`).
+**Folder.** `sprites/metasprites/<owner>/<frame>.json`, organized by owner attributed via `animations` (`boy/`, `dog/`, enemies, `shared/`, `alchemy/`, `icon/`, `projectile/`, `effect/`, `misc/`).
 
 ```jsonc
 { "format": "open-evermore/metasprite", "version": 1,
@@ -821,13 +815,11 @@ and hardware bounding box.
 - **Names.** `<owner>/frame_<addr>` (e.g. `boy/frame_ca0003`, `shared/frame_cb1230`).
 - **References.** Used by animation scripts (`sprite` opcodes `0x22–0x2B`, `sprite2`, `sprite_long`, `sprite_aim`). References `sprite_blocks_16` and `sprite_blocks_8` by block name.
 - **Implode generates**: The exact byte sequences for `$CA–$D3` sprite records (validated bounds, chunk fields, block refs, and record length).
-- **Placement**: Pinned to home addresses (with same-length rename support) while animation bytecode in `$C7–$C9` remains in `_base/`.
+- **Placement**: Vanilla records stay at home (code and `_base/` tables name them by address); a brand-new metasprite is placed anywhere in `$CA–$D3` and referenced by name from animation scripts.
 
-## animation scripts — `$C7–$C9` bytecode *(remaining)*
+## animation scripts — `$C7–$C9` bytecode *(built, v0.465.0)*
 
-Explored 2026-11-20, architecture in [animations.md](animations.md). Once animation script VM bytecode in banks
-`$C7–$C9` is exploded into symbolic `sprite` / frame commands (`sprite @frame_name`), metasprites can relocate freely
-across banks `$CA–$D3` and new frames/scripts can be authored without fixed ROM offsets.
+Not a kind of their own: each script is a facing inside an animation file (`animations/<owner>/<name>.json`, [animations.md](animations.md) §4.1), written as symbolic lines. Scripts relocate freely (below 4 MiB, a jump into another script stays in its bank); under `--strict` they keep their 256-byte page behaviour (`Rule.noPageCross` / `Rule.pageOffset`) because the VM spends 4 extra cycles when its pointer crosses a page (`$90:80F3`).
 
 ## wram — WRAM variables *(built, W1, v0.459.0)*
 

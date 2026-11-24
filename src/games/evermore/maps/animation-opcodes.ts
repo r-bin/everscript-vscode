@@ -6,10 +6,10 @@
 // handler and the evidence for every row. This is the one place widths live:
 // ./character-animation and ./animation-vm both ask `opcode()`.
 
-import { snesToRom, readByte } from './rom';
+import { romFileOffset, readByte } from './rom';
 import { hexLower as hex } from '../../../platform/hex';
 
-const at = (rom: Uint8Array, snes: number): number => readByte(rom, snesToRom(snes));
+const at = (rom: Uint8Array, snes: number): number => readByte(rom, romFileOffset(rom, snes));
 const word = (rom: Uint8Array, snes: number): number => at(rom, snes) | (at(rom, snes + 1) << 8);
 const signed8 = (v: number): number => (v << 24) >> 24;
 const signed16 = (v: number): number => (v << 16) >> 16;
@@ -131,7 +131,7 @@ const SEGMENTS_OP: Opcode = { length: 0, mnemonic: 'segments', kind: 'segments' 
  * together and behave the same. `rooted` ($0800) is read by nothing: it is named for the characters
  * that set it. $0002, $0200, $1000 and $2000 are set by scripts but read by nothing, so they stay hex.
  */
-const MODE_BITS: [number, string][] = [
+export const MODE_BITS: [number, string][] = [
     [0x0001, 'knockback'], [0x0004, 'walk'], [0x0008, 'run'], [0x0010, 'attack'], [0x0020, 'invulnerable'],
     [0x0040, 'link'], [0x0100, 'cast'], [0x0800, 'rooted'], [0x4000, 'contact'], [0x8000, 'contact2'],
 ];

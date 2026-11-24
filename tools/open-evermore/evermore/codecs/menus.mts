@@ -6,7 +6,7 @@
 //   ring items  $8E:8000 162 words (ring item id = 2·id) → the 8-byte entry in bank $8E ($8E:8144-$8653, not in id
 //               order; the pointers stay in _base/): +0 the name, a plain NUL-terminated ASCII string in bank $C4 (every
 //               ring loop prints it with $8C:9E03, bank #$C4; weapon records, formula and ingredient names point at the
-//               same strings, so a name is written where it was); +2 the icon, an animation group in animations/groups/
+//               same strings, so a name is written where it was); +2 the icon, an animation in animations/
 //               ($8E:AEBC); +4 its palette in palettes/sprites/; +6 the index, which the ring that shows the item reads:
 //               an action table's entry (×2, consumables ×1: the loop doubles it) or a weapon, armour or ingredient number
 //   rings       ring id = 2·id into three tables: $8E:9920 the WRAM buffer (+0 count, +2 cursor, +4 16 item ids; DP $95),
@@ -23,7 +23,7 @@ import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
-import { ANIMATION_GROUPS, animationGroupInitialOffset, animationGroupPlacedOffset, animationGroupRef } from './animation-groups.mts';
+import { ANIMATIONS, animationInitialOffset, animationPlacedOffset, animationRef } from './animations.mts';
 import { handlerTable } from './handler-tables.mts';
 import { hexText, parseHex, routines } from './readers.mts';
 import { SPRITE_PALETTES, spritePaletteAddr, spritePaletteName } from './sprite-palettes.mts';
@@ -165,14 +165,14 @@ function readItem(v: any, id: number, ctx?: ImplodeContext): RingItem | ReadItem
 
     let icon = 0, iconGroup: string | undefined;
     if (v.icon !== null) {
-        const groups = ctx?.names.get(ANIMATION_GROUPS);
-        if (groups && typeof v.icon === 'string' && !v.icon.startsWith('$')) {
-            if (!groups.has(v.icon)) return { rule: 'unknown-reference', path: '/icon', why: `"${v.icon}" is no animation group in animations/groups/` };
+        const anims = ctx?.names.get(ANIMATIONS);
+        if (anims && typeof v.icon === 'string' && !v.icon.startsWith('$')) {
+            if (!anims.has(v.icon)) return { rule: 'unknown-reference', path: '/icon', why: `"${v.icon}" is no animation in animations/` };
             iconGroup = v.icon;
-            icon = animationGroupInitialOffset(ctx!, v.icon) ?? 0;
+            icon = animationInitialOffset(ctx!, v.icon) ?? 0;
         } else {
             const raw = parseHex(v.icon, 0xFFFF, 0xC4) ?? parseHex(v.icon, 0xFFFF);
-            if (raw === null) return { rule: 'invalid-value', path: '/icon', why: groups ? 'an animation group name in animations/groups/, or null' : 'an animation record in bank $C4, "$xxxx"' };
+            if (raw === null) return { rule: 'invalid-value', path: '/icon', why: anims ? 'an animation name in animations/, or null' : 'an animation record in bank $C4, "$xxxx"' };
             icon = raw;
         }
     }
@@ -227,9 +227,9 @@ export const ringItemsCodec: Codec = {
             const icon16 = word(rom, e + 2), pal16 = word(rom, e + 4);
             let iconVal: unknown = null;
             if (icon16) {
-                const ref = animationGroupRef(rom, icon16, name, countOf, nameAt);
+                const ref = animationRef(rom, icon16, name, countOf, nameAt);
                 if (ref?.facing) throw new Error(`${RING_ITEMS}: ${n}.icon points to interior facing $${icon16.toString(16)}`);
-                iconVal = ref ? ref.group : hexText(icon16, 4);
+                iconVal = ref ? ref.animation : hexText(icon16, 4);
             }
             let palVal: unknown = null;
             if (pal16) {
@@ -290,7 +290,7 @@ export const ringItemsCodec: Codec = {
             const item = readItem(JSON.parse(readText(ctx.tree.get(`${RING_ITEMS}/${n}.json`)!)), id, ctx), at = placed.get(nameKey(n));
             if ('rule' in item || at === undefined) continue;
             const slot = word(ctx.base.image, POINTERS + 2 * id) - (ENTRIES & 0xFFFF);
-            const iconWord = item.iconGroup ? (animationGroupPlacedOffset(ctx, placed, item.iconGroup) ?? item.icon) : item.icon;
+            const iconWord = item.iconGroup ? (animationPlacedOffset(ctx, placed, item.iconGroup) ?? item.icon) : item.icon;
             [at & 0xFFFF, iconWord, item.palette, item.index].forEach((w, k) => table.set([w & 0xFF, w >> 8], slot + 2 * k));
         }
         if (ids.size !== ITEM_COUNT) ctx.findings.error('missing-file', `${RING_ITEMS}/${ENUM}`, '', `all ${ITEM_COUNT} ring items: each has its entry`);

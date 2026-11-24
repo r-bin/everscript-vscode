@@ -83,6 +83,16 @@ test('fitIn starts at or after `above`, and at `bankOffset` in some bank', () =>
     assert.strictEqual(fitIn({ start: 0x20000, end: 0x2C000 }, 0x290C, records), -1);
 });
 
+test('fitIn avoids 256-byte page crossings with noPageCross and aligns to pageOffset', () => {
+    assert.strictEqual(fitIn({ start: 0x100F0, end: 0x10300 }, 16, { noPageCross: true }), 0x10100);
+    assert.strictEqual(fitIn({ start: 0x100DF, end: 0x10100 }, 32, { noPageCross: true }), 0x100DF);
+    assert.strictEqual(fitIn({ start: 0x100E0, end: 0x10100 }, 32, { noPageCross: true }), -1);
+    assert.strictEqual(fitIn({ start: 0x100E0, end: 0x10200 }, 32, { noPageCross: true }), 0x10100);
+    assert.strictEqual(fitIn({ start: 0x10000, end: 0x10400 }, 256, { noPageCross: true }), -1);
+    assert.strictEqual(fitIn({ start: 0x10005, end: 0x10200 }, 32, { pageOffset: 0xE0, noCrossBank: true, noBankEnd: true }), 0x100E0);
+    assert.strictEqual(fitIn({ start: 0x100E5, end: 0x10200 }, 32, { pageOffset: 0xE0, noCrossBank: true, noBankEnd: true }), 0x101E0);
+});
+
 test('stable: every unchanged item stays at its home', () => {
     const l = allocate(items, pool, [], homes);
     assert.deepStrictEqual([...l.at].sort(), at0.sort());

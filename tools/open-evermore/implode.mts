@@ -103,7 +103,7 @@ export function implode(onDisk: Tree, game: string, kinds: Codec[], opts: Option
         present.set(codec.kind, names);
         ctx.names.set(codec.kind, names);
         const path = `${codec.path}/${ENUM}`;
-        const ids = resolveEnum(path, tree.get(path), names, findings, codec.listedIdsOnly, codec.nameRe);
+        const ids = codec.resolveIds ? codec.resolveIds(ctx, names) : resolveEnum(path, tree.get(path), names, findings, codec.listedIdsOnly, codec.nameRe);
         if (ids) ctx.ids.set(codec.kind, ids);
     }
     // In the order of `kinds`: a kind that marks another's resources (ctx.marks) encodes before it.

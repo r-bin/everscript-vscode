@@ -20,7 +20,7 @@ const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 /** Where a kind lives in the tree when not at the top (folders.mts). */
-const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', palettes: 'palettes/backgrounds', sprite_palettes: 'palettes/sprites', collisions: 'maps/collisions', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animation_groups: 'animations/groups', animations: 'animations/animate_ids', animation_modes: 'animations/modes', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'sprites/blocks_16', sprite_blocks_8: 'sprites/blocks_8', metasprites: 'sprites/metasprites', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels', consumables: 'items/consumables', named_items: 'items/named_items' };
+const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', palettes: 'palettes/backgrounds', sprite_palettes: 'palettes/sprites', collisions: 'maps/collisions', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'animations', animation_modes: 'animations/modes', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'sprites/blocks_16', sprite_blocks_8: 'sprites/blocks_8', metasprites: 'sprites/metasprites', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels', consumables: 'items/consumables', named_items: 'items/named_items' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -94,7 +94,8 @@ if (!path || !existsSync(path)) {
     assert.strictEqual(same.sha1, sha1(rom));
     const line = [...tree.keys()].find(p => p.endsWith('.txt') && !p.startsWith('strings/') && / dog(,|$)/m.test(text(tree.get(p)!)))!;
     assert.deepStrictEqual(rules(t => { t.set(line, bytes(text(t.get(line)!).replace(/ dog(,|$)/m, ' cat$1'))); }).filter(r => r.startsWith('unknown-reference')), [`unknown-reference ${line}#/${text(tree.get(line)!).split('\n').findIndex(l => / dog(,|$)/.test(l)) + 1}`]);
-    assert.deepStrictEqual(rules(t => { t.set('characters/projectiles/new_shot.json', t.get('characters/projectiles/projectile_00.json')!); }).sort(), ['id-over-limit characters/projectiles/_enum.json#/names', 'no-room characters/projectiles/new_shot.json#']);
+    assert.deepStrictEqual(rules(t => { t.set('characters/projectiles/new_shot.json', t.get('characters/projectiles/projectile_00.json')!); }).sort(), ['no-room characters/projectiles/new_shot.json#']);
+    assert.deepStrictEqual(rules(t => { t.set('characters/projectiles/new_shot.json', t.get('characters/projectiles/projectile_00.json')!); editJson(t, 'characters/projectiles/_enum.json', e => { e.names.push('new_shot'); }); }).sort(), ['id-over-limit characters/projectiles/_enum.json#/names', 'no-room characters/projectiles/new_shot.json#']);
     console.log(`  ✓ entities and projectiles by name: renamed (and ${Math.ceil(hex / 2)} dogs as d1) the same ROM; an unknown name and a new projectile are errors`);
 
     // Script lines name rooms, objects, own animations, flag enums, attach scripts, fonts and cell values; a font is
@@ -328,51 +329,78 @@ if (!path || !existsSync(path)) {
     const g = implode(grown, GAME, KINDS);
     assert.deepStrictEqual(g.findings.list.filter(f => f.severity !== 'info' && f.rule !== 'unreferenced').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['tiles/_table', 'strings/_table', 'scripts/_table']) assert.ok(g.placed.some(p => p.key === key && p.at !== p.home), `${key} did not move`);
-    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['sprite_palettes', 269], ['animation_groups', 2048], ['animations', 2048], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16], ['fonts', 2], ['hud', 22], ['animation_modes', 6], ['ring_items', 162], ['rings', 18], ['ring_flows', 12], ['option_actions', 9], ['item_actions', 9], ['alchemy_actions', 36], ['caller_actions', 4], ['spell_actions', 18], ['ingredients', 64], ['consumables', 16], ['named_items', 40]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
+    for (const [kind, limit] of [['maps', 256], ['tiles', 21845], ['strings', 21845], ['scripts', 21625], ['sprite_palettes', 269], ['characters', 256], ['sprite_blocks_16', 21845], ['sprite_blocks_8', 21845], ['opcodes', 195], ['attack_procs', 15], ['behaviours', 15], ['music', 71], ['sounds', 112], ['entities', 0x70], ['projectiles', 16], ['fonts', 2], ['hud', 22], ['animation_modes', 6], ['ring_items', 162], ['rings', 18], ['ring_flows', 12], ['option_actions', 9], ['item_actions', 9], ['alchemy_actions', 36], ['caller_actions', 4], ['spell_actions', 18], ['ingredients', 64], ['consumables', 16], ['named_items', 40]] as const) assert.strictEqual(JSON.parse(Buffer.from(tree.get(`${FOLDER[kind] ?? kind}/_enum.json`)!).toString()).limit, limit, kind);
     console.log('  ✓ a new tile, string and table script: each table grows and moves, the round trip holds; limits at the engine\'s');
 
-    // Palettes, animation groups, animate() IDs, cleaned-up character records, and sprite assets:
+    // Unified animations (no animations/groups/ or animate_ids/, zero $ ROM pointers, inline symbolic scripts + animate.json):
     const spritePalEnum = JSON.parse(Buffer.from(tree.get('palettes/sprites/_enum.json')!).toString()).names as string[];
     assert.strictEqual(spritePalEnum.length, 269);
-    const groupEnum = JSON.parse(Buffer.from(tree.get('animations/groups/_enum.json')!).toString()).names as string[];
-    assert.strictEqual(groupEnum.length, 783);
-    assert.ok(tree.has('animations/groups/boy/walk.json'), 'boy/walk is exploded in animations/groups/');
-    const boyWalk = JSON.parse(Buffer.from(tree.get('animations/groups/boy/walk.json')!).toString());
+    assert.ok(![...tree.keys()].some(p => p.startsWith('animations/groups/') || p.startsWith('animations/animate_ids/')), 'split animations folders removed');
+    const animFiles = [...tree.keys()].filter(p => /^animations\/.+/.test(p) && p !== 'animations/animate.json' && !p.startsWith('animations/modes/'));
+    assert.strictEqual(animFiles.length, 783, '783 unified animation definitions');
+    assert.ok(animFiles.every(p => !/\$[0-9a-f]{2,6}/i.test(Buffer.from(tree.get(p)!).toString())), 'zero $ ROM pointers in any animation JSON');
+    const animateTable = JSON.parse(Buffer.from(tree.get('animations/animate.json')!).toString());
+    assert.strictEqual(animateTable.format, 'open-evermore/animate-table');
+    assert.strictEqual(animateTable.limit, 2048);
+    assert.ok(!/\$[0-9a-f]{2,6}/i.test(JSON.stringify(animateTable.entries)), 'zero $ ROM pointers in animate.json entries');
+    const animKeys = Object.keys(animateTable.entries);
+    assert.strictEqual(animKeys.length, 212);
+    for (const expected of ['boy/kneel', 'boy/dragged', 'dog/act2_leap', 'placeholder/bucket', 'placeholder/leaves_falling_2', 'shared/invisible']) {
+        assert.ok(animKeys.includes(expected), `missing animate() key ${expected}`);
+    }
+    assert.ok(animKeys.filter(n => n.startsWith('placeholder/')).length >= 60, 'placeholder owns >= 60 animate keys');
+    assert.ok(!animKeys.some(n => n.includes('boy_boy_')), 'no double-prefixed boy_boy_* names');
+    assert.strictEqual(animKeys[5], 'placeholder/leaves_falling_2', 'id 0x05 is leaves_falling_2 (not enum-ref magmar_roll)');
+    assert.strictEqual(animateTable.entries['boy/dragged'], 'boy/dragged');
+    assert.strictEqual(animateTable.entries['dog/act1_stick_running'], 'dog/act1_stick_walk#west');
+    assert.strictEqual(animateTable.entries['placeholder/explosion_3'], 'bomb/death');
+    assert.strictEqual(animateTable.entries['shared/none'], null);
+
+    const dragged = JSON.parse(Buffer.from(tree.get('animations/boy/dragged.json')!).toString());
+    assert.strictEqual(dragged.facing_mode, 'any');
+    assert.ok(dragged.facings.any.includes('reset') && dragged.facings.any.includes('hurtbox 14, -8') && dragged.facings.any.includes('sleep 12') && dragged.facings.any.includes('step 0!') && dragged.facings.any.includes('loop'));
+    const boySpriteLine = dragged.facings.any.find((l: string) => /^sprite boy\/frame_\d+$/.test(l));
+    assert.ok(boySpriteLine, 'boy/dragged uses sequential boy/frame_NNN metasprite name');
+    const boyWalk = JSON.parse(Buffer.from(tree.get('animations/boy/walk.json')!).toString());
     assert.strictEqual(boyWalk.facing_mode, '4_way');
     assert.deepStrictEqual(Object.keys(boyWalk.facings), ['north', 'east', 'south', 'west']);
+    assert.ok(Array.isArray(boyWalk.facings.north));
     assert.ok(Array.isArray(boyWalk.palettes) && boyWalk.palettes.length > 0 && !boyWalk.palettes[0].palette.startsWith('$'));
-    const animEnum = JSON.parse(Buffer.from(tree.get('animations/animate_ids/_enum.json')!).toString()).names as string[];
-    assert.strictEqual(animEnum.length, 212);
-    for (const expected of ['boy/kneel', 'dog/act2_leap', 'placeholder/bucket', 'placeholder/leaves_falling_2', 'shared/invisible']) {
-        assert.ok(animEnum.includes(expected), `missing attributed animation ${expected}`);
-    }
-    assert.ok(animEnum.filter(n => n.startsWith('placeholder/')).length >= 60, 'placeholder owns >= 60 animations');
-    assert.ok(!animEnum.some(n => n.includes('boy_boy_')), 'no double-prefixed boy_boy_* names');
-    assert.strictEqual(animEnum[5], 'placeholder/leaves_falling_2', 'id 0x05 is leaves_falling_2 (not enum-ref magmar_roll)');
 
-    const kneel = JSON.parse(Buffer.from(tree.get('animations/animate_ids/boy/kneel.json')!).toString());
-    assert.strictEqual(kneel.animation, 'boy/kneel');
-    assert.ok(!('character' in kneel) && !('preview' in kneel));
-    const interiorAnimPath = [...tree.keys()].filter(p => /^animations\/animate_ids\/(?!_enum\.json)/.test(p))
-        .find(p => 'facing' in JSON.parse(Buffer.from(tree.get(p)!).toString()));
-    assert.ok(interiorAnimPath, 'interior facing animate() reference (id 24) carries explicit facing');
     assert.ok(!tree.has('characters/records/fire_eyes/animations.json'), 'redundant animations.json removed');
     const fire = JSON.parse(Buffer.from(tree.get('characters/records/fire_eyes.json')!).toString());
     assert.ok(!fire.palette.startsWith('$') && tree.has(`palettes/sprites/${fire.palette}.json`), `fire_eyes palette: ${fire.palette}`);
-    assert.ok(tree.has(`animations/groups/${fire.animations.stand}.json`), `fire_eyes stand: ${fire.animations.stand}`);
+    assert.ok(tree.has(`animations/${fire.animations.stand}.json`), `fire_eyes stand: ${fire.animations.stand}`);
     assert.ok(tree.has(`characters/behaviours/${fire.behaviour}.json`) && tree.has(`characters/attack_procs/${fire.attack_proc}.json`), `${fire.behaviour}, ${fire.attack_proc}`);
     const crusher = JSON.parse(Buffer.from(tree.get('equipment/weapons/bone_crusher.json')!).toString());
-    assert.ok(!crusher.palette.startsWith('$') && !crusher.animations.attack_0.startsWith('$'), 'weapon references named palette & animation group');
+    assert.ok(!crusher.palette.startsWith('$') && !crusher.animations.attack_0.startsWith('$'), 'weapon references named palette & animation');
     const ringOpt = JSON.parse(Buffer.from(tree.get('menus/ring_items/option_equipment.json')!).toString());
-    assert.ok(!ringOpt.icon.startsWith('$') && !ringOpt.palette.startsWith('$'), 'ring item references named icon group & sprite palette');
+    assert.ok(!ringOpt.icon.startsWith('$') && !ringOpt.palette.startsWith('$'), 'ring item references named icon animation & sprite palette');
+    assert.ok(tree.has('characters/projectiles/anim_projectile_04.json'), 'all 21 bank-$90 projectiles exploded');
 
+    // Editing an inline animation script (growing past vanilla 25B) relocates it cleanly and round-trips.
+    const dragEdited = new Map(tree);
+    editJson(dragEdited, 'animations/boy/dragged.json', a => { a.facings.any.splice(a.facings.any.length - 1, 0, 'sleep 6', 'step 0!'); });
+    const dr = implode(dragEdited, GAME, KINDS);
+    assert.deepStrictEqual(dr.findings.list.filter(f => f.severity === 'error'), []);
+    const movedDrag = dr.placed.find(p => p.key === 'animations.script/boy/dragged#any')!;
+    assert.ok(movedDrag && movedDrag.at !== movedDrag.home, 'grown boy/dragged script relocated and round-trips');
+
+    // Extending animations: new animation file + extended animate.json + event script animate() call + character record slot.
     const more = new Map(tree);
-    const firstAnimation = animEnum[0];
-    grow('animations/animate_ids', firstAnimation, 'animation_new', 'json')(more);
-    grow('animations/animate_ids', firstAnimation, 'placeholder/custom_anim', 'json')(more);
-    grow('animations/groups', 'boy/walk', 'boy/custom_walk', 'json')(more);
+    more.set('animations/boy/custom_drag.json', json({
+        format: 'open-evermore/animation',
+        version: 1,
+        facing_mode: 'any',
+        facings: { any: ['reset', 'hurtbox 14, -8', boySpriteLine, 'sleep 10', 'step 0!', 'end_check!', 'loop'] },
+    }));
+    editJson(more, 'animations/animate.json', v => {
+        v.entries['boy/custom_drag'] = 'boy/custom_drag';
+        v.entries['fire_eyes/slash'] = 'fire_eyes/cast';
+    });
+    setLines(more, enter, l => ['animate boy, boy/custom_drag, once', ...l]);
     more.set('characters/records/fire_eyes_copy.json', more.get('characters/records/fire_eyes.json')!);
-    editJson(more, 'characters/records/fire_eyes_copy.json', c => { c.animations.walk = 'boy/custom_walk'; });
+    editJson(more, 'characters/records/fire_eyes_copy.json', c => { c.animations.walk = 'boy/custom_drag'; });
     editJson(more, 'characters/records/_enum.json', e => { e.names.push('fire_eyes_copy'); });
     editJson(more, 'characters/records/_records.json', e => { e.names.push('fire_eyes_copy'); });
     grow('sprites/blocks_16', 'block_0000', 'block_new', 'png')(more);
@@ -385,17 +413,31 @@ if (!path || !existsSync(path)) {
         assert.ok(after.length > before.length, `${key} did not grow (${before.length} → ${after.length})`);
     }
     const animTablePlaced = m.placed.find(p => p.key === 'animations/_table')!;
-    const newGroupPlaced = m.placed.find(p => p.key === 'animation_groups/boy/custom_walk')!;
-    assert.ok(animTablePlaced.at >= 0x050000, 'new animation group vacates $C4:3C92 animate_ids table');
-    assert.ok(newGroupPlaced.at >= 0x040000 && newGroupPlaced.at < 0x050000, 'new animation group lands in bank $C4');
+    const newAnimPlaced = m.placed.find(p => p.key === 'animations/boy/custom_drag')!;
+    const newScriptPlaced = m.placed.find(p => p.key === 'animations.script/boy/custom_drag#any')!;
+    assert.ok(animTablePlaced.at >= 0x050000, 'new animation vacates $C4:3C92 animate table');
+    assert.ok(newAnimPlaced.at >= 0x040000 && newAnimPlaced.at < 0x050000, 'new animation lands in bank $C4');
+    assert.ok(newScriptPlaced, 'new animation script placed and round-trips');
     assert.ok(m.placed.every(p => p.key !== 'characters/_records' || (p.at & 0xFFFF) === 0xB678), 'the records keep $B678');
     assert.deepStrictEqual(rules(t => editJson(t, 'characters/records/_records.json', e => { e.names.push('nobody'); })), ['unknown-reference characters/records/_records.json#/names/142']);
     assert.deepStrictEqual(rules(t => editJson(t, 'characters/records/fire_eyes.json', c => { c.hp = 70000; })), ['invalid-value characters/records/fire_eyes.json#/hp']);
-    assert.deepStrictEqual(rules(t => editJson(t, 'characters/records/fire_eyes.json', c => { c.animations.stand = 'no/such_group'; })), ['unknown-reference characters/records/fire_eyes.json#/animations/stand']);
+    assert.deepStrictEqual(rules(t => editJson(t, 'characters/records/fire_eyes.json', c => { c.animations.stand = 'no/such_anim'; })), ['unknown-reference characters/records/fire_eyes.json#/animations/stand']);
     assert.deepStrictEqual(rules(t => editJson(t, 'characters/records/fire_eyes.json', c => { c.palette = 'no_such_palette'; })), ['unknown-reference characters/records/fire_eyes.json#/palette']);
-    assert.deepStrictEqual(rules(t => editJson(t, 'animations/animate_ids/boy/kneel.json', a => { a.facing = 'diagonal'; })), ['invalid-value animations/animate_ids/boy/kneel.json#/facing']);
+    assert.deepStrictEqual(rules(t => editJson(t, 'animations/animate.json', v => { v.entries['boy/kneel'] = 'no/such_anim'; })), ['unknown-reference animations/animate.json#/entries/boy/kneel']);
+    assert.deepStrictEqual(rules(t => editJson(t, 'animations/animate.json', v => { v.entries['boy/kneel'] = 'boy/kneel#diagonal'; })), ['invalid-value animations/animate.json#/entries/boy/kneel']);
+    assert.deepStrictEqual(rules(t => editJson(t, 'animations/boy/dragged.json', a => { a.facings.any.splice(0, 0, 'sprite no/frame_999', 'palette no_such_pal', 'sound no_such_sound', 'projectile no_such_proj, 0, 0, 0', 'jump no_such_lbl'); })), [
+        'unknown-reference animations/boy/dragged.json#/facings/any/0',
+        'unknown-reference animations/boy/dragged.json#/facings/any/1',
+        'unknown-reference animations/boy/dragged.json#/facings/any/2',
+        'unknown-reference animations/boy/dragged.json#/facings/any/3',
+        'unknown-reference animations/boy/dragged.json#/facings/any/4',
+    ]);
+    assert.deepStrictEqual(rules(t => editJson(t, 'animations/boy/walk.json', a => { a.facings.north = { same_as: 'east' }; a.facings.east = { same_as: 'north' }; })).filter(r => r.startsWith('invalid-value animations/boy/walk.json#/facings/')), [
+        'invalid-value animations/boy/walk.json#/facings/north/same_as',
+        'invalid-value animations/boy/walk.json#/facings/east/same_as',
+    ]);
     assert.deepStrictEqual(rules(t => editJson(t, 'equipment/weapons/bone_crusher.json', w => { w.palette = 'no_such_palette'; })), ['unknown-reference equipment/weapons/bone_crusher.json#/palette']);
-    assert.deepStrictEqual(rules(t => editJson(t, 'menus/ring_items/option_equipment.json', r => { r.icon = 'no/such_group'; })), ['unknown-reference menus/ring_items/option_equipment.json#/icon']);
+    assert.deepStrictEqual(rules(t => editJson(t, 'menus/ring_items/option_equipment.json', r => { r.icon = 'no/such_anim'; })), ['unknown-reference menus/ring_items/option_equipment.json#/icon']);
     const someMeta = [...tree.keys()].find(p => p.startsWith('sprites/metasprites/') && p.endsWith('.json') && !p.endsWith('_enum.json') && JSON.parse(Buffer.from(tree.get(p)!).toString()).chunks.length > 0)!;
     assert.deepStrictEqual(rules(t => editJson(t, someMeta, v => { v.chunks[0].block = 'no_such_block'; })), [`unknown-reference ${someMeta}#/chunks/0/block`]);
     assert.ok([...tree.keys()].some(p => /^characters\/records\/[^_].*\.json$/.test(p) && / \| /.test(JSON.parse(Buffer.from(tree.get(p)!).toString()).flags ?? '')), 'flags as names');
@@ -408,7 +450,7 @@ if (!path || !existsSync(path)) {
     assert.ok(animate.handler === 'script_op_78_animate' && !('c' in animate), JSON.stringify(animate).slice(0, 80));
     assert.ok([...tree.keys()].filter(p => /^(scripts\/opcodes|characters\/attack_procs|characters\/behaviours)\/[^_]/.test(p)).every(p => !JSON.parse(Buffer.from(tree.get(p)!).toString()).handler.startsWith('$')), 'every handler has a name');
     assert.deepStrictEqual(rules(t => editJson(t, 'characters/attack_procs/melee.json', v => { v.handler = 'no_such_routine'; })), ['unknown-reference characters/attack_procs/melee.json#/handler']);
-    console.log('  ✓ palettes, animation groups, animate_ids, unified characters, metasprites, equipment & ring icons: new group vacates $C4:3C92 and round-trips');
+    console.log('  ✓ unified animations (inline symbolic scripts + animate.json), metasprites, equipment & ring icons: grown/new animations relocate cleanly and round-trip');
     console.log('  ✓ characters name their palettes, animations, behaviour and attack proc; handlers of opcodes, attack procs and behaviours by routine name');
 
     // Music: packages and their data move anywhere (random above); an edited package rebuilds; a package naming data

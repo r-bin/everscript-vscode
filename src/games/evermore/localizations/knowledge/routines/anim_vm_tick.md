@@ -18,3 +18,5 @@ Drives animated sprite sequences for the boy, dog, NPCs, enemies, and weapon/spe
 3. Decrements the active keyframe hold countdown timer at `slot + 0x05`.
 4. When the keyframe timer expires (`0`), writes the advanced instruction pointer back to `slot + 0x00`.
 Full disassembly and clean C reconstruction: `docs/disassembly/animation/animation-vm.md`.
+
+Page-wrap timing: the script pointer is stepped with the 8-bit `INC $5D : BNE +2 : INC $5E` (`$90:80F3` here, also `$90:838E` and `$90:844C`). When `$5D` wraps `$FF` to `$00` the branch is not taken and `INC $5E` runs: 4 extra cycles. A script ending on `$xxFF` pays it on every loop. Moving a script to another page offset therefore changes cycle counts, and the engine is busy most of each frame: a lockstep proof left step at frame 4436 until Open Evermore kept each script's page behaviour (`Rule.noPageCross` / `Rule.pageOffset` under `--strict`). Evidence: disassembly of `$90:80EA`, trace of seed 1 (v0.465.0).
