@@ -26,6 +26,7 @@ keeps that plan's reasoning (gates, codecs, placement rules, fast ROM by heat) a
 | [resources.md](resources.md) | every resource kind: folder, files, references, what implode generates, budgets |
 | [validation.md](validation.md) | what implode checks, error vs warning, the report |
 | [tool.md](tool.md) | `tools/open-evermore/`: actions, the steps of implode, codecs, the proof, tests |
+| [optimizing.md](optimizing.md) | what explode and implode cost (measured), and how to make them faster, easier to use and clearer to read |
 | [progress.md](progress.md) | the step list and the state of each kind |
 | [wram.md](wram.md) | WRAM by name: `temp[]` as a placeholder, the proof of concept, allocation |
 | [roadmap.md](roadmap.md) | the road to 10/10: the rules (one kind per folder, typed names, named entries, no derived data), what still breaks them, the order of work |

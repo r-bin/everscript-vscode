@@ -89,6 +89,7 @@ Development Host from the repo with **F5**.
 | `npm run check:maps` / `check:collision` | parity and round-trip checks against the ROM (need a ROM) |
 | `npm run package` / `npm run deploy` | build the `.vsix` / build and install it |
 | `npm run recomp` | **recomp seeds**: CDL library + asset knowledge + our names → byte-identical Asar project with names and comments, Mesen2 labels + CDL, and the snesrecomp seeds, written into the recomp repository ([SecretOfEvermoreRecomp](https://github.com/r-bin/SecretOfEvermoreRecomp), a sibling checkout), which then regenerates and builds the game; `out/recomp/REPORT.md` says what still blocks. See [tools/recomp/README.md](tools/recomp/README.md) |
+| `node tools/open-evermore/open-evermore.mts explode` / `implode <dir>` / `prove <dir>` | **Open Evermore**: your ROM as a folder of named parts and back (~7.5 s / ~14 s / ~1 min a seed); see [tools/open-evermore/README.md](tools/open-evermore/README.md), the cost and its plan in [docs/open-evermore/optimizing.md](docs/open-evermore/optimizing.md) |
 
 Release steps for contributors and agents: `.agents/skills/release-ritual/SKILL.md`.
 Reverse-engineering overview: [`docs/reverse-engineering/README.md`](docs/reverse-engineering/README.md).

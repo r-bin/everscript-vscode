@@ -71,6 +71,9 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   shift against the written form gives `segments`, so `prove` maps WRAM pointers stretch by stretch.
 - Placement rules (`Rule` in `codec.mts`) carry timing as well as addressing (traps below).
 - Field docs go in one `<kind>/README.md` (projectiles), never a `what` per file: `names()` skips it, `canonical` drops it.
+- **Speed** (`docs/open-evermore/optimizing.md`, measured): explode ~7.5 s, implode ~14 s, 9 s of it the round trip.
+  `json()` is ~28× `JSON.stringify` (each level re-stringified): never in a comparison or a loop over the tree. A new
+  codec cost: profile with `node --cpu-prof` before and after.
 
 ## Proving and debugging
 
@@ -124,6 +127,7 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
 - `npm run typecheck` does not check `tools/**/*.mts` strictly: run `npx tsc --noEmit --ignoreConfig
   --allowImportingTsExtensions --module nodenext --moduleResolution nodenext --target es2022 --strict
   --skipLibCheck --types node tools/open-evermore/open-evermore.mts`.
+- **An unknown flag is ignored** (`--strcit` builds without `--strict`, no word): check the spelling, until U1 lands.
 - Shell loops over a list: zsh does not split `$VAR`; write such scripts for bash.
 - The CDL library's PCs (`xrefs.bin`, `pcstats`) are bus addresses (`$8F:A198`): `& $3FFFFF` for the HiROM offset.
 - `npm run build:ts` deletes `dist/`, which the codecs load: never while a test or proof runs.

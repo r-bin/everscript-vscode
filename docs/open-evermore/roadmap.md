@@ -78,7 +78,6 @@ Other gaps against R2/R3, found on the way:
 - A script reached from several rooms names objects of the room whose folder holds it (the first to reach it).
 - 376 JSON files carry a `what`: field docs belong in one README per kind (review §3), not in data files.
 - explode's closing "Next:" line prints `--out` relative to the repository (`../../../../../private/tmp/…`): print it absolute.
-- [tool.md](tool.md)'s status line still says "built for maps, tile families, tiles, strings and scripts".
 
 ## 5. The editor: one look, one click
 
@@ -106,6 +105,7 @@ The Rooms tab already draws a tree's rooms from their files (`src/games/evermore
 | 5b *(built, v0.465.0)* | `$C7–$C9` animation scripts inline in `animations/` (relocatable, symbolic) | relocatable metasprites & edited scripts |
 | 6 | WRAM names for every remaining `$7E:` field ([wram.md](wram.md)) | R2 everywhere |
 | 7 | Editor §5.1–5.3 | one look, one click |
+| 7b | Tool speed and CLI ([optimizing.md](optimizing.md): U1, P1-P5 first) | an implode in seconds, the editor's one click |
 | 8 | Growable in-place tables (ring items, item actions, weapons, formulas); ingredients, consumables, named items first: [../todo/growable-items.md](../todo/growable-items.md) | adding, not repurposing (review §4) |
 
 ## 7. Owner's review, 2026-11-25: answers and what is next

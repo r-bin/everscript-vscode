@@ -19,6 +19,9 @@ node $T implode <dir> --random 42 --strict         # … keeping every encoding 
 node $T prove out/open-evermore --random 42       # original vs that layout (built --strict) on the stored playbacks, in lockstep
 ```
 
+A fresh US tree takes ~7.5 s to explode and ~14 s to implode (~4 s with `--check-only`); what costs what and the
+plan to cut it: [optimizing.md](../../docs/open-evermore/optimizing.md). A misspelt flag is ignored silently.
+
 ## Invariants
 
 - **The hard rule**: whatever explode writes implodes to a working ROM in any layout. A kind enters

@@ -1,6 +1,6 @@
 # Open Evermore: the tool
 
-Status: **built for maps, tile families, tiles, strings and scripts (2026-11-20).** Back to [README.md](README.md). Labels as there.
+Status: **built; every kind of [progress.md](progress.md) (2026-11-25).** Cost and the plan to cut it: [optimizing.md](optimizing.md). Back to [README.md](README.md). Labels as there.
 
 `tools/open-evermore/` is an L3 lab ([../projects/README.md](../projects/README.md) §1): TypeScript `.mts` run by
 Node. It *calls* the compiled modules in `dist/` and copies none of them. Where this page says nothing,
@@ -24,6 +24,10 @@ node $T prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
 | `explode` | ROM → tree; refuses a folder in the repository outside `out/`, and an existing tree without `--force` | the tree |
 | `implode` | validate, ids, encode, place (stable, or shuffled by `--random`, which grows the image to 4 MiB), tables, checksum, validate again. Without `--strict` a kind may write a command in another form (scripts: every relative call into another script absolute, so each script goes anywhere); `--strict` keeps every form as written (G0: the vanilla sha1), and warnings become errors | `<dir>/_build/evermore.sfc` (only without errors), `report.md`, `report.json` |
 | `prove` | build the original and a random layout (`--strict`: lockstep needs vanilla's cycle counts; `--promoted` builds it as plain implode does) from the tree, play every stored playback recorded on the original in lockstep (G1, [README.md](README.md) §5.1) | `<dir>/_build/prove-<seed>/REPORT.md`, both ROMs, one result per playback |
+
+A fresh US tree (36,792 files, 39 MB): explode ~7.5 s, `implode --check-only` ~4 s, `implode` ~14 s (9 s of it the
+round trip), `prove` ~1 min a seed ([optimizing.md](optimizing.md) §1). An unknown flag is ignored today: check the
+spelling of `--strict`.
 
 Planned: `rename` (a resource and every reference to it, logged in the manifest), a BPS patch next to the ROM.
 
