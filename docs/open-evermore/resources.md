@@ -807,7 +807,7 @@ and hardware bounding box.
 { "format": "open-evermore/metasprite", "version": 1,
   "bounds": { "x": -16, "y": -32, "w": 32, "h": 32 },
   "chunks": [
-    { "block": "boy/block_014a", "size": 16, "x": -8, "y": -28, "priority": 2, "flip_x": false, "flip_y": false, "palette": 0 }
+    { "block": "boy/boy_block_014a", "size": 16, "x": -8, "y": -28, "priority": 2, "flip_x": false, "flip_y": false, "palette": 0 }
   ]
 }
 ```

@@ -54,7 +54,7 @@ scripts have none (247 of 73,540 lines keep a `<0x…>` WRAM cell). Score: again
 | `equipment/armour`, `graphics/hud` | 7 | 0 / 7 | `"text_2": { "same_as": … }` unexplained; hud's `what` one long string | name the field; README |
 | `maps/tiles`, `palettes/backgrounds`, `alchemy/alchemy_levels` | 7 | 0 | numbered names (6,690 `tile_xxxx`, 365 `palette_xxx`) | names by use, where known |
 | `scripts/global` | 6.5 | 0 | 223 of 522 `global_NN` | name by what they do |
-| `sprites/blocks_8`, `_16`, `metasprites` | 7.5 | 0 | blocks grouped by owner but still numbered (`<owner>/block_xxxx`); metasprites named by what plays them | step 5b (`$C7–$C9` scripts) for relocation |
+| `sprites/blocks_8`, `_16`, `metasprites` | 7.5 | 0 | blocks grouped by owner but still numbered (`<owner>/<owner>_block_xxxx`); metasprites named by what plays them | step 5b (`$C7–$C9` scripts) for relocation |
 | `strings` | 6 | 0 | 3,002 `string_xxxx`; `$C4` names not here | step 3 |
 | `alchemy/formulas`, `alchemy/ingredients` | 6 | 105 | `target: "$2010"`, `level: "$7E:2F98"`, `bit: "$0001"`; `held: "ING_QTY_GREASE+11"` (a cell named off another item) | target enum, flag bits, step 6 |
 | `menus/ring_items`, `menus/rings` | 7.5 | 18 | `icon` and `palette` named (v0.464.0); `flags: "$000A"`, `$C4` names capped | flag names, step 3 |

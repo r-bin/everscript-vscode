@@ -46,7 +46,7 @@ The graphics and motion pipeline of Secret of Evermore operates across three dis
 * **Grouping & Reusability**:
   * Blocks are global and shared. Palette-swapped characters (e.g. Boy & Bad Boy, Raptor & Red Raptor) share 100% of their blocks.
   * Idle frames, step frames, and attack poses of the same character reuse common head/torso blocks.
-  * Blocks are indexed through `sprites/blocks_16/<owner>/<name>.png` and `sprites/blocks_8/<owner>/<name>.png`. The folder follows the chain block → metasprite → animation → owner: a block drawn only by the Boy's metasprites is `boy/block_05f0`, one drawn by several owners is `shared/`, one no metasprite draws is `misc/` (v0.467.0; 712 of 4,854 16×16 blocks are `boy/`, 490 `dog/`, 1,477 `shared/`).
+  * Blocks are indexed through `sprites/blocks_16/<owner>/<name>.png` and `sprites/blocks_8/<owner>/<name>.png`. The folder follows the chain block → metasprite → animation → owner: a block drawn only by the Boy's metasprites is `boy/boy_block_05f0`, one drawn by several owners is `shared/`, one no metasprite draws is `misc/` (v0.467.0; 712 of 4,854 16×16 blocks are `boy/`, 490 `dog/`, 1,477 `shared/`).
 
 ---
 
@@ -81,7 +81,7 @@ Stored as concise JSON under `sprites/metasprites/<owner>/<what>.json` (named af
   "bounds": { "x": -16, "y": -32, "w": 32, "h": 32 },
   "chunks": [
     {
-      "block": "boy/block_014a",
+      "block": "boy/boy_block_014a",
       "size": 16,
       "x": -8,
       "y": -28,
@@ -91,7 +91,7 @@ Stored as concise JSON under `sprites/metasprites/<owner>/<what>.json` (named af
       "palette": 0
     },
     {
-      "block": "boy/block_008c",
+      "block": "boy/boy_block_008c",
       "size": 8,
       "x": 8,
       "y": -12,

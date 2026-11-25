@@ -139,8 +139,12 @@ function blockCodec(s: Spec): Codec {
     return {
         kind: DIR, version: 2, path: DIR, folder: `sprites/${s.size === 16 ? 'blocks_16' : 'blocks_8'}`, nameRe: METASPRITE_NAME_RE,
 
-        // `<owner>/block_<id>` once explode knows the owners (the chain block → metasprite → animation → owner).
-        defaultName: id => `${ownerOf.get(id) ?? 'misc'}/block_${hex4(id)}`,
+        // `<owner>/<owner>_block_<id>` once explode knows the owners (the chain block → metasprite → animation → owner):
+        // the leaf repeats the folder so a link or a tab title says whose block it is.
+        defaultName: id => {
+            const owner = ownerOf.get(id) ?? 'misc', leaf = `${owner}_block_${hex4(id)}`;
+            return `${owner}/${leaf.length <= 80 ? leaf : `block_${hex4(id)}`}`;
+        },
 
         // A PNG compares by its indices (its grey palette only shows them).
         canonical(path, bytes) {
