@@ -103,7 +103,7 @@ The loaders' names in the knowledge were swapped (fixed 2026-11-23): `shop_load_
 | S1 | Shop item ids by name: `0x89`'s item as the item's file (`add_shop_item salt, 40`), as `PRIZE` takes them | 🔴 |
 | S2 | Shops sell a new ingredient: ids past 69 (the split and `tbl_8CE311` generated), `$C4:5B10` grown | 🔴 |
 | S3 | Shops sell and buy back a new consumable: the split, `$8E:9C09`/`9C83` on the grown table, the buy (`$8E:8E98`/`8EAC`) and sell (`$8E:914D`/`9151`, `$8E:9C68`'s loop) hooked | 🔴 |
-| S4 | Ring items growable (more than the 11 `debug_*` ones): the pointer table `$8E:8000` moved (35 `lda.l` readers), records in `$8E` (no free byte: room from moving the pointer table out, 324 bytes), names in `$C4` (§Why a name keeps its length) | 🔴 |
+| S4 | Ring items growable (more than the 11 `debug_*` ones): the pointer table `$8E:8000` moved (35 `lda.l` readers), records in `$8E` (no free byte: room from moving the pointer table out, 324 bytes), names in `$C4` ([resources.md](../open-evermore/resources.md) §Why a menu text keeps its length) | 🔴 |
 | L1 | Loot branches generated: implode writes each new item's branch in the three loot scripts (count in, "Found", full) instead of by hand; consumables (`$0800 + id`) and named items (`$0100 + k`) too | 🔴 |
 | L2 | A sniff spot giving a new item, seen in game (same scripts as the gourd: expected to work) | 🔴 |
 | T1 | Counts that survive a room load and a save: new ids' cells in saved WRAM (the save's six blocks grown, [wram-allocation.md](wram-allocation.md)) | 🔴 owner chose `temp[]` for now |

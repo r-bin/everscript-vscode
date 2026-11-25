@@ -582,7 +582,7 @@ descriptions cut at a word within 40 characters). Explode throws if a pointer la
 
 - **Placement.** A text stays where it was while it fits (padded with zeros: same bytes, same readers' cycles). A longer
   or new one may go anywhere free in bank `$C4` (`no-space` otherwise): vanilla has no free byte there, so it fits only
-  where a text was left out or shortened (§Why a name keeps its length).
+  where a text was left out or shortened (§Why a menu text keeps its length).
 - **A new named item, ingredient** writes its own text (`"name": "Lucky Coin"`) or names one; its codec copies it into
   its generated strings, so it needs no room in `$C4`.
 - **Proven** (v0.469.0): G0 (vanilla sha1) with every kind; seeds 1 and 2026 round-trip; a shorter text lands in its
@@ -635,7 +635,7 @@ menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (o
 
 - **ring items** (162, `$8E:8000` → 8-byte entries `$8E:8144`): `name` is the text the ring prints, by reference
   (`strings/menu/<text>`, §texts). Weapon records, formula and ingredient names name the same texts, so editing the text
-  changes the item everywhere; a longer one needs room in bank `$C4` (`no-space`, why: §Why a name keeps its length). `icon` names an animation in `animations/`, `palette` names a palette in `palettes/sprites/`. The index is what the ring that shows the item reads: by id range it is an
+  changes the item everywhere; a longer one needs room in bank `$C4` (`no-space`, why: §Why a menu text keeps its length). `icon` names an animation in `animations/`, `palette` names a palette in `palettes/sprites/`. The index is what the ring that shows the item reads: by id range it is an
   `action` (options → `option_actions`, consumables → `item_actions`, Call Bead callers → `caller_actions`, their
   spells → `spell_actions`), a `formula` (`alchemy_actions`: also the number the learned bits and levels use) or a
   plain `index` (weapon, ammo, armour ×2, ingredient). Names from the item's own text (`weapon_bone_crusher`).
@@ -655,33 +655,51 @@ menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (o
   `$C4:5BAF`, ingredients `$C4:5B10`, weapon records +`$1E`) as references by name; moving names (needs every reader
   of a name string); `when` conditions as data (code today); shop rings named from `$0E6C`.
 
-### Why a name keeps its length *(open; (b) built v0.469.0: the texts kind)*
+### Why a menu text keeps its length *(open; (b) built v0.469.0: the texts kind)*
 
-Implode writes each text back into its own bytes, padded with zeros; a longer one needs free room in bank `$C4`
-(`no-space`). A longer
-name would have to move, and nothing may move unless every reader is generated (the hard rule). What stands in the way:
+Implode writes each menu text (`strings/menu/`) back into its own bytes, padded with zeros. A longer or new one may go
+anywhere free in bank `$C4`, and there is none, so it is `no-space`. Dialogue does not have this limit, and neither do
+the everscript compiler's strings: the difference is how a reader finds the text.
 
-1. **The string is shared, and its readers are not all known.** The ring item's `+0` points at it, and so do the
-   weapon records (`$C4:3874`), the formula name table (`$C4:5D09`) and the ingredient name table (`$C4:6001`), all as
-   16-bit offsets. These were found by searching the ROM for the pointer values (v0.455.0), which proves neither that
-   they are the only readers nor that every hit is one: a code immediate (`lda #$xxxx` / `sta $22`) or a pointer into
-   the middle of a string would be missed. A moved string with a reader left behind prints garbage. Shortening is safe
-   only because the string stays where it was.
-2. **It must stay in bank `$C4`.** Every ring loop sets the string's bank to `#$C4` itself (`lda #$00C4 : sta $24`
-   before `$8C:9E03`), and the other tables hold 16 bits too: a moved name can go anywhere in `$C4`, nowhere else.
-3. **Bank `$C4` has no free byte.** The names lie back to back from `$C4:60D0` to `$C4:7240`, each right after the
-   previous one's 0, among other strings (descriptions) that no kind owns yet. Implode's pool is exactly vanilla's
-   resources, so room in `$C4` only comes from another `$C4` resource giving it up: a shorter name, or a table that
-   leaves the bank (the animate id table at `$C4:3C92` frees `$C4:3C92`-`$3E39` once moved, animations kind).
-4. **The box may be too narrow** *(unverified)*. The ring prints the name in a window of fixed width; how many pixels
+**Dialogue can go anywhere, menu texts cannot.** A dialogue string is reached through its key: the key table at
+`$91:D000` holds, per string, a 15-bit offset and the bank (§strings), so a string may live in the lower half of any
+bank. That is what the everscript compiler uses (sibling repo, `compiler/linker.py`): a script's `#memory(...)` lists
+free ROM, typically the 4th MB that an expanded ROM adds (`0x300000..0x3fffff`, "extension"). The linker splits each
+bank into its lower half for strings and its upper half for scripts (`MemoryManager._add`), and `allocate_text` gives a
+new string the next free lower-half address and the next free string key (`string_key(...)` ranges in `#memory`). The
+strings kind here does the same: lower halves in the first 4 MiB, the key table generated, and a random build grows
+the image to 4 MiB. A menu text has no key: each reader holds a 16-bit offset and puts the bank there itself, so the
+text has to be in the bank that reader names.
+
+What stands in the way:
+
+1. **The bank is in the code, at many sites.** A ring loop prints with `lda #$00C4 : sta $24` and then `$8C:9E03`. That
+   exact pattern is at 48 places in the ROM (a byte search, 2026-11-25: `$8C:BDD3`, `$8C:C124`, `$8C:C3C1`, 12 in
+   `$8D:8C45`-`$8D:9145`, the ring loops `$8E:A40F`-`$8E:AD10`, `$90:8538`, `$91:999D`, `$91:CDAF`, …), and the alchemy
+   screen sets it with `lda #$C460 : sta $23` (`$8D:C1F1`). Other forms (an 8-bit `lda #$C4`, `pea`, a bank copied from
+   a table) are not counted, so the list of readers is not complete.
+2. **Texts are shared across readers.** One text is the ring item's name, the weapon record's (`$C4:3874` records) and
+   the formula's (`$C4:5D09`) or ingredient's (`$C4:5FF3`) at once (§texts). Every reader of a text has to agree on its
+   bank, so moving one text to another bank means changing the bank for every site of every reader that can reach it.
+   In practice that is all ring-item names together.
+3. **Bank `$C4` has no free byte.** The texts lie back to back (names `$C4:60D0`-`$C4:7240`, descriptions among them)
+   between tables no kind owns yet. Implode's pool is exactly vanilla's resources, so room in `$C4` only comes from a
+   `$C4` resource giving it up: a shorter text, a text no reader names any more, or a table that leaves the bank (the
+   animate id table `$C4:3C92`-`$3E39`, the alchemy tables once they are generated).
+4. **The box may be too narrow** *(unverified)*. The ring prints the name in a window of fixed width. How many pixels
    it holds, and what a longer name does (clipped, wrapped, drawn over the frame), is not checked. The fonts kind has
-   each glyph's width, so the limit would be in pixels, not characters.
+   each glyph's width, so the limit is in pixels, not characters.
 
-**To lift it:** (a) list every reader of the name strings from the CDL library (each instruction that reads
-`$C4:60D0`-`$7240`, with the pointer it used), not from a byte search; (b) make the shared strings a kind of their own
-(`menus/names/` or part of `strings`), referenced by name from ring items, weapon records, formulas and ingredients, so
-the pointer tables are generated; (c) give implode the free space of bank `$C4` that other kinds release, with a rule
-that keeps a name in `$C4`; (d) measure the box in game (a 20-character name on the ring) and check widths in pixels.
+What is already movable: a grown named items list writes its texts with its tables in any bank and rewrites its two
+bank immediates (`$8C:C124`, `$8C:C3C1`), and a grown ingredients list does the same with `$8D:C1F1` (§items, §alchemy).
+Those two reader groups have one bank site each, so they can move on their own.
+
+**To lift it:** (a) list every reader of the `$C4` texts from the CDL library: each instruction that reads one, with
+the pointer and the bank it used, not a byte search; (b) *(built, v0.469.0)* the texts as a kind of their own,
+referenced by name; (c) group the readers by the texts they share and give each group a bank. Implode then places
+that group's texts in that bank (any free lower half, as the compiler does for dialogue, or the 4th MB) and writes
+the group's bank immediates. A text two groups share would be written once per group; (d) until then, give `$C4` the
+room other kinds release; (e) measure the box in game (a 20-character name on the ring) and check widths in pixels.
 
 ### Full-screen menus *(explored, not a kind)*
 
