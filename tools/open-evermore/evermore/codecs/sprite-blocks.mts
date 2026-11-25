@@ -15,16 +15,18 @@
 //             block whose bytes are other blocks' is an alias, <name>.json { "bytes_of": [...], "compressed" },
 //             and those blocks are placed together, in that order
 import { createRequire } from 'node:module';
-import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
+import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
-import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
+import { json, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
+import { METASPRITE_NAME_RE, metaspriteNameMap } from './metasprites.mts';
 import { readerSpans, readerWrites, tableAt } from './readers.mts';
 import type { Reader } from './readers.mts';
 
 const require = createRequire(import.meta.url);
 const { decodePng, encodeIndexedPng } = require('../../../../dist/platform/png');
 const { tile4bpp } = require('../../../../dist/platform/snes/tiles');
+const { readSpriteInfo } = require('../../../../dist/games/evermore/maps/sprites');
 
 const GREY = Array.from({ length: 16 }, (_, i) => [i * 17, i * 17, i * 17]);
 /** Index 0 is transparent on a sprite. */
@@ -32,6 +34,32 @@ const ALPHA = [0, ...Array(15).fill(255)];
 const GROUP = 16, LIMIT = 21845, FOUR_MIB = 0x400000;
 
 interface Spec { kind: string; size: number; bytes: number; base: number; vanilla: number; readers: Reader[]; where: string }
+
+const hex4 = (id: number): string => id.toString(16).padStart(4, '0');
+const ownerCache = new WeakMap<Uint8Array, Record<16 | 8, Map<number, string>>>();
+
+/**
+ * The folder each block goes in, from the chain block → metasprite → animation → owner: every metasprite that draws a
+ * block votes with its owner (`boy`, `dog`, an enemy…); one owner keeps the block, several make it `shared`, none `misc`.
+ */
+function blockOwners(rom: Uint8Array, name: NameOf, countOf: CountOf, nameAt: NameAt): Record<16 | 8, Map<number, string>> {
+    const hit = ownerCache.get(rom);
+    if (hit) return hit;
+    const votes: Record<16 | 8, Map<number, Set<string>>> = { 16: new Map(), 8: new Map() };
+    for (const [addr, n] of metaspriteNameMap(rom, name, countOf, nameAt)) {
+        const owner = n.slice(0, n.indexOf('/'));
+        for (const c of readSpriteInfo(rom, addr).chunks as { large: boolean; block: number }[]) {
+            const m = votes[c.large ? 16 : 8];
+            let s = m.get(c.block);
+            if (!s) m.set(c.block, s = new Set());
+            s.add(owner);
+        }
+    }
+    const out: Record<16 | 8, Map<number, string>> = { 16: new Map(), 8: new Map() };
+    for (const size of [16, 8] as const) for (const [id, s] of votes[size]) out[size].set(id, s.size === 1 ? [...s][0] : 'shared');
+    ownerCache.set(rom, out);
+    return out;
+}
 
 /** 4bpp planar bytes of 8×8 indices (inverse of tile4bpp). */
 function planar(px: Uint8Array, stride: number, x0: number, y0: number): number[] {
@@ -106,10 +134,13 @@ function blockCodec(s: Spec): Codec {
     const built = new WeakMap<ImplodeContext, Built>();
     const rule = { noCrossBank: true, above: (s.base - 0xC0) << 16, below: FOUR_MIB };
     const png = (raw: Uint8Array) => new Uint8Array(encodeIndexedPng(s.size, s.size, pixelsOf(raw, s.size), GREY, ALPHA));
+    const owners16or8 = s.size === 16 ? 16 : 8;
+    let ownerOf = new Map<number, string>();
     return {
-        kind: DIR, version: 1, path: DIR, folder: `sprites/${s.size === 16 ? 'blocks_16' : 'blocks_8'}`,
+        kind: DIR, version: 2, path: DIR, folder: `sprites/${s.size === 16 ? 'blocks_16' : 'blocks_8'}`, nameRe: METASPRITE_NAME_RE,
 
-        defaultName: id => `block_${id.toString(16).padStart(4, '0')}`,
+        // `<owner>/block_<id>` once explode knows the owners (the chain block → metasprite → animation → owner).
+        defaultName: id => `${ownerOf.get(id) ?? 'misc'}/block_${hex4(id)}`,
 
         // A PNG compares by its indices (its grey palette only shows them).
         canonical(path, bytes) {
@@ -117,7 +148,8 @@ function blockCodec(s: Spec): Codec {
             return [path.replace(/\.png$/, '.indices'), decodePng(bytes).indices ?? bytes];
         },
 
-        explode(rom, name, _options, countOf) {
+        explode(rom, name, _options, countOf, nameAt) {
+            if (countOf(DIR) === undefined) ownerOf = blockOwners(rom, name, countOf, nameAt)[owners16or8];
             const table = tableAt(rom, s.readers, DIR), count = countOf(DIR) ?? s.vanilla, list = entries(rom, s, table, count);
             const files: Tree = new Map(), pool = [], homes = [];
             // Spans in byte order; a block overlapping the ones before it is an alias of the blocks it covers.
@@ -157,8 +189,8 @@ function blockCodec(s: Spec): Codec {
             const names = new Set<string>();
             for (const path of tree.keys()) {
                 if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}`) continue;
-                const m = new RegExp(`^${DIR}/([^/]+)\\.(png|json)$`).exec(path);
-                if (!m) { findings.warning('unknown-file', path, '', 'a block is one <name>.png (or an alias <name>.json); ignored'); continue; }
+                const m = new RegExp(`^${DIR}/((?:[^/_][^/]*/)?[^/_][^/]*)\\.(png|json)$`).exec(path);
+                if (!m) { findings.warning('unknown-file', path, '', 'a block is <owner>/<name>.png (or an alias <name>.json); ignored'); continue; }
                 if (names.has(m[1])) findings.error('duplicate-name', path, '', `"${m[1]}" is both a .png and a .json; keep one`);
                 names.add(m[1]);
             }
@@ -170,7 +202,7 @@ function blockCodec(s: Spec): Codec {
             const raw = new Map<string, Uint8Array>(), aliases = new Map<string, Alias>();
             for (const n of names) {
                 const p = `${DIR}/${n}.png`, j = `${DIR}/${n}.json`;
-                if (!NAME_RE.test(n)) { findings.error('bad-name', tree.has(p) ? p : j, '', `"${n}": snake_case, at most 80 characters`); continue; }
+                if (!METASPRITE_NAME_RE.test(n)) { findings.error('bad-name', tree.has(p) ? p : j, '', `"${n}": snake_case (or <owner>/<name>), at most 80 characters each`); continue; }
                 if (tree.has(p)) {
                     let img: { width: number; height: number; indices?: Uint8Array };
                     try { img = decodePng(tree.get(p)!); } catch (e) { findings.error('parse-error', p, '', (e as Error).message); continue; }

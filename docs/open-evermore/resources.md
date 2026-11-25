@@ -545,7 +545,7 @@ graphics/hud/portraits/<name>.png       preview only: the Boy's and each Dog for
   `$8F:89C4` Dog). Every reader takes the column from the widget, so a column moves the box, its HP, gauge and
   portrait; the rows are immediates in many places and stay. Facts: `docs/disassembly/ui/field-hud.md`.
 - **Portraits** are sprites in bank `$CC` naming 16×16 blocks: their pixels are
-  `sprites/blocks_16/<block>.png` (one owner per byte); `hud.json` names the block, `portraits/` shows it.
+  `sprites/blocks_16/<owner>/<block>.png` (one owner per byte); `hud.json` names the block, `portraits/` shows it.
 - **Next.** The menu screen as a kind (8bpp tiles, palette, tilemap: all verified, `$8C:B797`); the HUD rows (many
   immediates); moving fonts within bank `$C4` (rewrite `$8C:E6E6` and the `ldx #0` callers).
 
@@ -780,8 +780,8 @@ animations/<owner>/<name>.json             all 783 animations: `facing_mode`, pe
                                            derived `palettes` & `used_by`; no ROM pointers
 animations/animate.json                    the `$C4:3C92` table the `animate()` opcode reads: parameter name → animation[#facing] | null (212, limit 2,048)
 animations/modes/<mode>.json               the 6 mode handlers at $8C:E100
-sprites/blocks_16/<name>.png               4,854 16×16 sprite blocks, indexed grey PNG
-sprites/blocks_8/<name>.png                6,265 8×8 sprite blocks (plus block_17c5.json alias)
+sprites/blocks_16/<owner>/<name>.png       4,854 16×16 sprite blocks, indexed grey PNG, in the folder of the owner whose animations draw them
+sprites/blocks_8/<owner>/<name>.png        6,265 8×8 sprite blocks (plus the alias block 6085 as .json)
 ```
 
 - **Names.** Characters: our compiler's ENEMY names (`language/data/index.json`), `boy`, `dog`. Animation groups &
@@ -807,7 +807,7 @@ and hardware bounding box.
 { "format": "open-evermore/metasprite", "version": 1,
   "bounds": { "x": -16, "y": -32, "w": 32, "h": 32 },
   "chunks": [
-    { "block": "block_014a", "size": 16, "x": -8, "y": -28, "priority": 2, "flip_x": false, "flip_y": false, "palette": 0 }
+    { "block": "boy/block_014a", "size": 16, "x": -8, "y": -28, "priority": 2, "flip_x": false, "flip_y": false, "palette": 0 }
   ]
 }
 ```

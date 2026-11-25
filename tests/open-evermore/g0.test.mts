@@ -403,9 +403,12 @@ if (!path || !existsSync(path)) {
     editJson(more, 'characters/records/fire_eyes_copy.json', c => { c.animations.walk = 'boy/custom_drag'; });
     editJson(more, 'characters/records/_enum.json', e => { e.names.push('fire_eyes_copy'); });
     editJson(more, 'characters/records/_records.json', e => { e.names.push('fire_eyes_copy'); });
-    grow('sprites/blocks_16', 'block_0000', 'block_new', 'png')(more);
-    grow('sprites/blocks_8', 'block_0000', 'block_new', 'png')(more);
-    assert.ok(more.has('sprites/blocks_8/block_17c5.json'), 'the 8×8 alias (block 6085 reads blocks 0 and 407)');
+    const blockName = (dir: string, id: number): string => JSON.parse(Buffer.from(tree.get(`${dir}/_enum.json`)!).toString()).names[id];
+    grow('sprites/blocks_16', blockName('sprites/blocks_16', 0), 'block_new', 'png')(more);
+    grow('sprites/blocks_8', blockName('sprites/blocks_8', 0), 'block_new', 'png')(more);
+    assert.ok(more.has(`sprites/blocks_8/${blockName('sprites/blocks_8', 6085)}.json`), 'the 8×8 alias (block 6085 reads blocks 0 and 407)');
+    assert.ok(blockName('sprites/blocks_16', 0).includes('/') && tree.has(`sprites/blocks_16/${blockName('sprites/blocks_16', 0)}.png`), 'blocks sit in the folder of what draws them');
+    assert.ok([...tree.keys()].some(k => k.startsWith('sprites/blocks_16/boy/')) && [...tree.keys()].some(k => k.startsWith('sprites/blocks_16/shared/')), 'boy and shared block folders');
     const m = implode(more, GAME, KINDS, { seed: 5 });
     assert.deepStrictEqual(m.findings.list.filter(f => f.severity !== 'info').map(f => `${f.rule} ${f.file}`), []);
     for (const key of ['animations/_table', 'characters/_enemy_index', 'sprite_blocks_16/_table', 'sprite_blocks_8/_table']) {
