@@ -359,8 +359,8 @@ if (!path || !existsSync(path)) {
     const dragged = JSON.parse(Buffer.from(tree.get('animations/boy/dragged.json')!).toString());
     assert.strictEqual(dragged.facing_mode, 'any');
     assert.ok(dragged.facings.any.includes('reset') && dragged.facings.any.includes('hurtbox 14, -8') && dragged.facings.any.includes('sleep 12') && dragged.facings.any.includes('step 0!') && dragged.facings.any.includes('loop'));
-    const boySpriteLine = dragged.facings.any.find((l: string) => /^sprite boy\/frame_\d+$/.test(l));
-    assert.ok(boySpriteLine, 'boy/dragged uses sequential boy/frame_NNN metasprite name');
+    const boySpriteLine = dragged.facings.any.find((l: string) => /^sprite boy\/dragged_\d+$/.test(l));
+    assert.ok(boySpriteLine, 'boy/dragged names its metasprite by what plays (boy/dragged_N)');
     const boyWalk = JSON.parse(Buffer.from(tree.get('animations/boy/walk.json')!).toString());
     assert.strictEqual(boyWalk.facing_mode, '4_way');
     assert.deepStrictEqual(Object.keys(boyWalk.facings), ['north', 'east', 'south', 'west']);

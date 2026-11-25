@@ -812,7 +812,7 @@ and hardware bounding box.
 }
 ```
 
-- **Names.** `<owner>/frame_<addr>` (e.g. `boy/frame_ca0003`, `shared/frame_cb1230`).
+- **Names.** `<owner>/<animation>_<facing>_<n>`: after the first animation script that plays the frame (`boy/dragged_0`, `boy/axe_walk_east_3`); `frame_NNN` only for a frame no script reaches ([animations.md](animations.md) §3.5).
 - **References.** Used by animation scripts (`sprite` opcodes `0x22–0x2B`, `sprite2`, `sprite_long`, `sprite_aim`). References `sprite_blocks_16` and `sprite_blocks_8` by block name.
 - **Implode generates**: The exact byte sequences for `$CA–$D3` sprite records (validated bounds, chunk fields, block refs, and record length).
 - **Placement**: Vanilla records stay at home (code and `_base/` tables name them by address); a brand-new metasprite is placed anywhere in `$CA–$D3` and referenced by name from animation scripts.

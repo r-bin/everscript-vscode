@@ -12,7 +12,8 @@ import type { Codec, CountOf, Item, NameAt, NameOf } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
-import { ANIMATIONS, analyzeAnimations } from './animation-analysis.mts';
+import { ANIMATIONS, FACING_KEYS, analyzeAnimations } from './animation-analysis.mts';
+import type { AnimationAnalysisEntry } from './animation-analysis.mts';
 
 const require = createRequire(import.meta.url);
 const { spriteAddresses, readSpriteInfo, scriptSprites } = require('../../../../dist/games/evermore/maps/sprites');
@@ -42,7 +43,7 @@ export interface MetaspriteBoundsJson { x: number; y: number; w: number; h: numb
 export interface MetaspriteJson { format: string; version: number; bounds?: MetaspriteBoundsJson; chunks: MetaspriteChunkJson[] }
 
 /** Determine owner category for each sprite address from `animations` attribution. */
-function buildAttributionMap(rom: Uint8Array, name: NameOf, countOf: CountOf, nameAt: NameAt): { addrs: number[]; owners: Map<number, string> } {
+function buildAttributionMap(rom: Uint8Array, name: NameOf, countOf: CountOf, nameAt: NameAt): { addrs: number[]; owners: Map<number, string>; groups: AnimationAnalysisEntry[] } {
     const { groups } = analyzeAnimations(rom, name, countOf, nameAt);
     const spriteToOwners = new Map<number, Set<string>>();
 
@@ -78,7 +79,29 @@ function buildAttributionMap(rom: Uint8Array, name: NameOf, countOf: CountOf, na
         const set = spriteToOwners.get(spr);
         owners.set(spr, !set || set.size === 0 ? 'misc' : set.size === 1 ? [...set][0] : 'shared');
     }
-    return { addrs, owners };
+    return { addrs, owners, groups };
+}
+
+/**
+ * What each sprite shows, from the scripts that play it: the first animation (in record order) whose script names it
+ * calls it `<animation>_<facing>_<n>`, n the sprite's place among the distinct sprites of that script (`dragged_0`,
+ * `walk_south_2`). Sprites no script reaches keep `frame_NNN`.
+ */
+function describeSprites(rom: Uint8Array, groups: AnimationAnalysisEntry[]): Map<number, string> {
+    const out = new Map<number, string>();
+    for (const g of groups) {
+        const leaf = g.full.includes('/') ? g.full.split('/').slice(1).join('_') : g.full;
+        const seenScripts = new Set<number>();
+        g.scripts.forEach((sc, i) => {
+            if (!sc || seenScripts.has(sc)) return;
+            seenScripts.add(sc);
+            const facing = FACING_KEYS[g.mode][i];
+            const base = facing === 'any' ? leaf : `${leaf}_${facing}`;
+            const distinct = [...new Set(scriptSprites(rom, sc) as number[])];
+            distinct.forEach((spr, n) => { if (!out.has(spr)) out.set(spr, `${base}_${n}`); });
+        });
+    }
+    return out;
 }
 
 const nameMapCache = new WeakMap<Uint8Array, Map<string, Map<number, string>>>();
@@ -97,13 +120,20 @@ export function metaspriteNameMap(rom: Uint8Array, name: NameOf, countOf: CountO
             if (n !== undefined) map.set((0xC00000 | off) >>> 0, n);
         }
     } else {
-        const { addrs, owners } = buildAttributionMap(rom, name, countOf, nameAt);
-        const perOwner = new Map<string, number>();
+        const { addrs, owners, groups } = buildAttributionMap(rom, name, countOf, nameAt);
+        const shows = describeSprites(rom, groups), perOwner = new Map<string, number>(), taken = new Set<string>();
         for (const addr of addrs) {
             const owner = owners.get(addr) || 'misc';
-            const k = perOwner.get(owner) ?? 0;
-            perOwner.set(owner, k + 1);
-            map.set(addr >>> 0, `${owner}/frame_${String(k).padStart(3, '0')}`);
+            let leaf = shows.get(addr)?.slice(0, 70);
+            if (leaf && !/^[a-z]/.test(leaf)) leaf = `f_${leaf}`;
+            for (let dup = 2; leaf && taken.has(`${owner}/${leaf}`); dup++) leaf = `${shows.get(addr)!.slice(0, 66)}_v${dup}`;
+            if (!leaf) {
+                const k = perOwner.get(owner) ?? 0;
+                perOwner.set(owner, k + 1);
+                leaf = `frame_${String(k).padStart(3, '0')}`;
+            }
+            taken.add(`${owner}/${leaf}`);
+            map.set(addr >>> 0, `${owner}/${leaf}`);
         }
     }
     let byKey = nameMapCache.get(rom);

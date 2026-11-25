@@ -72,7 +72,7 @@ Every metasprite in ROM consists of:
    * `block` (2 bytes, little-endian): Index into the 16×16 or 8×8 block table.
 
 ### 3.3 Open Evermore File Format: `open-evermore/metasprite`
-Stored as concise JSON under `sprites/metasprites/<owner>/frame_<addr>.json`:
+Stored as concise JSON under `sprites/metasprites/<owner>/<what>.json` (named after what plays it, §3.5):
 
 ```jsonc
 {
@@ -106,12 +106,15 @@ Stored as concise JSON under `sprites/metasprites/<owner>/frame_<addr>.json`:
 * **Clean Defaults**: `flip_x`, `flip_y`, and `palette` default to `false` / `0` and can be omitted when unused.
 
 ### 3.4 Grouping & Attribution
-Metasprites are organized by owner attributed through `animations`, named `<owner>/frame_NNN`:
+Metasprites are organized by owner attributed through `animations`, named by what plays them (§3.5):
 * Single-owner frames: `sprites/metasprites/<owner>/` (e.g. `boy/`, `dog/`, `skelesnail/`).
 * Multi-owner frames (shared poses/effects): `sprites/metasprites/shared/`.
 * Spells and alchemy visuals: `sprites/metasprites/alchemy/`.
 * UI / HUD icons & projectiles: `sprites/metasprites/icon/`, `sprites/metasprites/projectile/`.
 * Unreferenced or script-only effect frames: `sprites/metasprites/effect/`, `sprites/metasprites/misc/`.
+
+### 3.5 Naming: what the frame shows
+A metasprite is named after the first animation (in record order) whose script plays it: `<owner>/<animation>_<facing>_<n>`, `facing` left out for `any` animations and `n` the place among the distinct sprites of that script (`boy/dragged_0`, `boy/axe_walk_east_3`). A sprite two animations share keeps the first one's name (a repeated name gets `_v2`); a sprite no script reaches would be `frame_NNN`. Names come from the scripts (`describeSprites` in `metasprites.mts`) and are renamable like any other.
 
 ---
 
@@ -120,7 +123,7 @@ Metasprites are organized by owner attributed through `animations`, named `<owne
 ### 4.1 One animation = one file (`animations/<owner>/<name>.json`, v0.465.0)
 An animation is a single file holding its facings **and the scripts themselves** (no ROM pointers anywhere). All **783** animations (1,752 four-byte `$C4:3E3A–$5999` records, 1,595 unique `$C7–$C9` scripts, 52,122 bytes) are exploded this way (`open-evermore/animation`):
 * `"facing_mode"`: `"any"` (1 record), `"4_way"` (`north`, `east`, `south`, `west`, `$90:815B` order) or `"8_way"` (compass order).
-* `"facings"`: per facing either the script as symbolic lines (`"reset"`, `"hurtbox 14, -8"`, `"sprite boy/frame_706"`, `"sleep 12"`, `"step 0!"`, `"loop"`; a trailing `!` is the end-of-frame bit) or `{ "same_as": "<facing | animation[#facing]>" }` where vanilla shares a script. Metasprites are named `<owner>/frame_NNN`, palettes and projectiles by name, jumps as labels, and a jump into another animation's script as `@<animation[#facing]>`.
+* `"facings"`: per facing either the script as symbolic lines (`"reset"`, `"hurtbox 14, -8"`, `"sprite boy/dragged_0"`, `"sleep 12"`, `"step 0!"`, `"loop"`; a trailing `!` is the end-of-frame bit) or `{ "same_as": "<facing | animation[#facing]>" }` where vanilla shares a script. Metasprites are named `<owner>/<animation>_<facing>_<n>`, palettes and projectiles by name, jumps as labels, and a jump into another animation's script as `@<animation[#facing]>`.
 * `"palettes"` and `"used_by"`: derived, ignored by implode.
 * Example, how the Boy is dragged: `animations/boy/dragged.json`.
 * Every script is re-assembled from its lines at explode time and compared byte for byte with the ROM (a script that does not round-trip aborts explode). Scripts and records relocate freely; implode generates the `$C4` records, labels, sprite references and projectile references.
