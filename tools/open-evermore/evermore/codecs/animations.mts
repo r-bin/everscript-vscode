@@ -6,13 +6,14 @@
 //   records   4 bytes per facing [script_lo, script_mid, script_bank, flags] in bank $C4 ($C4:3E3A–$5999)
 //   table     animate() IDs in `$C4:3C92` (212 vanilla words; limit 2,048), read by `lda.l $C43C92,x` at $8C:E13C
 //   scripts   1,595 unique scripts across banks $C7–$C9; relocate freely on implode with no fixed ROM pointers
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Rule, Span, Write } from '../../codec.mts';
 import { Findings } from '../../findings.mts';
 import { json, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import {
-    ANIMATIONS, ANIMATION_NAME_RE, ANIMATE_LIMIT, ANIMATE_READERS, C4_BASE, C4_END,
+    ANIMATIONS, ANIMATION_NAME_RE, ANIMATE_LIMIT, ANIMATE_READERS, ANIMATE_TABLE, C4_BASE, C4_END,
     FACING_KEYS, RECORD_SIZE, analyzeAnimations, animationInitialOffset, animationPlacedOffset,
     animationRef, defaultAnimationName, facingOffset, flagsForFacingMode,
 } from './animation-analysis.mts';
@@ -41,7 +42,7 @@ export const KIND = ANIMATIONS;
 const DIR = ANIMATIONS, TABLE = `${DIR}/_table`, ANIMATE_FILE = `${DIR}/animate.json`;
 const ANIM_FORMAT = 'open-evermore/animation', ANIMATE_FORMAT = 'open-evermore/animate-table';
 const SCRIPT_KIND = 'animations.script', SCRIPT_PREFIX = `${SCRIPT_KIND}/`, SCRIPT_END_PREFIX = 'animations.script_end/';
-const ALL_PROJECTILE_RECORDS = 21, FIRST_PROJECTILE = 0xD9A6, PROJECTILE_STRIDE = 24;
+const ALL_PROJECTILE_RECORDS = 21, FIRST_PROJECTILE = map.offset('projectiles.records'), PROJECTILE_STRIDE = 24;
 
 interface AnimationDoc { format: string; version: number; facing_mode: FacingMode; facings: Record<string, string[] | { same_as: string }> }
 interface EncodedScript {
@@ -241,7 +242,7 @@ export const animationsCodec: Codec = {
             entries,
         }));
 
-        const animateAt = (() => { try { return tableAt(rom, ANIMATE_READERS, KIND); } catch { return 0x043C92; } })();
+        const animateAt = (() => { try { return tableAt(rom, ANIMATE_READERS, KIND); } catch { return ANIMATE_TABLE; } })();
         const tableLen = 2 * animateEntries.length;
         pool.push({ start: animateAt, end: animateAt + tableLen });
         homes.push({ key: TABLE, at: animateAt, length: tableLen, sha1: sha1(rom.subarray(animateAt, animateAt + tableLen)) });
@@ -412,13 +413,13 @@ export const animationsCodec: Codec = {
             }
             if (comp.length > 1) {
                 const homeAt = comp.map(k => ctx.base.homes.get(SCRIPT_PREFIX + k)?.at).find(a => a !== undefined);
-                const bank = homeAt !== undefined ? (homeAt & ~0xFFFF) : 0x070000;
+                const bank = homeAt !== undefined ? (homeAt & ~0xFFFF) : map.file('animation_scripts.default_bank');
                 for (const k of comp) compBank.set(k, bank);
             }
         }
         for (const es of encodedScripts.values()) {
             const bank = compBank.get(es.ownerKey) ?? -1;
-            const rule: Rule = bank >= 0 ? { above: bank, below: bank + 0x10000, noCrossBank: true, noBankEnd: true } : { noCrossBank: true, noBankEnd: true };
+            const rule: Rule = bank >= 0 ? { ...map.rule('animation_scripts'), above: bank, below: bank + 0x10000 } : map.rule('animation_scripts');
             if (ctx.strict) {
                 const home = ctx.base.homes.get(es.itemKey);
                 if (home && home.length === es.bytes.length) {
@@ -446,7 +447,7 @@ export const animationsCodec: Codec = {
                 else items.push({ key, file: path, bytes, rule: { above: home.at, below: home.at + home.length, bankOffset: home.at & 0xFFFF }, patched: true });
             } else {
                 vacateC4 = true;
-                items.push({ key, file: path, bytes, rule: { above: C4_BASE, below: C4_END, noCrossBank: true }, patched: true });
+                items.push({ key, file: path, bytes, rule: map.rule('animation_records'), patched: true });
             }
             animRecords.push({ name: n, file: path, flags, facingKeys: keys, facingOwnerKeys });
         }
@@ -454,7 +455,7 @@ export const animationsCodec: Codec = {
         const animateEntries = animateEntriesCache.get(ctx) ?? [];
         const count = Math.max(-1, ...(ctx.ids.get(KIND)?.values() ?? [])) + 1;
         encodedStateCache.set(ctx, { scripts: [...encodedScripts.values()], animRecords, animateEntries });
-        items.push({ key: TABLE, file: ANIMATE_FILE, bytes: new Uint8Array(2 * count), rule: vacateC4 ? { above: 0x050000, noCrossBank: true } : { noCrossBank: true }, generated: true });
+        items.push({ key: TABLE, file: ANIMATE_FILE, bytes: new Uint8Array(2 * count), rule: vacateC4 ? { above: C4_END, noCrossBank: true } : { noCrossBank: true }, generated: true });
         return items;
     },
 

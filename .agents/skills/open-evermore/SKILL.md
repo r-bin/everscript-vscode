@@ -26,6 +26,9 @@ before touching its codec. This skill is how to work on it and what bit us.
   can be linked by name instead. Only keep a raw address as a temporary bridge when exploding the target
   kind is genuinely out of scope for the current task, track it in `docs/open-evermore/roadmap.md`, and
   replace it with a typed resource name/link as soon as that kind lands.
+- **ROM addresses live in the mapping file**, `evermore/map/<release>.json` (`docs/open-evermore/mapping.md`):
+  a codec reads them by name (`map.file('strings.singles')`, `map.readers(…)`, `map.rule(kind)`), never a hex literal
+  of its own; the instruction shape it expects stays in the codec. A language release is its own file (`extends`).
 - **One tool, no npm commands**; `<kind>/_enum.json` is the one ordered file of a kind.
 - **Untangled by default, vanilla with `--strict`.** Without `--strict` every relative call into another
   script is written absolute (it ends in `0x29`'s code anyway), so no script must lie near another; jumps
@@ -89,6 +92,10 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   differs, per window; the same scenes come back.
 
 ## Traps
+
+- **One release per process**: the codecs read the map when they load. Call `selectRelease` before importing
+  `evermore/kinds.mts` (the CLI imports it dynamically); a second release after that throws. `map.test.mts` fails on an
+  address no codec asks for, or one asked for that the file lacks.
 
 - **The engine is cycle-sensitive**: any cycle change leaves WRAM out of step for good. Moving data is
   free only while every reader takes the same path. Found so far:

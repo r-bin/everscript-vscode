@@ -8,6 +8,7 @@
 //   a text is NUL-terminated printable ASCII; its readers print it with $8C:9E03 (bank #$C4) or copy it, never by length
 //   a text stays where it was while it fits (records keep their readers' cycles; G0); a longer or new one goes anywhere in
 //   bank $C4 that is free (vanilla has no free byte there: it fits only where another text was left out)
+import * as map from '../map.mts';
 import type { Codec, Exploded, ImplodeContext, Item } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { NAME_RE, readText, sha1 } from '../../tree.mts';
@@ -15,7 +16,7 @@ import type { Tree } from '../../tree.mts';
 import { link, unlink } from '../../links.mts';
 
 export const TEXTS = 'texts';
-const DIR = TEXTS, BANK = 0x040000, BANK_END = 0x050000, LIMIT = 4096;
+const RULE = map.rule('texts'), DIR = TEXTS, BANK = RULE.above!, BANK_END = RULE.below!, LIMIT = 4096;
 
 /** File offsets (in bank $C4) of texts a reader points at; each reader of texts registers one. */
 type Source = (rom: Uint8Array) => number[];
@@ -132,7 +133,7 @@ export const textsCodec: Codec = {
             if (home && bytes.length <= home.length) {
                 const padded = new Uint8Array(home.length); padded.set(bytes);
                 items.push({ key: textKey(n), file, bytes: padded, rule: { above: home.at, below: home.at + home.length, bankOffset: home.at & 0xFFFF } });
-            } else items.push({ key: textKey(n), file, bytes, rule: { above: BANK, below: BANK_END, noCrossBank: true } });
+            } else items.push({ key: textKey(n), file, bytes, rule: RULE });
         }
         return items;
     },

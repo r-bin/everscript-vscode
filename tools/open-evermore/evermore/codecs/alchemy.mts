@@ -13,13 +13,14 @@
 //   $C4:5B9C experience per cast by level (0-8, a byte), $C4:5BA5 the power factor by level (0-9, a byte)
 // Names: the formulas' are menus.mts' (the compiler's ALCHEMY_INDEX order); ingredients from their ring item's text.
 // A formula's target is a shared resource, targets/ (targets.mts): consumables store the same rules.
+import * as map from '../map.mts';
 import { FORMULAS, nameRingItems } from './menus.mts';
 import { growIngredients } from './ingredients.mts';
 import { recordsCodec, wramLink } from './records.mts';
 
 const GROUP = 'alchemy';
 export const FORMULA_KIND = 'formulas', INGREDIENTS = 'ingredients', LEVELS = 'alchemy_levels';
-const C4 = 0x040000, FORMULA_COUNT = 35, INGREDIENT_COUNT = 22, LEVEL_COUNT = 10;
+const RING_POINTERS = map.file('ring_items.pointers'), FORMULA_COUNT = 35, INGREDIENT_COUNT = 22, LEVEL_COUNT = 10;
 const word = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
 
 /** The blocks of $91:80A6 by index: the formula's own (index = the first formula using it), the Call Bead casts' by the
@@ -36,9 +37,11 @@ export const BLOCKS = Array.from({ length: 53 }, (_, k) => FORMULA_BLOCKS[k] ?? 
 
 /** Each table has its long-indexed reader (`lda.l`, `and.l`, `ora.l` table,x) in the ROM: the release is this one. The
  *  ingredient names' reader ($C4:5FF3) moves in a grown build: ingredients.mts checks it. */
+const TABLES = ['formula_names', 'formula_ring_items', 'formula_descriptions', 'formula_blocks', 'formula_powers', 'formula_targets',
+    'formula_learned_flags', 'formula_learned_bits', 'formula_costs', 'experience_per_cast', 'power_factor'];
 function check(rom: Uint8Array): void {
     const ops = new Set([0xBF, 0x3F, 0x1F]);
-    for (const t of [0x5D09, 0x5BAF, 0x5D51, 0x5DDF, 0x5E6B, 0x5BF5, 0x5C3B, 0x5C81, 0x601F, 0x5B9C, 0x5BA5]) {
+    for (const t of TABLES.map(n => map.offset(`alchemy.${n}`))) {
         let found = false;
         for (let i = 0; i + 3 < rom.length && !found; i++) found = ops.has(rom[i]) && rom[i + 1] === (t & 0xFF) && rom[i + 2] === t >> 8 && rom[i + 3] === 0xC4;
         if (!found) throw new Error(`alchemy: nothing reads $C4:${t.toString(16).toUpperCase()} as this codec knows; another release?`);
@@ -49,27 +52,27 @@ let INGREDIENT_NAMES: string[] = [];
 function prepare(rom: Uint8Array): void {
     if (INGREDIENT_NAMES.length) return;
     const items = nameRingItems(rom), byText = new Map<number, string>();
-    for (let id = 0x118 / 2; id <= 0x142 / 2; id++) byText.set(word(rom, 0x0E0000 | word(rom, 0x0E8000 + 2 * id)), items[id]);
-    INGREDIENT_NAMES = Array.from({ length: INGREDIENT_COUNT }, (_, k) => (byText.get(word(rom, C4 + 0x5FF3 + 2 * k)) ?? `ingredient_${k}`).replace(/^ingredient_/, ''));
+    for (let id = 0x118 / 2; id <= 0x142 / 2; id++) byText.set(word(rom, (RING_POINTERS & 0xFF0000) | word(rom, RING_POINTERS + 2 * id)), items[id]);
+    INGREDIENT_NAMES = Array.from({ length: INGREDIENT_COUNT }, (_, k) => (byText.get(word(rom, map.file('alchemy.ingredient_names') + 2 * k)) ?? `ingredient_${k}`).replace(/^ingredient_/, ''));
 }
 
 const cost = (k: 0 | 1) => [
-    { path: `cost/${k}/ingredient`, at: C4 + 0x601F + k, stride: 4, width: 1 as const, form: { type: 'ref' as const, kind: INGREDIENTS } },
-    { path: `cost/${k}/count`, at: C4 + 0x6021 + k, stride: 4, width: 1 as const, form: { type: 'number' as const } },
+    { path: `cost/${k}/ingredient`, at: map.file('alchemy.formula_costs') + k, stride: 4, width: 1 as const, form: { type: 'ref' as const, kind: INGREDIENTS } },
+    { path: `cost/${k}/count`, at: map.file('alchemy.formula_costs') + 2 + k, stride: 4, width: 1 as const, form: { type: 'number' as const } },
 ];
 
 export const formulasCodec = recordsCodec({
     kind: FORMULA_KIND, group: GROUP, count: FORMULA_COUNT, names: () => FORMULAS,
     why: 'formula = id (2·id indexes nine tables in bank $C4 that touch each other); WRAM keeps 35 of each: learned bits $2258-$225C, experience $2F52, level $2F98, casts $2FDE (a word each)',
     fields: [
-        { path: 'name', at: C4 + 0x5D09, stride: 2, form: { type: 'text' } },
-        { path: 'ring_item', at: C4 + 0x5BAF, stride: 2, form: { type: 'ref', kind: 'ring_items', scale: 2 } },
-        { path: 'description', at: C4 + 0x5D51, stride: 2, form: { type: 'text' } },
-        { path: 'block', at: C4 + 0x5DDF, stride: 2, form: { type: 'ref', names: BLOCKS, scale: 2 } },
-        { path: 'power', at: C4 + 0x5E6B, stride: 2, form: { type: 'number', max: 0xFF } },
-        { path: 'target', at: C4 + 0x5BF5, stride: 2, form: { type: 'target' } },
-        { path: 'learned/flags', at: C4 + 0x5C3B, stride: 2, form: { type: 'wram' } },
-        { path: 'learned/bit', at: C4 + 0x5C81, stride: 2, form: { type: 'hex' } },
+        { path: 'name', at: map.file('alchemy.formula_names'), stride: 2, form: { type: 'text' } },
+        { path: 'ring_item', at: map.file('alchemy.formula_ring_items'), stride: 2, form: { type: 'ref', kind: 'ring_items', scale: 2 } },
+        { path: 'description', at: map.file('alchemy.formula_descriptions'), stride: 2, form: { type: 'text' } },
+        { path: 'block', at: map.file('alchemy.formula_blocks'), stride: 2, form: { type: 'ref', names: BLOCKS, scale: 2 } },
+        { path: 'power', at: map.file('alchemy.formula_powers'), stride: 2, form: { type: 'number', max: 0xFF } },
+        { path: 'target', at: map.file('alchemy.formula_targets'), stride: 2, form: { type: 'target' } },
+        { path: 'learned/flags', at: map.file('alchemy.formula_learned_flags'), stride: 2, form: { type: 'wram' } },
+        { path: 'learned/bit', at: map.file('alchemy.formula_learned_bits'), stride: 2, form: { type: 'hex' } },
         ...cost(0), ...cost(1),
     ],
     notes: id => ({ wram: { experience: wramLink(0x2F52 + 2 * id), level: wramLink(0x2F98 + 2 * id), casts: wramLink(0x2FDE + 2 * id) } }),
@@ -78,7 +81,7 @@ export const formulasCodec = recordsCodec({
 export const ingredientsCodec = growIngredients(recordsCodec({
     kind: INGREDIENTS, group: GROUP, count: INGREDIENT_COUNT, names: () => INGREDIENT_NAMES, prepare, check,
     why: 'ingredient = id: the name pointers at $C4:5FF3 (22 words, the cast names before them), the held count at $22FF + id',
-    fields: [{ path: 'name', at: C4 + 0x5FF3, stride: 2, form: { type: 'text' } }],
+    fields: [{ path: 'name', at: map.file('alchemy.ingredient_names'), stride: 2, form: { type: 'text' } }],
     notes: id => ({ held: wramLink(0x22FF + id) }),
 }));
 
@@ -86,8 +89,8 @@ export const levelsCodec = recordsCodec({
     kind: LEVELS, group: GROUP, count: LEVEL_COUNT, names: () => Array.from({ length: LEVEL_COUNT }, (_, k) => `level_${k}`),
     why: 'a formula\'s level (0-9, $2F98 + 2·formula) indexes two byte tables: experience per cast at $C4:5B9C (levels 0-8; at 9 nothing is gained) and the power factor at $C4:5BA5',
     fields: [
-        { path: 'experience_per_cast', at: C4 + 0x5B9C, stride: 1, width: 1, form: { type: 'number' }, ids: id => id < 9 },
-        { path: 'power_factor', at: C4 + 0x5BA5, stride: 1, width: 1, form: { type: 'number' } },
+        { path: 'experience_per_cast', at: map.file('alchemy.experience_per_cast'), stride: 1, width: 1, form: { type: 'number' }, ids: id => id < 9 },
+        { path: 'power_factor', at: map.file('alchemy.power_factor'), stride: 1, width: 1, form: { type: 'number' } },
     ],
     notes: () => ({ what: 'power = base power × power factor, split among the targets + 1, then 50-100 % of it (docs/alchemy-damage.md); 100 experience is a level' }),
 });

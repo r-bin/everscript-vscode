@@ -4,6 +4,7 @@
 //                                                       [--tiles png|json] [--kinds a,b] [--previews]
 //   node tools/open-evermore/open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]
 //   node tools/open-evermore/open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
+//   node tools/open-evermore/open-evermore.mts locate <rom> [--out out/open-evermore-map]
 // explode: the ROM (argument, else the base ROM of the ROM library) → the tree. The tree is ROM-derived: inside the
 //          repository only under the git-ignored out/; --force replaces a tree (edits there are lost). --palettes png
 //          writes each palette as a 128×8 stripe of its 16 colours instead of JSON; --tiles json writes tiles as
@@ -18,10 +19,14 @@
 // prove:   build the original (stable) and a random layout from the tree, play the stored playbacks on both, compare
 //          every frame (G1). Minutes; on demand. Writes <dir>/_build/prove-<seed>/REPORT.md. The layout is built
 //          --strict (lockstep needs vanilla's cycle counts); --promoted builds it as implode does without --strict.
+// locate:  draft the mapping file of another release (evermore/map-locate.mts): every address of map/us.json found
+//          again in <rom> by the US ROM's bytes (the base ROM of the ROM library) → <out>/<release>.draft.json, to
+//          check against that release's code before it goes to evermore/map/<release>.json.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
-import { GAME, KINDS, PAST_END, POINTER_WINDOWS } from './evermore/kinds.mts';
+import { GAME, loadMap, selectRelease } from './evermore/map.mts';
+import { draft, locateAll } from './evermore/map-locate.mts';
 import { explode } from './explode.mts';
 import { implode } from './implode.mts';
 import { prove } from './prove.mts';
@@ -32,13 +37,21 @@ import { BUILD_DIR, json, readText, readTree, sha1, writeTree } from './tree.mts
 const require = createRequire(import.meta.url);
 const REPO = resolve(dirname(new URL(import.meta.url).pathname), '..', '..');
 const TOOL_VERSION: string = JSON.parse(readFileSync(join(REPO, 'package.json'), 'utf8')).version;
-const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]';
+/** The game's kinds, for the release the codecs read: loaded once the release is known (evermore/map.mts). */
+type Kinds = typeof import('./evermore/kinds.mts');
+let game: Kinds | undefined;
+async function load(release: string | null | undefined): Promise<Kinds> {
+    selectRelease(release);
+    return game ??= await import('./evermore/kinds.mts');
+}
+/** The release a tree was exploded from (manifest.json `base.release`). */
+const treeRelease = (tree: Map<string, Uint8Array>): string | undefined => { try { return JSON.parse(readText(tree.get(MANIFEST)!)).base?.release; } catch { return undefined; } };
 
-function runExplode(args: string[], flag: (n: string) => boolean, value: (n: string) => string | null): number {
+const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]\n       open-evermore.mts locate <rom> [--out <dir>]';
+
+async function runExplode(args: string[], flag: (n: string) => boolean, value: (n: string) => string | null): Promise<number> {
     const force = flag('--force'), previews = flag('--previews');
     const only = value('--kinds')?.split(',');
-    const unknown = only?.filter(k => !KINDS.some(c => c.kind === k));
-    if (unknown?.length) { console.error(`--kinds: no kind ${unknown.join(', ')} (${KINDS.map(c => c.kind).join(', ')})`); return 2; }
     const palettes = value('--palettes'), tiles = value('--tiles');
     if (palettes && palettes !== 'json' && palettes !== 'png') { console.error('--palettes json | png'); return 2; }
     if (tiles && tiles !== 'json' && tiles !== 'png') { console.error('--tiles png | json'); return 2; }
@@ -56,6 +69,10 @@ function runExplode(args: string[], flag: (n: string) => boolean, value: (n: str
     const { stripCopierHeader } = require('../../dist/platform/roms/header');
     const path = baseRomOrExit(GAME, args[0]);
     const rom: Uint8Array = stripCopierHeader(new Uint8Array(readFileSync(path)));
+    const release: string | null = identifyRom(rom).variant;   // the mapping file to read (null: an unknown ROM, read as us; the codecs refuse what they do not know)
+    const { KINDS } = await load(release);
+    const unknown = only?.filter(k => !KINDS.some(c => c.kind === k));
+    if (unknown?.length) { console.error(`--kinds: no kind ${unknown.join(', ')} (${KINDS.map(c => c.kind).join(', ')})`); return 2; }
     const options: Record<string, Record<string, string>> = {};
     if (palettes && palettes !== 'json') {
         options.palettes = { format: palettes };
@@ -76,8 +93,8 @@ function runExplode(args: string[], flag: (n: string) => boolean, value: (n: str
 }
 
 /** The kinds a tree holds: `only` (manifest `kinds`, explode --kinds), else all, in KINDS' order. */
-const kindsOf = (only?: string[]) => only ? KINDS.filter(k => only.includes(k.kind)) : KINDS;
-const treeKinds = (tree: Map<string, Uint8Array>) => { try { return kindsOf(JSON.parse(readText(tree.get(MANIFEST)!)).kinds); } catch { return KINDS; } };
+const kindsOf = (only?: string[]) => only ? game!.KINDS.filter(k => only.includes(k.kind)) : game!.KINDS;
+const treeKinds = (tree: Map<string, Uint8Array>) => { try { return kindsOf(JSON.parse(readText(tree.get(MANIFEST)!)).kinds); } catch { return game!.KINDS; } };
 
 /** --random [seed]: the seed, a fresh one when none is given, undefined without the flag. */
 function takeSeed(args: string[]): number | undefined {
@@ -88,6 +105,27 @@ function takeSeed(args: string[]): number | undefined {
     return given ?? Math.floor(Math.random() * 0xFFFFFFFF);
 }
 
+function runLocate(args: string[], value: (n: string) => string | null): number {
+    const out = resolve(value('--out') ?? join(REPO, 'out', 'open-evermore-map'));
+    if (!args[0]) { console.error(USAGE); return 2; }
+    const { baseRomOrExit } = require('../rom.js');
+    const { identifyRom } = require('../../dist/platform');
+    const { stripCopierHeader } = require('../../dist/platform/roms/header');
+    const read = (p: string) => Buffer.from(stripCopierHeader(new Uint8Array(readFileSync(p))));
+    const us = read(baseRomOrExit(GAME, undefined)), rom = read(args[0]);
+    const id = identifyRom(new Uint8Array(rom));
+    if (id.game !== GAME) { console.error(`${args[0]}: not ${GAME}`); return 2; }
+    const release: string = id.variant ?? 'unknown';
+    const located = locateAll(loadMap('us'), us, rom);
+    const count = (h: string) => located.filter(l => l.how === h).length;
+    mkdirSync(out, { recursive: true });
+    const file = join(out, `${release}.draft.json`);
+    writeFileSync(file, JSON.stringify(draft(release, String(id.variant ?? release), located), null, 2) + '\n');
+    console.log(`${release}: ${located.length} addresses of us.json — ${count('same')} at the same place, ${count('bytes')} moved (found by their bytes), ${count('around')} moved (found by the code around them), ${count('not-found')} not found, ${count('bank')} banks (not searched).`);
+    console.log(`Draft: ${file}`);
+    return 0;
+}
+
 async function runProve(args: string[], flag: (n: string) => boolean): Promise<number> {
     const strict = !flag('--promoted');
     const seed = takeSeed(args) ?? Math.floor(Math.random() * 0xFFFFFFFF);
@@ -96,17 +134,19 @@ async function runProve(args: string[], flag: (n: string) => boolean): Promise<n
     if (!args[0]) { console.error(USAGE); return 2; }
     const dir = resolve(args[0]);
     const tree = readTree(dir);
+    const { PAST_END, POINTER_WINDOWS } = await load(treeRelease(tree));
     const result = await prove(tree, GAME, treeKinds(tree), seed, join(dir, BUILD_DIR, `prove-${seed}`), movies, PAST_END, POINTER_WINDOWS, strict);
     if (!result.ok && result.lines.length === 1) console.error(result.lines[0]);
     return result.ok ? 0 : 1;
 }
 
-function runImplode(args: string[], flag: (n: string) => boolean): number {
+async function runImplode(args: string[], flag: (n: string) => boolean): Promise<number> {
     const checkOnly = flag('--check-only'), strict = flag('--strict');
     const seed = takeSeed(args);
     if (!args[0]) { console.error(USAGE); return 2; }
     const dir = resolve(args[0]);
     const tree = readTree(dir);
+    const { PAST_END } = await load(treeRelease(tree));
     const result = implode(tree, GAME, treeKinds(tree), { checkOnly, seed, pastEnd: PAST_END, strict });
     if (strict) for (const f of result.findings.list) if (f.severity === 'warning') f.severity = 'error';
     const failed = result.findings.failed;
@@ -126,10 +166,11 @@ async function main(): Promise<void> {
     const flag = (name: string) => { const i = args.indexOf(name); if (i >= 0) args.splice(i, 1); return i >= 0; };
     const value = (name: string) => { const i = args.indexOf(name); return i < 0 ? null : args.splice(i, 2)[1] ?? null; };
     const action = args.shift();
-    process.exitCode = action === 'explode' ? runExplode(args, flag, value)
-        : action === 'implode' ? runImplode(args, flag)
+    process.exitCode = action === 'explode' ? await runExplode(args, flag, value)
+        : action === 'implode' ? await runImplode(args, flag)
         : action === 'prove' ? await runProve(args, flag)
+        : action === 'locate' ? runLocate(args, value)
         : (console.error(USAGE), 2);
 }
 
-if (process.argv[1] === new URL(import.meta.url).pathname) main();
+if (process.argv[1] === new URL(import.meta.url).pathname) main().catch((e: Error) => { console.error(e.message); process.exitCode = 2; });

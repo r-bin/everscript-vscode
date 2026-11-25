@@ -10,6 +10,7 @@
 //             next byte ($8C:EA49), so its value is the entity's address with high word 0
 //   byte      an expression byte is the sub-op | $80 when it is the expression's last: a lone entity is that byte
 // The other sub-ops (constants, reads, operators) are not entities and stay in _base/. Names: the script viewers'.
+import * as map from '../map.mts';
 import type { Codec, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText } from '../../tree.mts';
@@ -17,7 +18,7 @@ import type { Tree } from '../../tree.mts';
 import { routines } from './readers.mts';
 
 export const KIND = 'entities';
-const DIR = KIND, TABLE = 0x0CF041, LIMIT = 0x70, BANK = 0x8C;
+const DIR = KIND, TABLE = map.file('entities.handler_table'), LIMIT = 0x70, BANK = map.bank('entities.handler_table');
 /** The entity sub-ops: [sub-op, name, what it gives]. */
 const ENTITIES: [number, string, string][] = [
     [0x2D, 'last_entity', 'the entity at $0341: the one a command last made or named (its +$3E set to 1 when 0)'],

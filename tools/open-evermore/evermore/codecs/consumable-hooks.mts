@@ -1,6 +1,7 @@
 // The code a grown consumables kind jumps into (items.mts): the counts of new consumables in their own WRAM words, and
 // the items ring's action dispatch for them. Hand assembled (implode writes bytes itself, no assembler); run on the
 // 65816 interpreter by tests/open-evermore/item-hooks.test.mts. Every entry is called by `jsl` with A and X 16 bits.
+import * as map from '../map.mts';
 
 /** Consumable ids the game counts at `$2315 + id`: 0-7; 8 is the Pouch (an action, no count: `$231D` is armour's). */
 export const VANILLA_CONSUMABLES = 9, POUCH = 8;
@@ -9,7 +10,7 @@ export const LDA = [0xBF, 0x15, 0x23, 0x7E], STA = [0x9F, 0x15, 0x23, 0x7E];
 /** What the dispatch site holds: `tax : jsr ($A873,x)` ($8E:A866, after `asl`), the item_actions table. */
 export const DISPATCH = [0xAA, 0xFC, 0x73, 0xA8];
 /** The handler every new consumable runs: pick a target and use it ($8E:8CA7, `item_use_on_target`). */
-export const USE_HANDLER = 0x8CA7;
+export const USE_HANDLER = map.offset('consumables.use_handler');
 const le24 = (v: number) => [v & 0xFF, (v >> 8) & 0xFF, v >> 16];
 
 /**

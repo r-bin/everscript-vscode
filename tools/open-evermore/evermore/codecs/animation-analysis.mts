@@ -1,5 +1,6 @@
 // Shared analysis for animations: discovers all $C4 record groups (1, 4, or 8 facings), attributes owner names,
 // computes programmatic sprite palettes and cross-references, and maps the $C4:3C92 animate() id table to targets.
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { CountOf, ImplodeContext, NameAt, NameOf } from '../../codec.mts';
 import { NAME_RE, readText } from '../../tree.mts';
@@ -24,8 +25,10 @@ const { alchemyModel } = require('../../../../dist/games/evermore/scripts-tab/mo
 export const ANIMATIONS = 'animations';
 export const ANIMATION_NAME_RE = /^(?:[a-z][a-z0-9_]{0,79}\/)?[a-z][a-z0-9_]{0,79}$/;
 export const ANIMATE_LIMIT = 2048;
-export const ANIMATE_READERS: Reader[] = [{ at: 0x0CE13D, add: 0 }];
-export const C4_BASE = 0x040000, C4_END = 0x050000, RECORD_SIZE = 4;
+export const ANIMATE_READERS: Reader[] = map.readers('animations.animate_readers');
+export const C4_BASE = map.rule('animation_records').above!, C4_END = map.rule('animation_records').below!, RECORD_SIZE = 4;
+/** Where the animate() table is when its reader is not the one the codec knows. */
+export const ANIMATE_TABLE = map.file('animations.animate_table');
 
 export type FacingMode = 'any' | '4_way' | '8_way';
 export const FACING_KEYS = {
@@ -34,12 +37,12 @@ export const FACING_KEYS = {
     '8_way': ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'],
 } as const;
 
-const WEAPON_RECORDS = 0x0438E6, AMMO_RECORDS = 0x043A96, WEAPON_STRIDE = 36, WEAPON_COUNT = 12, AMMO_COUNT = 3;
-const WEAPON_SCHOOLS_TABLE = 0x0459DC, SCHOOL_NAMES = ['sword', 'axe', 'spear', 'bazooka'];
+const WEAPON_RECORDS = map.file('equipment.weapon_records'), AMMO_RECORDS = map.file('equipment.ammo_records'), WEAPON_STRIDE = 36, WEAPON_COUNT = 12, AMMO_COUNT = 3;
+const WEAPON_SCHOOLS_TABLE = map.file('equipment.weapon_schools'), SCHOOL_NAMES = ['sword', 'axe', 'spear', 'bazooka'];
 const WEAPON_SLOTS = ['stand', 'walk', 'run', 'attack_0', 'attack_1', 'attack_2', 'attack_3', 'dodge', 'knockback'];
 const DOG_SLUGS = ['act1', 'act1_stick', 'act2', 'act3', 'act0', 'act4'];
-const PROJ_TABLE = 0x10D986, PROJ_SCRIPT_COUNT = 16, PROJ_ALL_COUNT = 21, PROJ_FIRST = 0xD9A6, PROJ_STRIDE = 24;
-const RING_POINTERS = 0x0E8000, RING_COUNT = 162;
+const PROJ_TABLE = map.file('projectiles.table'), PROJ_SCRIPT_COUNT = 16, PROJ_ALL_COUNT = 21, PROJ_FIRST = map.offset('projectiles.records'), PROJ_STRIDE = 24;
+const RING_POINTERS = map.file('ring_items.pointers'), RING_COUNT = 162;
 const WRITE_AREA: Record<number, 'save' | 'temp' | 'local'> = { 0x18: 'save', 0x1C: 'save', 0x19: 'temp', 0x1D: 'temp', 0x1A: 'local', 0x1E: 'local' };
 
 const word = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
@@ -175,7 +178,7 @@ export function analyzeAnimations(rom: Uint8Array, name: NameOf, countOf: CountO
             byRecord16.set(record, { animation: n });
             for (let i = 1; i < keys.length; i++) byRecord16.set(record + i * RECORD_SIZE, { animation: n, facing: keys[i] });
         }
-        const animateAt = (() => { try { return tableAt(rom, ANIMATE_READERS, ANIMATIONS); } catch { return 0x043C92; } })();
+        const animateAt = (() => { try { return tableAt(rom, ANIMATE_READERS, ANIMATIONS); } catch { return ANIMATE_TABLE; } })();
         const animateCount = countOf(ANIMATIONS)!;
         const animateEntries: AnimateTableEntry[] = [];
         for (let id = 0; id < animateCount; id++) {
@@ -240,7 +243,7 @@ export function analyzeAnimations(rom: Uint8Array, name: NameOf, countOf: CountO
         for (const a of df.anims) if (a.animRec) push(dogUses, a.animRec, { form, slot: a.purpose || slug(a.label), pal: df.paletteAddr });
     }
     for (let id = 0; id < RING_COUNT; id++) {
-        const eAt = 0x0E0000 | word(rom, RING_POINTERS + 2 * id), r = word(rom, eAt + 2), pal = word(rom, eAt + 4);
+        const eAt = (RING_POINTERS & 0xFF0000) | word(rom, RING_POINTERS + 2 * id), r = word(rom, eAt + 2), pal = word(rom, eAt + 4);
         if (r) push(ringUses, r, { name: countOf('ring_items') !== undefined ? name('ring_items', id) : ringItems[id], pal });
     }
     const projThrowers = new Map<number, number[]>();
@@ -266,7 +269,7 @@ export function analyzeAnimations(rom: Uint8Array, name: NameOf, countOf: CountO
     const projTable = Array.from({ length: PROJ_SCRIPT_COUNT }, (_, id) => word(rom, PROJ_TABLE + 2 * id));
     const animProjIdx = Array.from({ length: PROJ_ALL_COUNT }, (_, k) => PROJ_FIRST + PROJ_STRIDE * k).filter(a => !projTable.includes(a));
     for (let k = 0; k < PROJ_ALL_COUNT; k++) {
-        const addr16 = PROJ_FIRST + PROJ_STRIDE * k, pAt = 0x100000 | addr16, r = word(rom, pAt), pal = word(rom, pAt + 2);
+        const addr16 = PROJ_FIRST + PROJ_STRIDE * k, pAt = (PROJ_TABLE & 0xFF0000) | addr16, r = word(rom, pAt), pal = word(rom, pAt + 2);
         if (!r) continue;
         const tid = projTable.indexOf(addr16);
         const rt = countOf('projectiles') !== undefined ? nameAt('projectiles', pAt) : undefined;
@@ -311,7 +314,7 @@ export function analyzeAnimations(rom: Uint8Array, name: NameOf, countOf: CountO
 
     // Script animate() usage & animate_id key attribution
     const { scriptChars } = collectScriptUses(rom, charEnemies, name, countOf, nameAt);
-    const animateAt = (() => { try { return tableAt(rom, ANIMATE_READERS, ANIMATIONS); } catch { return 0x043C92; } })();
+    const animateAt = (() => { try { return tableAt(rom, ANIMATE_READERS, ANIMATIONS); } catch { return ANIMATE_TABLE; } })();
     const animateCount = countOf(ANIMATIONS) ?? 212;
     const rawAnimate: { id: number; rec: number; key: string; ei?: { group: EnumGroup; name: string }; chars: string[] }[] = [];
     const animateByHead = new Map<number, typeof rawAnimate>(), usedAnimKeys = new Set<string>();

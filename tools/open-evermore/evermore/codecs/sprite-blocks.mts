@@ -14,6 +14,7 @@
 //   shared    8×8 block 6085 reads, raw, the 32 bytes that are blocks 0 and 407 compressed one after the other: a
 //             block whose bytes are other blocks' is an alias, <name>.json { "bytes_of": [...], "compressed" },
 //             and those blocks are placed together, in that order
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -31,7 +32,7 @@ const { readSpriteInfo } = require('../../../../dist/games/evermore/maps/sprites
 const GREY = Array.from({ length: 16 }, (_, i) => [i * 17, i * 17, i * 17]);
 /** Index 0 is transparent on a sprite. */
 const ALPHA = [0, ...Array(15).fill(255)];
-const GROUP = 16, LIMIT = 21845, FOUR_MIB = 0x400000;
+const GROUP = 16, LIMIT = 21845;
 
 interface Spec { kind: string; size: number; bytes: number; base: number; vanilla: number; readers: Reader[]; where: string }
 
@@ -132,7 +133,7 @@ interface Built { items: Item[]; at: Map<string, { key: string; offset: number; 
 function blockCodec(s: Spec): Codec {
     const DIR = s.kind, TABLE = `${DIR}/_table`;
     const built = new WeakMap<ImplodeContext, Built>();
-    const rule = { noCrossBank: true, above: (s.base - 0xC0) << 16, below: FOUR_MIB };
+    const rule = { ...map.rule('sprite_blocks'), above: (s.base & 0x3F) << 16 };
     const png = (raw: Uint8Array) => new Uint8Array(encodeIndexedPng(s.size, s.size, pixelsOf(raw, s.size), GREY, ALPHA));
     const owners16or8 = s.size === 16 ? 16 : 8;
     let ownerOf = new Map<number, string>();
@@ -259,12 +260,12 @@ function blockCodec(s: Spec): Codec {
 }
 
 const SPEC_16: Spec = {
-    kind: 'sprite_blocks_16', size: 16, bytes: 128, base: 0xD9, vanilla: 4854, where: '$EC:0000',
-    readers: [{ at: 0x009743, add: 1 }, { at: 0x009752, add: 0 }, { at: 0x00A2E7, add: 0 }],
+    kind: 'sprite_blocks_16', size: 16, bytes: 128, base: map.bank('sprite_blocks_16.base'), vanilla: 4854, where: '$EC:0000',
+    readers: map.readers('sprite_blocks_16.table_readers'),
 };
 const SPEC_8: Spec = {
-    kind: 'sprite_blocks_8', size: 8, bytes: 32, base: 0xD1, vanilla: 6265, where: '$D8:0000',
-    readers: [{ at: 0x00A4FD, add: 1 }, { at: 0x00A50C, add: 0 }, { at: 0x00A801, add: 0 }],
+    kind: 'sprite_blocks_8', size: 8, bytes: 32, base: map.bank('sprite_blocks_8.base'), vanilla: 6265, where: '$D8:0000',
+    readers: map.readers('sprite_blocks_8.table_readers'),
 };
 
 const blockTableCache = new WeakMap<Uint8Array, { large: number; small: number }>();

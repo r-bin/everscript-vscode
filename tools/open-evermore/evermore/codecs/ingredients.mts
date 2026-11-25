@@ -17,6 +17,7 @@
 //   icons   22 long pointers at $C4:5CC7 (3 bytes an id), read as `lda.l $C45CC7,x` / `$C45CC8,x` at five pairs of
 //           sites (alchemy screen list, formula cards): moved to a generated table
 //   bounds  the alchemy screen's two loops `ldx #$0015` ($8D:C1AA, $8D:C2CB) count down from the last id
+import * as map from '../map.mts';
 import type { Codec, ImplodeContext, Item, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, readText } from '../../tree.mts';
@@ -27,14 +28,14 @@ import { TEXTS, textContent } from './texts.mts';
 
 /** Ids an ingredient may have: bytes in the formulas' cost, and `temp[]` has 100 words for the new ones. */
 const LIMIT = 64;
-const MIB4 = 0x400000, TEMP = 0x2834, TEMP_SIZE = 200;
+const TEMP = 0x2834, TEMP_SIZE = 200;
 
 const NAMES_KEY = 'ingredients/_names', ICONS_KEY = 'ingredients/_icons', HOOKS_KEY = 'ingredients/_hooks';
-const NAME_BANK = 0x0DC1F3, NAME_TABLE = 0x0DC1F7, VANILLA_NAME_TABLE = 0xC45FF3;
-const ICON_SITES = [0x0DBE5E, 0x0DBE99, 0x0DC307, 0x0DC8A6, 0x0DC8DC], VANILLA_ICONS = 0xC45CC7, ICON_TABLE = 0x045CC7;
-const BOUNDS = [0x0DC1AB, 0x0DC2CC];
-const GET16 = [0x0DC1AD, 0x0DC2CE, 0x0EA923, 0x11CDF1, 0x11CE1E], PUT16 = [0x11CDF8, 0x11CE25], GET8 = [0x11CE4C, 0x11CE70];
-const SHOP_GET = 0x0E8DC5, SHOP_PUT = 0x0E8DDF;
+const NAME_BANK = map.file('ingredients.name_bank'), NAME_TABLE = map.file('ingredients.name_table_read'), VANILLA_NAME_TABLE = map.bus('alchemy.ingredient_names');
+const ICON_SITES = map.files('ingredients.icon_reads'), VANILLA_ICONS = map.bus('ingredients.icons'), ICON_TABLE = map.file('ingredients.icons');
+const BOUNDS = map.files('ingredients.bounds');
+const GET16 = map.files('ingredients.count_reads'), PUT16 = map.files('ingredients.count_writes'), GET8 = map.files('ingredients.count_reads_8');
+const SHOP_GET = map.file('ingredients.shop_read'), SHOP_PUT = map.file('ingredients.shop_write');
 const VANILLA_SHOP_GET = [0xA6, 0x12, 0xE2, 0x20, 0xBD, 0xFF, 0x22], VANILLA_SHOP_PUT = [0x9D, 0xFF, 0x22, 0xC2, 0x20];
 
 const u24 = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8) | (b[at + 2] << 16);
@@ -149,7 +150,7 @@ export function growIngredients(inner: Codec): Codec {
             const extra = grown(ctx, true);
             if (!extra) return items;
             const n = VANILLA_INGREDIENTS + extra.length, texts = nameTexts(ctx, extra);
-            const rule = { noCrossBank: true, below: MIB4 };
+            const rule = map.rule('grown_tables');
             const file = `${DIR}/${ENUM}`;
             items.push(
                 { key: NAMES_KEY, file, bytes: new Uint8Array(2 * n + texts.reduce((s, t) => s + t.length + 1, 0)), rule, generated: true },

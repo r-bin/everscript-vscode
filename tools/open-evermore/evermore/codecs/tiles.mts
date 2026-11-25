@@ -18,6 +18,7 @@
 //   placement  never across a bank (the loader and the streamer read through DMA, whose source stays in its bank);
 //              an animation frame (marked `dma` by the maps kind) is stored as 64 raw words, since the streamer
 //              $90:A1B4 DMAs 128 bytes from +1
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -33,7 +34,7 @@ const { decodePng, encodeIndexedPng } = require('../../../../dist/platform/png')
 
 export const KIND = 'tiles';
 const DIR = KIND, VANILLA = 6688, LIMIT = 0x10000 / 3 | 0, TABLE = `${DIR}/_table`;
-const READERS = [{ at: 0x0CC899, add: 0 }, { at: 0x0CC8A2, add: 2 }, { at: 0x10A16B, add: 1 }, { at: 0x10A171, add: 0 }, { at: 0x10A238, add: 1 }, { at: 0x10A23E, add: 0 }];
+const READERS = map.readers('tiles.table_readers'), RULE = map.rule('tiles');
 
 /** The table (file offset), through its readers' operands. */
 function tableOf(rom: Uint8Array): number {
@@ -244,7 +245,7 @@ export const tilesCodec: Codec = {
                 const d = maps.decodeTile(both, 0);
                 if (d.end <= both.length && same(d.bytes, t.bytes)) {
                     pairOf.set(t.followedBy!, { key: `${DIR}/${n}`, offset: t.encoded.length });
-                    items.push({ key: `${DIR}/${n}`, file: t.file, bytes: both, rule: { noCrossBank: true } });
+                    items.push({ key: `${DIR}/${n}`, file: t.file, bytes: both, rule: RULE });
                     continue;
                 }
                 reencoded(t);
@@ -253,7 +254,7 @@ export const tilesCodec: Codec = {
         const paired = new Set(items.map(i => i.key));
         for (const [n, t] of tiles) {
             if (pairOf.has(n) || paired.has(`${DIR}/${n}`)) continue;
-            items.push({ key: `${DIR}/${n}`, file: t.file, bytes: t.out!, rule: { noCrossBank: true } });
+            items.push({ key: `${DIR}/${n}`, file: t.file, bytes: t.out!, rule: RULE });
         }
         // A tile ends on a bank's last byte only where vanilla's did (13 do): the decoder's pointer then turns the bank,
         // which costs cycles vanilla did not spend elsewhere (the music upload's rule, music.mts).

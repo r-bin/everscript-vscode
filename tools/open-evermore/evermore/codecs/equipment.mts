@@ -21,6 +21,7 @@
 //                 defence the armour ring shows ($8E:A66B), +4 the name, +6 a second text (all 40: the same empty one),
 //                 +8 the ring item
 // Names: each weapon, ammo and armour from its ring item's text (menus.mts), so no game text is in this file.
+import * as map from '../map.mts';
 import { nameRingItems } from './menus.mts';
 import { recordsCodec, wramLink } from './records.mts';
 import type { Field, Form } from './records.mts';
@@ -29,7 +30,8 @@ const GROUP = 'equipment';
 export const WEAPONS = 'weapons', AMMO = 'bazooka_ammo', SCHOOLS = 'weapon_schools', ARMOUR = 'armour';
 
 const word = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
-const C4 = 0x040000, POINTERS = C4 + 0x3874, WEAPON_RECORDS = C4 + 0x38E6, AMMO_RECORDS = C4 + 0x3A96, ARMOUR_RECORDS = C4 + 0x3B02;
+const C4 = map.file('common.data_bank'), POINTERS = map.file('equipment.record_pointers'), WEAPON_RECORDS = map.file('equipment.weapon_records'),
+    AMMO_RECORDS = map.file('equipment.ammo_records'), ARMOUR_RECORDS = map.file('equipment.armour_records');
 const RECORD = 36, WEAPON_COUNT = 14, AMMO_COUNT = 3, ARMOUR_COUNT = 40, ARMOUR_RECORD = 10;
 const RING_ITEM: Form = { type: 'ref', kind: 'ring_items', scale: 2 };
 const ANIMATION: Form = { type: 'animation' };
@@ -73,10 +75,10 @@ export const weaponsCodec = recordsCodec({
     kind: WEAPONS, group: GROUP, count: WEAPON_COUNT, names: () => WEAPON_NAMES, prepare, check,
     why: 'weapon index = id (2·id in $0ABA, $235F and $2441): the tables at $C4:59A4, $59C0, $59DC, $59F8 and the record pointers $C4:3874 hold 14 words each, and WRAM has one skill word per weapon ($0ADD + 2·id)',
     fields: [
-        { path: 'school', at: C4 + 0x59DC, stride: 2, form: { type: 'ref', kind: SCHOOLS, scale: 2 } },
-        { path: 'owned/flags', at: C4 + 0x59A4, stride: 2, form: { type: 'wram' }, ids: id => id > 0 },
-        { path: 'owned/bit', at: C4 + 0x59C0, stride: 2, form: { type: 'hex' }, ids: id => id > 0 },
-        { path: 'description', at: C4 + 0x59F8, stride: 2, form: { type: 'text' }, ids: hasRecord },
+        { path: 'school', at: map.file('equipment.weapon_schools'), stride: 2, form: { type: 'ref', kind: SCHOOLS, scale: 2 } },
+        { path: 'owned/flags', at: map.file('equipment.weapon_owned_flags'), stride: 2, form: { type: 'wram' }, ids: id => id > 0 },
+        { path: 'owned/bit', at: map.file('equipment.weapon_owned_bits'), stride: 2, form: { type: 'hex' }, ids: id => id > 0 },
+        { path: 'description', at: map.file('equipment.weapon_descriptions'), stride: 2, form: { type: 'text' }, ids: hasRecord },
         ...recordFields(WEAPON_RECORDS - RECORD, hasRecord),
     ],
     notes: id => ({
@@ -97,8 +99,8 @@ export const schoolsCodec = recordsCodec({
     kind: SCHOOLS, group: GROUP, count: SCHOOL_NAMES.length, names: () => SCHOOL_NAMES,
     why: 'a weapon\'s school is 2·id ($C4:59DC, $2360); the weapon skill screen jumps by it through $8E:93D8 and $8E:9404, four words each with code right after',
     fields: [
-        { path: 'skill_screen/draw', at: 0x0E93D8, stride: 2, form: { type: 'routine', bank: 0x8E } },
-        { path: 'skill_screen/loop', at: 0x0E9404, stride: 2, form: { type: 'routine', bank: 0x8E } },
+        { path: 'skill_screen/draw', at: map.file('weapon_schools.skill_draw'), stride: 2, form: { type: 'routine', bank: map.bank('weapon_schools.skill_draw') } },
+        { path: 'skill_screen/loop', at: map.file('weapon_schools.skill_loop'), stride: 2, form: { type: 'routine', bank: map.bank('weapon_schools.skill_loop') } },
     ],
     notes: id => ({
         what: [

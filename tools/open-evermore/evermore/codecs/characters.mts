@@ -16,6 +16,7 @@
 //             four spawn handlers ($8C:DC9A/DCC3/DCD9/DCEC); 143 ids; 0xBA/0xC2 take a byte id: 256 at most
 //   fields    behaviour (+$03) and attack proc (+$30) are handler-table names; flags (+$05, +$07) as bit names (`a | b`,
 //             null for none); palettes (+$09, +$0B) as sprite_palettes names; animations (+$32..+$48) as animation names
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -37,11 +38,11 @@ const RECORDS = `${DIR}/_records`, INDEX = `${DIR}/_enemy_index`;
 /** The pseudo kind whose symbols tell a round trip each record's place. */
 const RECORD = 'characters.record';
 export const STRIDE = 74;
-const OFFSET = 0xB678, VANILLA_RECORDS = 142, VANILLA_ENEMIES = 143, ENEMY_LIMIT = 256;
+const OFFSET = map.offset('characters.records'), VANILLA_RECORDS = 142, VANILLA_ENEMIES = 143, ENEMY_LIMIT = 256;
 const RECORD_LIMIT = Math.floor((0x10000 - OFFSET) / STRIDE);
 /** `mvn $8E,$8E` at $8F:8046: the source bank (byte 2) is the records' bank. */
-const MVN = 0x0F8046;
-const ENEMY_READERS: Reader[] = [0x0CDCA2, 0x0CDCCD, 0x0CDCE3, 0x0CDCF4].map(at => ({ at, add: 0 }));
+const MVN = map.file('characters.records_mvn');
+const ENEMY_READERS: Reader[] = map.readers('characters.enemy_index_readers');
 const LONG_OPS = new Set([0xAF, 0x8F, 0x6F, 0xEF, 0xCF, 0x2F, 0x0F, 0x4F, 0xBF, 0x9F, 0x7F, 0xFF, 0xDF, 0x3F, 0x1F, 0x5F]);
 const CODE_BANKS = new Set([0x00, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11]);
 
@@ -320,7 +321,7 @@ export const charactersCodec: Codec = {
         const count = Math.max(-1, ...(ctx.ids.get(CHARACTERS)?.values() ?? [])) + 1;
         // Offset $B678 in a bank the readers reach in the $80-$BF form; patched: true lets tables() write moved/new animation offsets.
         return [
-            { key: RECORDS, file: recordsPath, bytes, rule: { bankOffset: OFFSET, upperHalf: true, below: 0x400000 }, patched: true },
+            { key: RECORDS, file: recordsPath, bytes, rule: { ...map.rule('characters'), bankOffset: OFFSET }, patched: true },
             { key: INDEX, file: `${DIR}/${ENUM}`, bytes: new Uint8Array(2 * count), rule: { noCrossBank: true }, generated: true },
         ] satisfies Item[];
     },

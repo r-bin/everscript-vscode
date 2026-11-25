@@ -7,6 +7,7 @@
 //              SNES OBJ slots (index 0 is transparent), preserved here losslessly
 //   readers    $90:CF3A (phb/phk/plb → bank $90) and $90:CFD2 (`lda #$0090` DMA source), plus ring menu $8E:AEBC
 //              (bank $D0, same HiROM bank 0x10); pinned in place until bank-$90 palette readers are hooked
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, CountOf, Item, NameAt, NameOf } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -25,16 +26,16 @@ const { disassembleScript } = require('../../../../dist/games/evermore/maps/anim
 const { readDogForms } = require('../../../../dist/games/evermore/sprites/dog-forms');
 
 export const SPRITE_PALETTES = 'sprite_palettes';
-export const SPRITE_PALETTE_BASE = 0xA7EB;
+export const SPRITE_PALETTE_BASE = map.offset('sprite_palettes.table');
 export const SPRITE_PALETTE_STRIDE = PALETTE_ENTRY;
 export const SPRITE_PALETTE_COUNT = 269;
 
 const DIR = SPRITE_PALETTES;
-const FILE_BANK = 0x10;
+const FILE_BANK = map.file('sprite_palettes.table') >> 16;
 const BASE_FILE = (FILE_BANK << 16) | SPRITE_PALETTE_BASE;
 const ARRAY = `${DIR}/array`;
-const WEAPON_RECORDS = 0x0438E6, AMMO_RECORDS = 0x043A96, WEAPON_STRIDE = 36, WEAPON_COUNT = 12, AMMO_COUNT = 3;
-const PROJ_TABLE = 0x10D986, RING_POINTERS = 0x0E8000, RING_COUNT = 162, HUD_BOY_PORTRAIT = 0xAD6B;
+const WEAPON_RECORDS = map.file('equipment.weapon_records'), AMMO_RECORDS = map.file('equipment.ammo_records'), WEAPON_STRIDE = 36, WEAPON_COUNT = 12, AMMO_COUNT = 3;
+const PROJ_TABLE = map.file('projectiles.table'), RING_POINTERS = map.file('ring_items.pointers'), RING_COUNT = 162, HUD_BOY_PORTRAIT = map.offset('hud.boy_portrait_palette');
 const DOG_SLUGS = ['dog_act1', 'dog_act1_stick', 'dog_act2', 'dog_act3', 'dog_act0', 'dog_act4'];
 
 const word = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
@@ -132,7 +133,7 @@ function analyzeSpritePalettes(
     }
 
     for (let id = 0; id < RING_COUNT; id++) {
-        const eAt = 0x0E0000 | word(rom, RING_POINTERS + 2 * id);
+        const eAt = (RING_POINTERS & 0xFF0000) | word(rom, RING_POINTERS + 2 * id);
         const s = slot(word(rom, eAt + 4));
         if (s !== null) uses[s].rings.push(countOf('ring_items') !== undefined ? name('ring_items', id) : ringItems[id]);
     }

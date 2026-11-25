@@ -20,6 +20,7 @@
 //   encoding   our encoder takes the fewest bytes; vanilla's choices are not reproduced yet (ours matches 701 of
 //              2,858 and is shorter for 1,001), so `_strings.json` keeps the vanilla bytes of the others while they
 //              still give their text
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -33,7 +34,7 @@ export const KIND = 'strings';
 export const STRING_COUNT = 3002;
 const DIR = KIND, VANILLA = STRING_COUNT, LIMIT = 0x10000 / 3 | 0, META = '_strings.json', TABLE = `${DIR}/_table`;
 /** `lda #$0091 : sta $28 : ldy #$D000` in both readers: the bank immediate at +1, the offset at +6. */
-const SITES = [0x0CCCF7, 0x0CCD35], SITE = [0xA9, -1, 0x00, 0x85, 0x28, 0xA0, -1, -1];
+const SITES = map.files('strings.key_table_sites'), SITE = [0xA9, -1, 0x00, 0x85, 0x28, 0xA0, -1, -1];
 
 /** The key table (file offset), from the first reader's immediates. */
 function tableOf(rom: Uint8Array): number {
@@ -42,9 +43,10 @@ function tableOf(rom: Uint8Array): number {
     return romFileOffset(rom, bus(SITES[0]));
 }
 const FORMAT = 'open-evermore/strings', VERSION = 1;
-const RULE = { lowerHalf: true, noCrossBank: true, below: 0x400000 };
+const RULE = map.rule('strings');
 // The dictionary, in bank $91 (file offsets).
-const SINGLES = 0x11F3AE, PAIRS = 0x11F32E, WORD_OFFSETS = 0x11F3EC, WORDS = 0x11F66C, PHRASE_OFFSETS = 0x11F46C, PHRASES = 0x11F7D5;
+const SINGLES = map.file('strings.singles'), PAIRS = map.file('strings.pairs'), WORD_OFFSETS = map.file('strings.word_offsets'),
+    WORDS = map.file('strings.words'), PHRASE_OFFSETS = map.file('strings.phrase_offsets'), PHRASES = map.file('strings.phrases');
 
 interface Dictionary { singles: number[]; pairs: number[][]; words: number[][]; phrases: number[][] }
 

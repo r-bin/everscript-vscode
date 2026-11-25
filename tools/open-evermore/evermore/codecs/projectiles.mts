@@ -12,6 +12,7 @@
 //             routine of the table at $90:D967 by 2·k, k ≤ 14 (from k = 15 on the words are the projectile table):
 //             written by the routine's name, looked up in that table (it stays in _base/)
 //   power     +$16; 0: the thrower's attack scaled by its stamina ($8F:C02B)
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -29,8 +30,8 @@ const { projectileRecord, PROJECTILE_STRIDE } = require('../../../../dist/games/
 export const KIND = 'projectiles';
 export const PROJECTILE_COUNT = 16;
 const ALL_PROJECTILE_COUNT = 21;
-const FIRST_RECORD = 0xD9A6;
-const DIR = KIND, TABLE = 0x10D986, COUNT = PROJECTILE_COUNT, BANK = 0x90, FILE_BANK = 0x10, ROUTINES = 0x10D967, ROUTINE_COUNT = 15;
+const FIRST_RECORD = map.offset('projectiles.records');
+const DIR = KIND, TABLE = map.file('projectiles.table'), COUNT = PROJECTILE_COUNT, BANK = map.bank('projectiles.table'), FILE_BANK = TABLE >> 16, ROUTINES = map.file('projectiles.movement_routines'), ROUTINE_COUNT = 15;
 /** Entries of the attack proc table (handler-tables.mts). */
 const ATTACK_PROC_COUNT = 15;
 const HANDLERS = routines(BANK);

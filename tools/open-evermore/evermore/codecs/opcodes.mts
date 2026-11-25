@@ -13,6 +13,7 @@
 //   handlers   by the name of their knowledge entry (the routine names of soe://rom/code/): every one of the 195 has
 //              one. Code is not a kind yet, so a name stands for its fixed address in bank $8C
 // Everything but the handler is derived for the reader: implode encodes only the handler.
+import * as map from '../map.mts';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import type { Codec, Write } from '../../codec.mts';
@@ -73,7 +74,7 @@ function described(op: number): Record<string, unknown> {
 }
 
 export const KIND = 'opcodes';
-const DIR = KIND, TABLE = 0x0CE8BD, COUNT = 0xC3, BANK = 0x8C;
+const DIR = KIND, TABLE = map.file('opcodes.handler_table'), COUNT = 0xC3, BANK = map.bank('opcodes.handler_table');
 const hex = (v: number, n: number) => v.toString(16).padStart(n, '0');
 /** Handlers by routine name (`$8C:xxxx` for code no entry names yet). */
 const HANDLERS = routines(BANK);

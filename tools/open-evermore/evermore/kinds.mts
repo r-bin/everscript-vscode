@@ -1,6 +1,7 @@
 // Evermore's resource kinds in migration order (docs/open-evermore/progress.md §1). Each step of the progress page
 // adds its codec here; whatever no kind owns stays in `_base/`. Implode encodes them in this order, so a kind that
 // marks another's resources (maps → tiles: used, dma) comes first.
+import * as map from './map.mts';
 import type { Codec } from '../codec.mts';
 import { mapsCodec } from './codecs/maps.mts';
 import { palettesCodec } from './codecs/palettes.mts';
@@ -29,13 +30,13 @@ import { textsCodec } from './codecs/texts.mts';
 import { targetsCodec } from './codecs/targets.mts';
 import { setFolders } from '../links.mts';
 
-export const GAME = 'evermore';
+export { GAME } from './map.mts';
 
 /**
  * Bytes Evermore reads past its 3 MiB image: $80:D113 reads $B0:E293+X, X ≤ $780, 64 bytes (knowledge
  * row_table_low_bytes_from_bank_b0). A grown image answers there as the original did (layouts.mts).
  */
-export const PAST_END = [{ start: 0x30E293, end: 0x30E293 + 0x780 + 0x40 }];
+export const PAST_END = map.pastEnd();
 
 /** Pointer forms that are positions in a window: the packed script pointer (scripts.mts), kept by the engine in
  *  WRAM ($26-$28 when it starts a script). The proof translates them like long pointers. */

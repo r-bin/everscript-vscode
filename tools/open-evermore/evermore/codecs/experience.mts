@@ -10,18 +10,17 @@
 //        belong to the next table, and the Dog's level stops at 99 ($8F:84F5) before it reads them
 // The tables are code-bank data read by `lda.l` with the address in the operand: they could move, but nothing here
 // moves them, so the counts are fixed (100 and 99).
+import * as map from '../map.mts';
 import { recordsCodec } from './records.mts';
 import type { Field } from './records.mts';
 
 export const EXPERIENCE = 'experience';
-const BOY_TABLE = 0x0C8BD0, DOG_TABLE = 0x0C8CFC, LEVELS = 100, DOG_LEVELS = 99, ENTRY = 3;
+const BOY_TABLE = map.file('experience.boy_table'), DOG_TABLE = map.file('experience.dog_table'), LEVELS = 100, DOG_LEVELS = 99, ENTRY = 3;
 const NAMES = ['boy', 'dog'];
 /** Every `lda.l` of the two tables (file offset, operand): the level-up copy ($8D:B676-$B69C, 3 bytes in two words) and
  *  the level-up check ($8F:8336, $8F:851B). The operands are table - 3 (index (level+1)·3), table, table + 1. */
-const READERS: [number, number][] = [
-    [0x0DB676, 0x8C8BCD], [0x0DB67E, 0x8C8BCE], [0x0DB691, 0x8C8CF9], [0x0DB699, 0x8C8CFA],
-    [0x0F8336, 0x8C8BD1], [0x0F833D, 0x8C8BD0], [0x0F851B, 0x8C8CFD], [0x0F8522, 0x8C8CFC],
-];
+const READERS: [number, number][] = (['boy', 'dog'] as const).flatMap(who => map.readers(`experience.${who}_readers`)
+    .map(r => [r.at - 1, map.bus(`experience.${who}_table`) + r.add] as [number, number]));
 
 /** Level n's entry: the Boy's at BOY_TABLE + 3n, the Dog's one table further (stride: the Boy's table). */
 const fields: Field[] = Array.from({ length: LEVELS }, (_, n): Field => ({

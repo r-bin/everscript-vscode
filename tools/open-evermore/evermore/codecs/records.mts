@@ -15,6 +15,7 @@
 //   routine    a 16-bit code address in `bank`: the routine's name (readers.mts `routines`)
 // A field may apply to some ids only (`ids`); the bytes of the others stay in _base/. References are typed (links.mts):
 // explode writes `<folder>/<name>`, implode reads that or the bare name.
+import * as map from '../map.mts';
 import type { Codec, ImplodeContext, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText } from '../../tree.mts';
@@ -27,7 +28,7 @@ import { addTargetSource, TARGETS, targetLink, targetValue } from './targets.mts
 import { addTextSource, TEXTS, textLink, textName, textPointer } from './texts.mts';
 import { KIND as WRAM, wramAddress, wramHolding, wramName, wramSize } from './wram.mts';
 
-const TEXT_BANK = 0x040000;
+const TEXT_BANK = map.file('common.data_bank');
 const ROUTINES = new Map<number, ReturnType<typeof routines>>();
 const routinesOf = (bank: number) => ROUTINES.get(bank) ?? ROUTINES.set(bank, routines(bank)).get(bank)!;
 

@@ -33,6 +33,7 @@
 //                as labels, so a command may change length
 //   gaps         bytes no command reaches, inside a script or between the scripts of a group, are not the script's
 //                (bank $95 keeps tiles between two scripts that call each other): `skip <n>`, a hole in the item
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -92,8 +93,8 @@ export function scriptOf(path: string): string | null {
     return m ? (m[1] !== undefined ? m[1] : `${m[2]}/${m[3]}`) : null;
 }
 const FORMAT = 'open-evermore/scripts', VERSION = 3;
-const HEADER = 0x128000, BOOT = 0x12800C, MAP_COUNT = 127;
-const READERS = [{ at: 0x0CCE64, add: 0 }, { at: 0x0CCE6A, add: 2 }, { at: 0x0CD3B6, add: 0 }, { at: 0x0CD3BC, add: 2 }];
+const HEADER = map.file('scripts.header'), BOOT = map.file('scripts.boot_pointer'), MAP_COUNT = 127;
+const READERS = map.readers('scripts.table_readers');
 const u16 = (rom: Uint8Array, at: number) => rom[at] | (rom[at + 1] << 8);
 const u24 = (rom: Uint8Array, at: number) => rom[at] | (rom[at + 1] << 8) | (rom[at + 2] << 16);
 /** The packed pointer of a file offset in the window, and back. */

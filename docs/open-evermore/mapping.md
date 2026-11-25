@@ -1,169 +1,166 @@
-# Open Evermore: moving memory-map facts out of the codecs
+# Open Evermore: the game mapping file
 
-Status: **analysis and proposal (2026-11-25), nothing built.** Back to [README.md](README.md). Labels as there.
-Related: [manifest.md](manifest.md) §1.3–§1.4 (regions and placement, designed but not read yet), [roadmap.md](roadmap.md)
-(names, not addresses).
+Status: **built (2026-11-25, v0.471.0)** for the US release: `tools/open-evermore/evermore/map/us.json`, read
+through `evermore/map.mts`; drafts for the PAL releases through `locate` (§6). Not yet: reading the manifest's
+`placement` (§3). Back to [README.md](README.md). Labels as there. Related: [manifest.md](manifest.md) §1.3–§1.4,
+[roadmap.md](roadmap.md) (names, not addresses), [../evermore-releases.md](../evermore-releases.md).
 
-**Question (owner, 2026-11-25).** Explode and implode hold a lot of knowledge about the memory map: where each
-table is, which code reads it, and where a resource may go (where strings may go, where menu texts may go, and so
-on). Can that knowledge move into the manifest, or into a separate mapping file?
+**Question (owner, 2026-11-25).** Explode and implode held a lot of knowledge about the memory map: where each table
+is, which code reads it, and where a resource may go (where strings may go, where menu texts may go). Can it move
+into the manifest, or a mapping file? Keep in mind the language releases: the same content compiled to other banks.
 
-**Answer.** Mostly yes, but not into the manifest. About 220 distinct file offsets live in 34 codecs
-*(repo: `grep 0x[0-9A-F]{5,6}` over `tools/open-evermore/evermore/`)*. They fall into five groups (§1). Three groups
-are plain data: where things are, which pointer form reads them, and what space the game reads past its end. These
-can move into a **game mapping file**, one per release (§2). The user's choices (free and reserved space, faster or
-slower ROM, preferred banks) belong in `manifest.json` as manifest.md already designs it (§3). The other two groups
-(instruction shapes and record formats) stay in code (§4).
+**Answer.** Into a mapping file per release, not the manifest. A user cannot change what the engine reads, and the
+tree carries no derived data. The user's choices (free and reserved space, preferred banks) belong in
+`manifest.json` (§3). Instruction shapes and record formats stay in code (§4).
 
 ---
 
-## 1. What the codecs know today
+## 1. What the codecs knew
 
-| Group | Examples *(repo)* | Count | Moves? |
-|---|---|---|---|
-| **A. Placement rules** (the `Rule` of each item, `codec.mts`) | strings `{ lowerHalf, noCrossBank, below: 4 MiB }`; texts `{ above: $C4, below: $C5, noCrossBank }`; scripts `{ window: $92–$BF }`; maps `{ upperHalf, noCrossBank, maxSize: 32 KiB }`; music `{ upperHalf, noCrossBank, noBankEnd, below: 4 MiB }`; metasprites `$CA–$D3`; sprite blocks `above: base bank, below: 4 MiB` | ~25 shapes, 20 kinds | **yes**, as pointer forms (§2.1) |
-| **B. Sites**: where a table is and the operands that read it | strings `SITES = [$8C:CCF7, $8C:CD35]`; scripts `READERS` (4); tiles `READERS` (6); ingredients `GET16`/`PUT16`/`GET8`/`BOUNDS`/`ICON_SITES` (14); items `TABLE_SITES`, `GET16`, `DISPATCH_AT`; music `COUNT_AT`, `POINTERS`, `PACKAGE_OF_MUSIC` | ~150 | **yes** (§2.2) |
-| **C. Game facts about the image** | `PAST_END` (`$B0:E293`+, kinds.mts); the script window; `SPRITE_PALETTE_BASE`; bank-`$C4` text bank | ~10 | **yes** (§2.3) |
-| **D. Instruction shapes and checks** | `SITE = [$A9, -1, $00, $85, $28, …]` (strings); `tableAt` requires `lda.l` (`$BF`); `ADC`/`LDA` opcodes (palettes) | per site | no: code (§4) |
-| **E. Record formats** | strides (`PROJECTILE_STRIDE = 24`, `WEAPON_STRIDE = 36`), counts (`VANILLA = 127`), limits (`LIMIT = 0x10000 / 3`) | ~60 | no: format, not map (§4) |
+About 220 distinct file offsets in 34 codecs *(repo, v0.470.0)*, in five groups:
 
-**The same fact in several codecs.** The weapon records `$C4:38E6` appear in animation-analysis, sprite-palettes and
-equipment. The ring pointers `$CE:8000` appear in alchemy, animation-analysis, menus and sprite-palettes. The
-projectile table `$D0:D986` appears in three codecs, `TEMP = $2834` (WRAM) in four, the bank base `$C4` in eight
-and the 4 MiB bound in seven. Moving these facts to one file fixes the duplication right away, before anything
-else changes.
+| Group | Examples | Now |
+|---|---|---|
+| **A. Placement rules** (`Rule`, `codec.mts`) | strings `{ lowerHalf, noCrossBank, below: 4 MiB }`, texts bank `$C4`, scripts window `$92–$BF`, maps `{ upperHalf, noCrossBank, maxSize: 32 KiB }`, music `noBankEnd`, metasprites `$CA–$D3` | `placement` in the map (§2.2) |
+| **B. Sites**: where a table is and the operands that read or bound it | strings key table immediates `$8C:CCF7`, `$8C:CD35`; tiles readers (6); ingredients count reads and writes (9), ring sites (37) | `addresses` in the map (§2.1) |
+| **C. Image facts** | the bytes read past the 3 MiB end (`$B0:E293`+) | `pastEnd` in the map |
+| **D. Instruction shapes and checks** | strings `SITE = [$A9, -1, $00, $85, $28, …]`; `tableAt` wants `lda.l` (`$BF`) | code (§4) |
+| **E. Record formats** | strides, vanilla counts, limits | code (§4) |
 
-**A rule mixes three things.** Take `below: 0x400000`. It is a fact about the pointer (`$C0`-based, so it reaches only
-the first 4 MB), written as an address range that holds only under `hirom`. Under `exhirom` the second 4 MB is
-`$40–$7D`, and only a pointer form can say whether a reader reaches it (layouts.mts `pointer`). In the same way,
-`pinned(home)` (graphics, projectiles, texts and metasprites at home) is not a fact about the map. It marks a reader
-the codec does not rewrite yet. A mapping file has to keep these apart.
+Several facts were repeated: the weapon records in three codecs, the ring pointers in four, the bank-`$C4` base in
+eight and the 4 MiB bound in seven. Each is now one entry.
 
 ---
 
-## 2. The game mapping file *(proposal)*
+## 2. `map/<release>.json` *(repo)*
 
-**Where:** `tools/open-evermore/evermore/map/<release>.json` (for now only `us-1.0.json`). It holds game facts, so
-it goes with the game's codecs, not in the tree. A user cannot change what the engine reads, and the tree carries no
-derived data (roadmap.md). Each entry names the knowledge entry or doc that gives its evidence (standing rule 2). The
-addresses are written once, here, and the codecs import them by name.
-
-### 2.1 Pointer forms and kinds
-
-A **pointer form** says how the engine turns stored bits into an address. From the form and the layout, the tool
-works out where a resource can be reached. A kind then names its form and adds only the limits that come from how
-its data is read.
+`<release>` is the variant id of `src/games/evermore/descriptor.ts` (`us`, `eu`, `de`, `fr`, `es`, `es-rev2`), the
+`base.release` explode writes into `manifest.json`.
 
 ```jsonc
-"pointerForms": {
-  "long":        { "bits": 24, "why": "lda.l / 3-byte entry: any ROM bank" },
-  "lowerKey":    { "offset": "bits 0-14, lower half", "bank": "bits 15-22 + $C0", "why": "dialogue-text-decoder.md" },
-  "upper16":     { "half": "upper", "bank": "stored separately, $80-$BF form" },
-  "bank16":      { "bank": "fixed per kind", "why": "16-bit pointer, the reader loads the bank as an immediate" },
-  "bankPlus7":   { "bank": "base + 7 bits", "why": "sprite-blocks.mts: base $D9 (16x16), $D1 (8x8)" },
-  "window":      { "banks": "$92-$BF", "half": "upper", "why": "packed script pointer, docs/scripts/vm.md" },
-  "bankOffset":  { "why": "kept by 16-bit address, only the bank moves" }
-},
-"kinds": {
-  "strings":     { "form": "lowerKey", "noCrossBank": true },
-  "texts":       { "form": "bank16", "bank": "$C4", "why": "printed by $8C:9E03 with bank #$C4" },
-  "scripts":     { "form": "window" },
-  "maps":        { "form": "upper16", "noCrossBank": true, "maxSize": "32KiB" },
-  "music":       { "form": "upper16", "noCrossBank": true, "noBankEnd": true, "why": "progress.md §2, bank turns cost cycles" },
-  "metasprites": { "form": "bank16", "banks": "$CA-$D3" },
-  "tiles":       { "form": "long", "noCrossBank": true, "why": "DMA source stays in its bank" },
-  "characters":  { "form": "bankOffset", "offset": "$B678", "half": "upper" }
+{
+  "release": "us", "name": "Secret of Evermore (USA)", "what": "…",
+  "extends": "us",                      // another release only: its entries replace the parent's of the same name
+  "addresses": { "<kind>": { "<entry>": <value> } },
+  "placement": { "<kind>[/<form>]": { "why": "…", … } },
+  "pastEnd": [["$B0:E293", 1984]]
 }
 ```
 
-- **The reach comes from the layout.** `lowerKey` reaches the lower halves of `$C0–$FF`. Under `exhirom` that still
-  means the first 4 MB, and the tool works this out (layouts.mts) instead of every codec writing `below: 4 MiB`.
-- **Rule fields stay as they are.** `codec.mts`'s `Rule` stays the allocator's input. One function turns
-  (kind entry, layout) into a `Rule`, so layout.mts does not change, and neither do G0 or the random proofs.
-- **Per-item rules stay in code.** An animation script's bank is its connected group's bank (animations.mts:415).
-  An item at home (`pinned`) stays a codec decision with its own reason ("reader not rewritten"). The mapping file
-  gives only the kind's widest allowed space.
+### 2.1 Addresses
 
-### 2.2 Sites
+Written as the game addresses them (HiROM; the file offset is the address `& $3FFFFF`). The codecs read them by
+name through `map.mts`, `import * as map from '../map.mts'`:
 
-```jsonc
-"sites": {
-  "strings.keyTable":   { "at": "$91:D000", "readers": ["$8C:CCF7", "$8C:CD35"], "knowledge": "routines/…" },
-  "scripts.table":      { "readers": ["$8C:CE64+0", "$8C:CE6A+2", "$8C:D3B6+0", "$8C:D3BC+2"] },
-  "tiles.table":        { "readers": ["$8C:C899+0", "$8C:C8A2+2", "$90:A16B+1", "$90:A171+0", "$90:A238+1", "$90:A23E+0"] },
-  "weapons.records":    { "at": "$C4:38E6", "stride": 36, "count": 12 },
-  "rings.pointers":     { "at": "$CE:8000", "count": 162 }
-}
-```
+| Value | Accessor | Example |
+|---|---|---|
+| `"$8C:CCF7"` | `map.file` (file offset), `map.bus` (exactly as written: the form the game's own pointers use), `map.offset` (16 bits) | `alchemy.ingredient_names` `$C4:5FF3`; `characters.records` `$8E:B678` |
+| `"$8C:CE6A+2"`, `"$8D:B677-3"` | `map.readers`: the operand of an `lda.l` and what it adds to the table | `scripts.table_readers`, `experience.boy_readers` |
+| `"$8C"` | `map.bank` (an address gives its bank too) | `sprite_blocks_16.base` `$D9` |
+| `[ … ]` | `map.files`, `map.readers` | `rings.boy_options_sites` |
 
-- An entry gives an address and, for a reader, the amount it adds (`+2`). The instruction shape it must match
-  stays with the codec, which checks it at explode, as `tableAt` and the strings `SITE` pattern do now. A mismatch
-  still says "another release?". It now also names the mapping file to fix.
-- **What this gains:** a PAL build (docs/evermore-releases.md) becomes a new `<release>.json` plus the checks,
-  not a set of code edits, as long as its instruction shapes match. `manifest.base.release` selects the file.
-- It also makes the map visible. One file lists every byte of code implode rewrites. The ROM tab and `soe://` can
-  then show "implode writes here".
+A list that code pairs with its own words (a ring site's `when`) is zipped by index, and a length mismatch throws
+(`menus.mts` `sitesOf`). `common.data_bank` (`$C4:0000`) is the bank the records, menu texts and fonts sit in.
 
-### 2.3 Image facts
+### 2.2 Placement
 
-`pastEnd` (`$B0:E293`+, 1,984 bytes), the `window`s the proof translates (kinds.mts `POINTER_WINDOWS`), and the
-fixed text bank. SNES and converter facts (the SA-1 boot block `$B8:8000`, ExHiROM bank `$40`, WRAM `$7E–$7F`)
-stay in layouts.mts. They hold for any game (standing rule 4).
+The kind-level rule the allocator gets (`map.rule(kind)` → `Rule`). Per-item rules stay in code: a resource pinned at
+its home (`pinned`, its reader is not rewritten yet), an animation script's bank (its connected group's), a music
+package that crossed a bank (its offset kept).
+
+| Field | Rule | Used by |
+|---|---|---|
+| `half` `upper` / `lower` | `upperHalf` / `lowerHalf` | maps, palettes, music, characters / strings |
+| `banks` `"$C4"`, `"$CA-$D3"` | `above`, `below` (file offsets, end exclusive) | texts, animation records, metasprites |
+| `window` `"$92-$BF"` | `window` (upper halves read as one space) | scripts, `music/window` |
+| `reach` `first4MiB` | `below` 4 MiB: a `$80`/`$C0`-form pointer reaches the first 4 MB in any layout | strings, music, characters, sprite blocks, grown tables |
+| `bankOffset`, `noCrossBank`, `noBankEnd`, `noPageCross`, `maxSize` | as named | |
+
+`why` is required in spirit: each says what in the engine makes the rule.
+
+### 2.3 One release per process
+
+The codecs read the map when they load. The CLI therefore reads the ROM (explode) or the manifest (implode, prove)
+first, calls `selectRelease`, and only then imports `evermore/kinds.mts`. Selecting another release after the codecs
+read one throws; reading with none selected means `us` (tests, tools that import a codec). An unknown ROM (no
+variant) is read as `us`, and the codecs' own checks refuse what they do not know ("another release?"). A release
+without a file stops with `no mapping file for release "<id>"`.
+
+### 2.4 Proof *(2026-11-25)*
+
+The migration changed no byte: a tree exploded with v0.470.0 and one exploded with the map are identical
+(36,792 files, `diff -r`); `implode --strict` gives the vanilla sha1; `implode --random 7` and `--random 12345` give
+the same sha1 with both, so the placement rules are the same. `tests/open-evermore/map.test.mts` (unit) checks that
+every value parses, that every address a codec asks for is in `us.json` and every one there is asked for, the rules
+against the literals they replaced, `extends`, and the one-release rule.
 
 ---
 
-## 3. What goes in `manifest.json` instead
+## 3. What goes in `manifest.json` *(proposal)*
 
-The manifest holds what the user may decide (manifest.md §1.3–§1.4). Today explode writes a single `rom` region and
-an empty `placement` (manifest.mts `manifestFor`). Implode reads only `free` regions and never reads `placement`
-(implode.mts stage 5). With §2 in place:
+The manifest holds what the user may decide (manifest.md §1.3–§1.4). Today explode writes one `rom` region and an
+empty `placement`; implode reads only `free` regions (implode.mts stage 5).
 
-- **`regions`:** explode writes `free` and `reserved` (the everscript hacks at `$F0`, `$FC–$FF`, table-hack.md §1)
-  as manifest.md §1.3 designs.
-- **`placement`:** per kind, these settings can only tighten a rule (the `rule-loosened` error names the mapping
-  entry): `speed`, `banks` (a subset of what the form reaches), `half`, `prefer`.
-  Example: keep dialogue in `$C0–$C3` and put grown ingredients in the 4th MB.
-- **Strings and menu texts as the worked case.** The mapping file says that strings go in a lower half,
-  reachable by a key, never across a bank, and that texts go in bank `$C4`. The manifest may say
-  `"strings": { "banks": "$C0-$C3" }`. It cannot say `"texts": { "banks": "$C5" }`: that loosens the rule and is an
-  error. To move texts out of `$C4`, a codec has to rewrite the bank immediates at the text readers. Those
-  readers then become sites, and the kind's form changes. That work is codec work, not a mapping edit.
+- **`regions`:** explode writes `free` and `reserved` (the everscript hacks at `$F0`, `$FC–$FF`, table-hack.md §1).
+- **`placement`:** per kind, settings that only tighten the map's rule (`rule-loosened` names the map entry):
+  `banks` (inside the map's), `half`, `speed`, `prefer`. Example: dialogue kept in `$C0–$C3`.
+- **Strings and menu texts.** The map says strings go in a lower half of the first 4 MB, never across a bank, and
+  menu texts in bank `$C4`. A manifest may say `"strings": { "banks": "$C0-$C3" }`, never `"texts": { "banks":
+  "$C5" }`. Texts outside `$C4` need a codec that rewrites the bank immediates of their readers: those readers then
+  become addresses of the map, and its placement changes. Codec work, not a map edit.
 
 ---
 
 ## 4. What stays in code, and why
 
-- **Instruction shapes and checks (D).** They are how a codec knows that a site is what it claims to be. Data
-  that describes code shapes would be "code in strings" (AI_ARCHITECTURE_GUIDE.md). The mapping file says
-  *where*. The codec says *what it expects there* and refuses a ROM that does not match.
-- **Record formats (E).** Strides and field layouts belong to a kind's encoder and its schema. Moving them out
-  would scatter one format over two files. Vanilla counts can come from the mapping file where a site holds
-  them (`count` above). Limits follow from the pointer form (`0x10000 / 3`).
-- **WRAM** (`TEMP = $2834`, items' `SAVED` ranges). These are allocations for the `wram` kind
-  ([wram.md](wram.md), docs/todo/wram-allocation.md), not part of the ROM map. They should come from the `wram`
-  kind by name, not from a second file.
+- **Instruction shapes and checks.** How a codec knows a site is what it claims to be. The map says *where*; the
+  codec says *what it expects there* and refuses a ROM that does not match. Data describing code shapes would be
+  code in strings (AI_ARCHITECTURE_GUIDE.md).
+- **Record formats.** Strides, fields, vanilla counts, limits: a kind's encoder and schema. (A PAL build has other
+  counts too, such as about 3,080 strings: a release that needs them moves them into its map then.)
+- **WRAM** (`TEMP = $2834`, the save ranges): the `wram` kind's ([wram.md](wram.md)).
+- **Generated tables' rule** (`{ noCrossBank }`): a property of the tool's tables, not of a reader.
 
 ---
 
-## 5. Order of work and cost *(proposal)*
+## 5. The language releases
 
-1. **Shared constants, no new format.** One `evermore/map.mts` that exports the addresses several codecs share
-   (weapon records, ring pointers, projectile table, `$C4`, 4 MiB). This is quick, fixes the duplication, and
-   G0 proves it (no byte changes).
-2. **Sites into `map/us-1.0.json`**, kind by kind, with the codec's shape check kept. G0 and one `--random` seed
-   per kind (feedback: test what breaks, no multi-seed prove for a move like this).
-3. **Pointer forms and kinds (§2.1)**, with the `Rule` derived from them. The derived rules must equal today's under
-   `hirom`, which a unit test can check rule by rule for every item of a vanilla explode. The `exhirom` reach then
-   comes for free.
-4. **Read `placement` in implode** (§3) with `rule-loosened`. Explode writes the real `regions`.
+The PAL builds are recompiled, not patched (evermore-releases.md §5): the character records stay at `$8E:B678`, but
+the string key table moved to `$92:8000` with another decompressor, and code and data elsewhere sit at other
+addresses. So:
 
-Risk: low for 1–2 (data moves, G0 catches every mistake). Step 3 changes how rules are made, and the rule-equality
-test is what makes it safe.
+- **A release is one file.** `eu.json` would `extends: "us"` and give what differs; `de.json` could extend `eu`
+  (same build family), `es-rev2.json` extend `es`. Placement is engine behaviour and usually inherits.
+- **Where the codec differs** (the PAL text system), the map is not enough: the codec gains the other form, and its
+  addresses go to that release's file.
 
-## 6. Open questions for the owner
+## 6. Drafting a release's map: `locate` *(repo)*
 
-- One file per release (`us-1.0.json`), or one file with a column per release once a second release appears?
-- Should the sites also be published in `soe://` (for example `soe://rom/open-evermore/sites.md`), so the ROM tab
-  and the AI can see which bytes implode rewrites?
-- Should a kind's `pinned` items (readers not rewritten yet) be listed in the mapping file as known gaps, or stay
-  in each codec's header comment?
+`open-evermore.mts locate <rom> [--out <dir>]` (`evermore/map-locate.mts`) finds every address of `us.json` again in
+another release by the US ROM's bytes: the 16–64 bytes at it, found once (a table, a record, unchanged code), else
+the 8–48 bytes before and after it with its own 3 left out (an operand that now points elsewhere). Only a unique hit
+counts; banks are not searched. It writes `out/open-evermore-map/<release>.draft.json`: what moved, in `extends: "us"`
+form, and `open`, what a person has to find. **A draft is a proposal**: each entry is checked against that release's
+code before the file goes to `evermore/map/`.
+
+Measured 2026-11-25 on the five PAL ROMs (218 addresses, 4 of them banks):
+
+| Release | same place | moved, found by bytes | moved, found by the code around | not found |
+|---|---:|---:|---:|---:|
+| us (self-check) | 214 | 0 | 0 | 0 |
+| eu | 37 | 40 | 7 | 130 |
+| fr, es, es-rev2 | 41 | 46 | 9 | 118 |
+
+- Found: mostly data tables (alchemy, equipment, consumables, HUD, music, palettes) and a few reader sites
+  (eu: the enemy index readers at `$8C:E0A3`… for US `$8C:DCA2`…).
+- Not found, as expected: everything of the strings kind (rebuilt text system), and most code sites (recompiled
+  code around them). The character records are `open` though they are at the same address: their first bytes
+  differ.
+- Not checked yet: no PAL draft has been proven by exploding that ROM. That is the next step for a PAL release.
+
+## 7. Decided and open
+
+- *Decided (2026-11-25):* one file per release, `extends` for what is shared; release ids are the variant ids.
+- *Open:* publish the addresses in `soe://` (which bytes implode rewrites) for the ROM tab and the AI?
+- *Open:* list the `pinned` items (readers not rewritten yet) in the map as known gaps?
+- *Next:* §3 (the manifest's `placement` and `regions`).

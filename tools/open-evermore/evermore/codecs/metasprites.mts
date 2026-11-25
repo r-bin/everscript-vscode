@@ -7,6 +7,7 @@
 //   chunk     flags (bit 0: 16×16, bits 1-3: palette, 4-5: priority, 6: flipX, 7: flipY), x:s8, y:s8, block:u16
 //   place     vanilla records stay pinned to home ($8D:E00E, $8F:9370, $C4:5CC7, $C7:0138 in _base/ point to them);
 //             brand-new metasprites can be placed anywhere in banks $CA–$D3 and referenced by name in animation scripts
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, CountOf, Item, NameAt, NameOf } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -24,7 +25,7 @@ export const KIND = 'metasprites';
 const DIR = KIND;
 const FORMAT = 'open-evermore/metasprite';
 const CHUNK_SIZE = 5;
-const META_BANK_START = 0x0A0000, META_BANK_END = 0x140000, META_LIMIT = 16384;
+const META_RULE = map.rule('metasprites'), META_BANK_START = META_RULE.above!, META_BANK_END = META_RULE.below!, META_LIMIT = 16384;
 
 const s8 = (v: number): number => (v << 24) >> 24;
 
@@ -311,7 +312,7 @@ export const metaspritesCodec: Codec = {
                 items.push({ key, file: path, bytes, rule: { above: home.at, below: home.at + home.length, bankOffset: home.at & 0xFFFF } });
             } else {
                 // Brand-new metasprite: placeable anywhere inside banks $CA-$D3.
-                items.push({ key, file: path, bytes, rule: { above: META_BANK_START, below: META_BANK_END, noCrossBank: true } });
+                items.push({ key, file: path, bytes, rule: META_RULE });
             }
         }
         return items;

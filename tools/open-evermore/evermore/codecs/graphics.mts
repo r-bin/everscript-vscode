@@ -18,6 +18,7 @@
 //            sites, the centred column 11 when the other box is hidden); every reader takes the column from the widget,
 //            the rows are immediates. The portraits are sprites (bank $CC) whose blocks the sprite_blocks_16 kind owns
 // The table $8C:E6E6 stays in _base/ while the fonts stay home; a font's name is how scripts write `font`.
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -53,7 +54,7 @@ function homeOf(ctx: ImplodeContext, kind: string, name: string, names: Set<stri
 
 // ── fonts ──
 export const FONTS = 'fonts';
-const FONT_TABLE = 0x0CE6E6, FONT_BANK = 0x040000, GLYPHS = 128, FIRST = 0x20, FONT_NAMES = ['default', 'outro'];
+const FONT_TABLE = map.file('fonts.table'), FONT_BANK = map.file('common.data_bank'), GLYPHS = 128, FIRST = 0x20, FONT_NAMES = ['default', 'outro'];
 export const FONT_COUNT = FONT_NAMES.length;
 
 interface Font { height: number; columns: number; glyphs: Uint8Array; widths: number[] }
@@ -173,26 +174,26 @@ export const fontsCodec: Codec = {
 
 // ── hud ──
 export const HUD = 'hud';
-const HUD_FILE = `${HUD}/hud.json`, TILES_AT = 0x043704, FIRST_TILE = 0x3E9, BOX_AT = 0x0F8000, BOX_W = 10, BOX_H = 3, BOX_ROW = 25;
+const HUD_FILE = `${HUD}/hud.json`, TILES_AT = map.file('hud.tiles'), FIRST_TILE = 0x3E9, BOX_AT = map.file('hud.box'), BOX_W = 10, BOX_H = 3, BOX_ROW = 25;
 /** The 22 tiles in VRAM order (BG3 tile $3E9 on): ours, from the pictures and where the HUD shows them. */
 const TILE_NAMES = ['edge', 'corner', 'side', ...Array.from({ length: 10 }, (_, i) => `digit_${i}`), 'glyph_3f6', 'glyph_3f7', 'slash',
     'level_1_left', 'level_2_left', 'level_3_left', 'level_1_right', 'level_2_right', 'level_3_right'];
 const PALETTES = [
-    { name: 'box', at: 0x043864, cgram: 8, what: 'BG3 palette 2: the boxes and the HP digits' },
-    { name: 'gauge', at: 0x04386C, cgram: 12, what: 'BG3 palette 3: the charge gauge' },
+    { name: 'box', at: map.file('hud.palette_box'), cgram: 8, what: 'BG3 palette 2: the boxes and the HP digits' },
+    { name: 'gauge', at: map.file('hud.palette_gauge'), cgram: 12, what: 'BG3 palette 3: the charge gauge' },
 ];
 /** The widgets' columns: the file offsets of `lda #imm` operands in $8F:8710 and $8F:89xx that the engine stores. */
 const COLUMNS = [
-    { box: 'boy', field: 'column', sites: [0x0F875F, 0x0F8A05] },
-    { box: 'boy', field: 'column_alone', sites: [0x0F89FD] },
-    { box: 'dog', field: 'column', sites: [0x0F8765, 0x0F89D3] },
-    { box: 'dog', field: 'column_alone', sites: [0x0F89C5] },
+    { box: 'boy', field: 'column', sites: map.files('hud.boy_column') },
+    { box: 'boy', field: 'column_alone', sites: map.files('hud.boy_column_alone') },
+    { box: 'dog', field: 'column', sites: map.files('hud.dog_column') },
+    { box: 'dog', field: 'column_alone', sites: map.files('hud.dog_column_alone') },
 ];
 /** Columns a box may take: 10 wide in BG3's 32, and its portrait on screen (Boy at (column - 2)·8, Dog at (column + 10)·8). */
 const COLUMN_RANGE: Record<string, [number, number]> = { boy: [2, 22], dog: [0, 21] };
 /** The Dog's forms in the order of their entries ($8F:945D; sprites/dog-forms.ts names them). */
 const DOG_FORMS = ['dog_act1', 'dog_act1_stick', 'dog_act2', 'dog_act3', 'dog_podunk', 'dog_act4'];
-const BOY_PORTRAIT = 0x8F810F, BOY_PORTRAIT_BANK = 0x8F8116, PORTRAIT_PALETTE = 0xAD6B;
+const BOY_PORTRAIT = map.bus('hud.boy_portrait'), BOY_PORTRAIT_BANK = map.bus('hud.boy_portrait_bank'), PORTRAIT_PALETTE = map.offset('hud.boy_portrait_palette');
 const HUD_WHAT = 'tiles/<name>.png: the 22 tiles in BG3 tile order ($3E9 on, _enum.json), in palette box; palettes: CGRAM entries; '
     + 'box: the frame both boxes show (BG3 map words: tile, palette 0-7, h / v flip, behind: priority 0); boxes: the column each box '
     + 'starts at (column_alone: when the other box is hidden); at: where the engine puts each part from it (BG3 column, row; the '

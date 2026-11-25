@@ -18,6 +18,7 @@
 //   copies    descriptors and data are read on through upper halves: past $xx:FFFF the copy goes on at $xx+1:8000
 //   sounds    $8C:8362: one word per script sound id, the driver's effect ($FFFF: none); 112 ids, in place
 // Names: our music names (localizations/sounds.ts, package p plays music p - 1) and sound names (its ids are 2·id).
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Span, Window, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -31,12 +32,12 @@ const { hiromFileOffset } = require('../../../../dist/platform/snes/hirom');
 const sounds = require('../../../../dist/games/evermore/localizations/sounds');
 
 export const MUSIC = 'music', SOUNDS = 'sounds';
-const COUNT_AT = 0x019900, POINTERS = 0x019903, MUSIC_IDS = 0x0C8442, MUSIC_ID_COUNT = 73, PACKAGE_OF_MUSIC = 0x0199D8;
+const COUNT_AT = map.file('music.count'), POINTERS = map.file('music.pointers'), MUSIC_IDS = map.file('music.music_ids'), MUSIC_ID_COUNT = 73, PACKAGE_OF_MUSIC = map.file('music.package_of_music');
 export const SOUND_COUNT = 112;
-const SFX_PACKAGES = 0x019A1E, SFX_COUNT = 90, SOUND_TABLE = 0x0C8362;
+const SFX_PACKAGES = map.file('music.sfx_packages'), SFX_COUNT = 90, SOUND_TABLE = map.file('sounds.table');
 const PACKAGE = 'package.json';
 /** Upper halves of the first 4 MiB, read as one space. */
-const WINDOW: Window = { from: 0x00, to: 0x40 };
+const WINDOW: Window = map.window('music/window'), UPPER = map.rule('music'), LOWER = map.rule('music/lower');
 const HALF = 0x8000;
 const hex2 = (v: number) => v.toString(16).padStart(2, '0');
 const snake = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
@@ -211,7 +212,7 @@ export const musicCodec: Codec = {
             bytes.set([transfers.length & 0xFF, transfers.length >> 8]);
             transfers.forEach((t, k) => bytes.set([t.length & 0xFF, t.length >> 8, 0, 0, 0, t.to & 0xFF, t.to >> 8], 2 + 7 * k));
             const home = ctx.base.homes.get(key), crossed = home && (home.at >> 16) !== (windowFile(WINDOW, windowPos(WINDOW, home.at) + home.length - 1) >> 16);
-            items.push({ key, file: path, bytes, rule: crossed ? { window: WINDOW, bankOffset: home!.at & 0xFFFF } : { upperHalf: true, noCrossBank: true, noBankEnd: true, below: 0x400000 }, patched: true });
+            items.push({ key, file: path, bytes, rule: crossed ? { window: WINDOW, bankOffset: home!.at & 0xFFFF } : UPPER, patched: true });
         }
         for (const [n, bytes] of pieces) {
             if (!used.has(n)) { findings.warning('left-out', `${MUSIC}/${n}.bin`, '', 'no package loads it: it is left out of the ROM'); continue; }
@@ -223,7 +224,7 @@ export const musicCodec: Codec = {
             // that does turns the bank after its last byte (`iny` wraps), which put the upload out of step at frame
             // 359 (seeds 3 and 5, 2026-11-21).
             const crossed = home && upper(home.at) && (home.at >> 16) !== (windowFile(WINDOW, windowPos(WINDOW, home.at) + home.length - 1) >> 16);
-            const rule = home && !upper(home.at) ? { noCrossBank: true, noBankEnd: true, below: 0x400000 } : crossed ? { window: WINDOW, bankOffset: home.at & 0xFFFF } : { upperHalf: true, noCrossBank: true, noBankEnd: true, below: 0x400000 };
+            const rule = home && !upper(home.at) ? LOWER : crossed ? { window: WINDOW, bankOffset: home.at & 0xFFFF } : UPPER;
             items.push({ key: `${MUSIC}/${n}`, file: `${MUSIC}/${n}.bin`, bytes, rule });
         }
         encoded.set(ctx, state);

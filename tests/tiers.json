@@ -30,6 +30,7 @@
   "tests/open-evermore/enum-layout.test.mts",
   "tests/open-evermore/formats.test.mts",
   "tests/open-evermore/implode.test.mts",
+  "tests/open-evermore/map.test.mts",
   "tests/open-evermore/ingredient-hooks.test.mts",
   "tests/open-evermore/item-hooks.test.mts",
   "tests/open-evermore/wram.test.mts",

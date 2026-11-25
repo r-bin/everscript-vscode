@@ -18,6 +18,7 @@
 //               consumables $8E:A873 (ring_items_loop, X = 2·index), formulas $8E:A777 (ring_alchemy_loop), Call Bead callers
 //               $8E:99CA (ring_call_bead_callers_loop), their spells $8E:AD43 (ring_call_bead_spells_loop)
 // Names: a ring item is named from its own text in the ROM (no game text in this file), with its category as prefix.
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -42,7 +43,7 @@ const GROUP = 'menus';
 export const OPTION_ACTIONS = 'option_actions', ITEM_ACTIONS = 'item_actions', ALCHEMY_ACTIONS = 'alchemy_actions', CALLER_ACTIONS = 'caller_actions', SPELL_ACTIONS = 'spell_actions';
 
 export const optionActionsCodec = handlerTable({
-    kind: OPTION_ACTIONS, at: 0x0EA444, group: GROUP,
+    kind: OPTION_ACTIONS, at: map.file('option_actions.table'), group: GROUP,
     why: 'ring_options_loop jumps by JSR ($A444,x) with X = the pressed item\'s index (2·id); 9 words, code from $8E:A456',
     entries: [
         ['status_boy', 'the Boy\'s full-screen status ($8D:A0E9, $8D:A6F6)'],
@@ -58,7 +59,7 @@ export const optionActionsCodec = handlerTable({
 });
 
 export const itemActionsCodec = handlerTable({
-    kind: ITEM_ACTIONS, at: 0x0EA873, group: GROUP,
+    kind: ITEM_ACTIONS, at: map.file('item_actions.table'), group: GROUP,
     why: 'ring_items_loop jumps by JSR ($A873,x) with X = 2·the pressed item\'s index; 9 words, code from $8E:A885',
     entries: [
         ['petals', 'pick a target and use it'], ['nectar', 'pick a target and use it'], ['honey', 'pick a target and use it'],
@@ -75,13 +76,13 @@ export const FORMULAS = ['acid_rain', 'atlas', 'barrier', 'call_up', 'corrosion'
     'levitate', 'lightning_storm', 'miracle_cure', 'nitro', 'one_up', 'reflect', 'regrowth', 'revealer', 'revive', 'slow_burn',
     'speed', 'sting', 'stop', 'super_heal'];
 export const alchemyActionsCodec = handlerTable({
-    kind: ALCHEMY_ACTIONS, at: 0x0EA777, group: GROUP,
+    kind: ALCHEMY_ACTIONS, at: map.file('alchemy_actions.table'), group: GROUP,
     why: 'ring_alchemy_loop jumps by JSR ($A777,x) with X = the formula item\'s index (2·formula); 36 words, code from $8E:A7BF',
     entries: [...FORMULAS.map(n => [n, `casts ${n.replace(/_/g, ' ')}`] as [string, string]), ['unused_46', 'no formula has this index']],
 });
 
 export const callerActionsCodec = handlerTable({
-    kind: CALLER_ACTIONS, at: 0x0E99CA, group: GROUP,
+    kind: CALLER_ACTIONS, at: map.file('caller_actions.table'), group: GROUP,
     why: 'ring_call_bead_callers_loop jumps by JSR ($99CA,x) ($8E:990E) with X = the caller item\'s index; 4 words, code from $8E:99D2',
     entries: [
         ['fire_eyes', 'fills the ring `call_bead_spells` with Fire Eyes\' spells (rings/call_bead_spells.json)'],
@@ -92,7 +93,7 @@ export const callerActionsCodec = handlerTable({
 });
 
 export const spellActionsCodec = handlerTable({
-    kind: SPELL_ACTIONS, at: 0x0EAD43, group: GROUP,
+    kind: SPELL_ACTIONS, at: map.file('spell_actions.table'), group: GROUP,
     why: 'ring_call_bead_spells_loop jumps by JSR ($AD43,x) with X = the spell item\'s index; 18 words, code from $8E:AD67',
     entries: ['life_spark', 'heat_wave', 'storm', 'flare', 'time_warp', 'first_aid', 'confound', 'regenerate', 'aura', 'shock_wave',
         'shield', 'plague', 'hypnotize', 'disrupt', 'restore', 'electra_bolt', 'unused_20', 'unused_22']
@@ -101,7 +102,7 @@ export const spellActionsCodec = handlerTable({
 
 // ── ring items ──
 export const RING_ITEMS = 'ring_items';
-const POINTERS = 0x0E8000, ENTRIES = 0x0E8144, ITEM_COUNT = 162, ENTRY = 8, NAME_BANK = 0x040000, PALETTE_BANK = 0xD0;
+const POINTERS = map.file('ring_items.pointers'), ENTRIES = map.file('ring_items.entries'), ITEM_COUNT = 162, ENTRY = 8, NAME_BANK = map.file('common.data_bank'), PALETTE_BANK = map.bank('sprite_palettes.table');
 
 /**
  * What the ring that shows an item reads its index as, by the item's id range (the ranges the builders and loops use):
@@ -293,7 +294,7 @@ export const ringItemsCodec: Codec = {
 
 // ── rings ──
 export const RINGS = 'rings';
-const BUFFERS = 0x0E9920, LOOPS = 0x0E9944, FLAGS = 0x0E9968, RING_COUNT = 18, LOOP_ROUTINES = routines(0x8E);
+const BUFFERS = map.file('rings.buffers'), LOOPS = map.file('rings.loops'), FLAGS = map.file('rings.flags'), RING_COUNT = 18, LOOP_ROUTINES = routines(map.bank('rings.loops'));
 const RING_NAMES = ['boy_options', 'boy_alchemy', 'boy_weapons', 'debug', 'boy_items', 'dog_options', 'shop_0c', 'shop_0e', 'shop_10',
     'shop_12', 'call_bead_spells', 'call_bead_callers', 'armour_body', 'armour_helm', 'armour_gloves', 'armour_collar', 'shop_20', 'bazooka_ammo'];
 const wramText = (at: number) => wramName(0x7E0000 | at) || hexText(at, 4, 0x7E);
@@ -306,28 +307,25 @@ const wramAt = (text: unknown): number | null => {
 /** Where code fills a ring with fixed items: the `lda #imm` (opcode $A9) at each file offset, and when it is used. */
 interface Site { at: number; when: string; caller?: string }
 const ALWAYS = 'always';
+/** The sites of `rings.<ring>_sites` (the mapping file), each with when it is used (ours), in the same order. */
+function sitesOf(ring: string, whens: string[], caller?: string): Site[] {
+    const at = map.files(`rings.${ring}_sites`);
+    if (at.length !== whens.length) throw new Error(`rings: map/${map.gameMap().release}.json lists ${at.length} sites for ${ring}, this codec knows ${whens.length}`);
+    return at.map((a, k) => ({ at: a, when: whens[k], ...(caller ? { caller } : {}) }));
+}
 const ITEM_SITES: Record<string, Site[]> = {
-    boy_options: [
-        { at: 0x0E9A86, when: ALWAYS }, { at: 0x0E9A8C, when: ALWAYS }, { at: 0x0E9A92, when: ALWAYS }, { at: 0x0E9A98, when: ALWAYS },
-        { at: 0x0E9A9E, when: ALWAYS }, { at: 0x0E9AB8, when: 'a formula is known (ALCHEMY_KNOWN_FLAGS $2258-$225C)' },
-        { at: 0x0E9AD1, when: 'an armour is held ($231D-$233F)' }, { at: 0x0E9AD9, when: ALWAYS },
-    ],
-    dog_options: [
-        { at: 0x0E9AF5, when: ALWAYS }, { at: 0x0E9AFB, when: ALWAYS }, { at: 0x0E9B01, when: ALWAYS }, { at: 0x0E9B07, when: ALWAYS },
-        { at: 0x0E9B0D, when: ALWAYS }, { at: 0x0E9B24, when: 'a collar is held ($2341-$2343)' },
-    ],
-    boy_items: [{ at: 0x0E9B87, when: 'the pouch holds something ($8C:C3F8, $8C:C41B); the consumables held follow ($C4:5AAE)' }],
-    call_bead_callers: [
-        { at: 0x0E8D0F, when: ALWAYS }, { at: 0x0E8D24, when: '$225C bit 7' }, { at: 0x0E8D38, when: '$225D bit 0' }, { at: 0x0E8D4C, when: '$225D bit 1' },
-    ],
+    boy_options: sitesOf('boy_options', [ALWAYS, ALWAYS, ALWAYS, ALWAYS, ALWAYS, 'a formula is known (ALCHEMY_KNOWN_FLAGS $2258-$225C)',
+        'an armour is held ($231D-$233F)', ALWAYS]),
+    dog_options: sitesOf('dog_options', [ALWAYS, ALWAYS, ALWAYS, ALWAYS, ALWAYS, 'a collar is held ($2341-$2343)']),
+    boy_items: sitesOf('boy_items', ['the pouch holds something ($8C:C3F8, $8C:C41B); the consumables held follow ($C4:5AAE)']),
+    call_bead_callers: sitesOf('call_bead_callers', [ALWAYS, '$225C bit 7', '$225D bit 0', '$225D bit 1']),
     call_bead_spells: [
-        ...[0x0E9CEB, 0x0E9CF1, 0x0E9CF7, 0x0E9CFD].map(at => ({ at, when: ALWAYS, caller: 'fire_eyes' })),
-        ...[0x0E9D16, 0x0E9D1C, 0x0E9D22].map(at => ({ at, when: ALWAYS, caller: 'horace' })),
-        { at: 0x0E9D34, when: '$22DB bit 7', caller: 'horace' }, { at: 0x0E9D48, when: '$22DB bit 6', caller: 'horace' },
-        ...[0x0E9D64, 0x0E9D6A, 0x0E9D70, 0x0E9D76].map(at => ({ at, when: ALWAYS, caller: 'camellia' })),
-        ...[0x0E9D8F, 0x0E9D95, 0x0E9D9B].map(at => ({ at, when: ALWAYS, caller: 'professor' })),
+        ...sitesOf('call_bead_spells_fire_eyes', [ALWAYS, ALWAYS, ALWAYS, ALWAYS], 'fire_eyes'),
+        ...sitesOf('call_bead_spells_horace', [ALWAYS, ALWAYS, ALWAYS, '$22DB bit 7', '$22DB bit 6'], 'horace'),
+        ...sitesOf('call_bead_spells_camellia', [ALWAYS, ALWAYS, ALWAYS, ALWAYS], 'camellia'),
+        ...sitesOf('call_bead_spells_professor', [ALWAYS, ALWAYS, ALWAYS], 'professor'),
     ],
-    bazooka_ammo: [0x0E9A43, 0x0E9A56, 0x0E9A69].map((at, k) => ({ at, when: `ammo held ($${(0x2345 + k).toString(16).toUpperCase()})` })),
+    bazooka_ammo: sitesOf('bazooka_ammo', [0, 1, 2].map(k => `ammo held ($${(0x2345 + k).toString(16).toUpperCase()})`)),
 };
 /** How the other rings are filled, for the reader. */
 const FILLED: Record<string, string> = {
@@ -443,7 +441,7 @@ export const ringsCodec: Codec = {
 
 // ── ring flows ──
 export const RING_FLOWS = 'ring_flows';
-const FLOWS = 0x0E998C, FLOWS_END = 0x0E99CA;
+const FLOWS = map.file('ring_flows.table'), FLOWS_END = map.file('ring_flows.end');
 const FLOW_NAMES = ['boy', 'dog', 'shop_0c', 'shop_0e', 'shop_10', 'shop_12', 'shop_20', 'call_bead_callers', 'equipment', 'collar', 'call_bead_spells', 'bazooka_ammo'];
 /** How many rings each flow lists: the records are packed and each is read by its address, so this is the layout. */
 const FLOW_COUNTS = [5, 1, 1, 1, 1, 1, 1, 1, 4, 1, 1, 1];

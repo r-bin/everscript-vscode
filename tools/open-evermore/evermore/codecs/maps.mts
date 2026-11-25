@@ -19,6 +19,7 @@
 // names (palettes → palettes/, graphics and animation frames → tiles/, triggers and enter → scripts, a metatile's
 // collision form → collisions/; its level and flags are the metatile's own fields); triggers and objects are named by
 // what they do (room-names.mts).
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import { fileOfPacked, packedOf, scriptLayout } from './scripts.mts';
 import { objectNames, triggerNames } from './room-names.mts';
@@ -43,8 +44,8 @@ const STRIDE = 4, VANILLA = 127, LIMIT = 256, MAX_BLOB = 0x8000;
 const ENTER_STRIDE = 5, SCRIPTS = 'scripts';
 /** The reader operands (file offsets of the 24-bit operand of each `lda.l`) and what they add to the table. */
 const READERS = {
-    table: [{ at: 0x108F6A, add: 0 }, { at: 0x108F70, add: 1 }],
-    enter: [{ at: 0x0CCECD, add: 0 }, { at: 0x0CCED3, add: 1 }],
+    table: map.readers('maps.table_readers'),
+    enter: map.readers('maps.enter_table_readers'),
 };
 /** The generated items: the map table and the enter-script table (the last entry's word dropped: never read). */
 const TABLE = `${DIR}/_map_table`, ENTER_TABLE = `${DIR}/_enter_table`;
@@ -251,7 +252,7 @@ export const mapsCodec: Codec = {
             const bytes = fromFiles(new Map(PARTS.map(([, f]) => [f, tree.get(`${dir}/${f}`)])), dir, ctx);
             if (!bytes) continue;
             if (bytes.length > MAX_BLOB) { findings.error('over-budget', file, '', `blob of ${bytes.length} bytes; a room is at most ${MAX_BLOB}`); continue; }
-            items.push({ key: `${DIR}/${name}`, file, bytes, rule: { upperHalf: true, noCrossBank: true, maxSize: MAX_BLOB } });
+            items.push({ key: `${DIR}/${name}`, file, bytes, rule: map.rule('maps') });
         }
         const count = Math.max(0, ...(ctx.ids.get('maps')?.values() ?? [])) + 1;
         enterScripts(ctx, names, true);

@@ -10,6 +10,7 @@
 //              ones; implode rewrites both operands with the array's new place
 //   placement  upper half (the $80-$BF form), never across a bank: the 16-bit address stays in its bank; at most
 //              1024 palettes (32 KiB from $xx:8000)
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { Codec, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -29,7 +30,7 @@ const DIR = KIND, ARRAY = `${DIR}/array`;
 const ENTRY = PALETTE_ENTRY, LIMIT = 1024;
 const FORMAT = PALETTE_FORMAT, VERSION = PALETTE_VERSION;
 // The loader's two instructions; implode rewrites their operands, so explode reads them (vanilla: $C322, $9C).
-const ADC = { at: 0x10D065, opcode: 0x69 }, LDA = { at: 0x10D079, opcode: 0xA9 };
+const ADC = { at: map.file('palettes.offset_adc'), opcode: 0x69 }, LDA = { at: map.file('palettes.bank_lda'), opcode: 0xA9 };
 
 export const channels = (c: number) => [c & 31, (c >> 5) & 31, (c >> 10) & 31].map(v => v << 3);
 export const hexColour = (c: number) => '#' + [c & 31, (c >> 5) & 31, (c >> 10) & 31].map(v => (v << 3).toString(16).padStart(2, '0')).join('');
@@ -174,7 +175,7 @@ export const palettesCodec: Codec = {
             if (!ok.has(id) && ![...ids.values()].includes(id)) findings.error('id-gap', `${DIR}/${ENUM}`, `/names/${id}`, `no palette has id ${id}; the array cannot skip one`);
         }
         if (bytes.length > LIMIT * ENTRY) return [];
-        const item: Item = { key: ARRAY, file: `${DIR}/${ENUM}`, bytes, rule: { upperHalf: true, noCrossBank: true, maxSize: LIMIT * ENTRY } };
+        const item: Item = { key: ARRAY, file: `${DIR}/${ENUM}`, bytes, rule: { ...map.rule('palettes'), maxSize: LIMIT * ENTRY } };
         return [item];
     },
 

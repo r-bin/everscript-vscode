@@ -19,6 +19,7 @@
 //                $8C:C124 and $8C:C3C1), $C4:5A12 the icon (3 bytes, $8C:C359/C35F). Loops: `cmp #$0026` $8C:C148,
 //                `cpx #$0028` $8C:C385 and $8C:C3AF, `ldx #$0026` $8C:C400. The screen has 20 places (10 rows of 2,
 //                positions $8C:C2E9 / $8C:C30D)
+import * as map from '../map.mts';
 import type { Codec, ImplodeContext, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, readText } from '../../tree.mts';
@@ -34,7 +35,7 @@ import { TEXTS, textContent } from './texts.mts';
 
 const GROUP = 'items';
 export const CONSUMABLES = 'consumables', NAMED_ITEMS = 'named_items';
-const C4 = 0x040000, MIB4 = 0x400000, TEMP = 0x2834, TEMP_SIZE = 200;
+const C4 = map.file('common.data_bank'), GROWN = map.rule('grown_tables'), TEMP = 0x2834, TEMP_SIZE = 200;
 const u16 = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
 const u24 = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8) | (b[at + 2] << 16);
 const le16 = (v: number) => [v & 0xFF, (v >> 8) & 0xFF];
@@ -74,9 +75,9 @@ function newFiles(ctx: ImplodeContext, kind: string, vanilla: number): { name: s
 const CONSUMABLE_LIMIT = 16;
 const CONSUMABLE_NAMES = ['petals', 'nectar', 'honey', 'dog_biscuit', 'wings', 'essence', 'pixie_dust', 'call_bead', 'pouch'];
 const USED = 7;   // ids 0-6 have a target, a block and a power; Call Bead and the Pouch have actions of their own
-const TARGET = 0x045A84, BLOCK = 0x045A92, POWER = 0x045AA0, RING = 0x045AAE;
-const TABLE_SITES = { target: 0x0E8CC0, power: 0x0E8CE8, block: 0x0E8CF9, ring: 0x0E9BA3 } as const;
-const GET16 = [0x0E8CDC, 0x0E9B96, 0x0EA817], PUT16 = [0x0E8CE1], BOUND = 0x0E9B70, DISPATCH_AT = 0x0EA866;
+const TARGET = map.file('consumables.targets'), BLOCK = map.file('consumables.blocks'), POWER = map.file('consumables.powers'), RING = map.file('consumables.ring_items');
+const TABLE_SITES = { target: map.file('consumables.targets_read'), power: map.file('consumables.powers_read'), block: map.file('consumables.blocks_read'), ring: map.file('consumables.ring_items_read') } as const;
+const GET16 = map.files('consumables.count_reads'), PUT16 = map.files('consumables.count_writes'), BOUND = map.file('consumables.bound'), DISPATCH_AT = map.file('consumables.dispatch');
 const GROWN_CONSUMABLES = `${CONSUMABLES}/_grown`;
 
 function consumableSites(): Map<number, number[]> {
@@ -172,7 +173,7 @@ function growConsumables(inner: Codec): Codec {
                 const grownForm = at === BOUND || rom[at] === 0x22 || (Object.values(TABLE_SITES) as number[]).includes(at - 1);
                 if (!same(rom, at, b) && !grownForm) throw new Error(`consumables: $${hexText(0x800000 | at, 6)} is not the code this codec knows; another release?`);
             }
-            if (Object.values(TABLE_SITES).some(s => rom[s] !== 0xBF) || u16(rom, 0x0EA873) !== USE_HANDLER || rom[0x0E8CA7] !== 0xDA)
+            if (Object.values(TABLE_SITES).some(s => rom[s] !== 0xBF) || u16(rom, map.file('item_actions.table')) !== USE_HANDLER || rom[map.file('consumables.use_handler')] !== 0xDA)
                 throw new Error('consumables: the use handler and the table reads are not the code this codec knows; another release?');
             const out = inner.explode(rom, name, options, countOf, nameAt);
             const count = rom[BOUND] === POUCH ? VANILLA_CONSUMABLES : rom[BOUND];
@@ -206,7 +207,7 @@ function growConsumables(inner: Codec): Codec {
             const extra = grown(ctx, true);
             if (!extra) return items;
             const n = VANILLA_CONSUMABLES + extra.length;
-            items.push({ key: GROWN_CONSUMABLES, file: `${kind}/${ENUM}`, bytes: new Uint8Array(HOOKS_LENGTH + 2 * extra.length + 8 * n), rule: { noCrossBank: true, below: MIB4 }, generated: true });
+            items.push({ key: GROWN_CONSUMABLES, file: `${kind}/${ENUM}`, bytes: new Uint8Array(HOOKS_LENGTH + 2 * extra.length + 8 * n), rule: GROWN, generated: true });
             return items;
         },
 
@@ -234,13 +235,13 @@ const heldText = (at: number) => at >= TEMP && at + 1 < TEMP + TEMP_SIZE ? `temp
 // ── named items ──
 
 const VANILLA_NAMED = 20, NAMED_LIMIT = 40, SCREEN = 20;
-const FLAGS = 0x0CBBB0, MASKS = 0x0CBBD8, NAMES_T = 0x0CBC1A, DESCRIPTIONS = 0x0CC3D0, ICONS = 0x045A12;
+const FLAGS = map.file('named_items.flags'), MASKS = map.file('named_items.masks'), NAMES_T = map.file('named_items.names'), DESCRIPTIONS = map.file('named_items.descriptions'), ICONS = map.file('named_items.icons');
 const NAMED_SITES = {
-    flags: [0x0CC0F6, 0x0CC345, 0x0CC39B, 0x0CC403, 0x0F9215, 0x0F9245], masks: [0x0CC0F0, 0x0CC33F, 0x0CC395, 0x0CC40B, 0x0F921A, 0x0F924A],
-    names: [0x0CC11E], descriptions: [0x0CC3BB], icons: [0x0CC359],
-} as const;
-const ICON_HIGH = 0x0CC35F, NAME_BANK = 0x0CC125, DESCRIPTION_BANK = 0x0CC3C2;
-const LAST = [0x0CC149, 0x0CC401], END = [0x0CC386, 0x0CC3B0];
+    flags: map.files('named_items.flags_reads'), masks: map.files('named_items.masks_reads'),
+    names: map.files('named_items.names_reads'), descriptions: map.files('named_items.descriptions_reads'), icons: map.files('named_items.icons_reads'),
+};
+const ICON_HIGH = map.file('named_items.icons_read_high'), NAME_BANK = map.file('named_items.name_bank'), DESCRIPTION_BANK = map.file('named_items.description_bank');
+const LAST = map.files('named_items.last_compares'), END = map.files('named_items.end_compares');
 const GROWN_NAMED = `${NAMED_ITEMS}/_grown`;
 /** The WRAM a save keeps (docs/todo/growable-items.md §The save file is six blocks). */
 const SAVED: [number, number][] = [[0x0ABA, 0x0B1F], [0x2F52, 0x2FF4], [0x2258, 0x22EA], [0x22FF, 0x235B], [0x2361, 0x238D], [0x2513, 0x2533]];
@@ -389,7 +390,7 @@ function growNamed(inner: Codec): Codec {
             const items = inner.encode(v.ctx, new Set([...names].filter(v.keep)));
             const extra = grown(ctx, true);
             if (!extra) return items;
-            items.push({ key: GROWN_NAMED, file: `${kind}/${ENUM}`, bytes: new Uint8Array(block(ctx, extra, () => 0).length), rule: { noCrossBank: true, below: MIB4 }, generated: true });
+            items.push({ key: GROWN_NAMED, file: `${kind}/${ENUM}`, bytes: new Uint8Array(block(ctx, extra, () => 0).length), rule: GROWN, generated: true });
             return items;
         },
 

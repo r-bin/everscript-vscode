@@ -14,6 +14,7 @@
 //                 (knowledge routines/SCRIPT_ANIMATE_MODE_TARGETS.md). Scripts write the mode by name (type animation_mode)
 // Names: ours, from what each does (attack procs: the decoded table; behaviours: the IDLE_BEHAVIOR names the
 // compiler and the Data tab already use; animation modes: the compiler's ANIMATION_MODE names, lowercased).
+import * as map from '../map.mts';
 import type { Codec, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText } from '../../tree.mts';
@@ -97,7 +98,7 @@ export function handlerTable(t: Table): Codec {
 export const ATTACK_PROCS = 'attack_procs', BEHAVIOURS = 'behaviours', ANIMATION_MODES = 'animation_modes';
 
 export const attackProcsCodec = handlerTable({
-    kind: ATTACK_PROCS, at: 0x0FB6AE,
+    kind: ATTACK_PROCS, at: map.file('attack_procs.table'),
     why: 'the contact handler table at $8F:B6AE (JSR ($B6AE,x), handlers in bank $8F) holds 15 entries and has code right after it; a character record holds 2·id at +$30',
     entries: [
         ['melee', 'to-hit roll, damage, apply (knockback, shield halving, 999 cap), retaliation'],
@@ -119,7 +120,7 @@ export const attackProcsCodec = handlerTable({
 });
 
 export const behavioursCodec = handlerTable({
-    kind: BEHAVIOURS, at: 0x0FCBE0,
+    kind: BEHAVIOURS, at: map.file('behaviours.table'),
     why: 'the behaviour table at $8F:CBE0 (JMP ($CBE0,x) at $8F:CD17, routines in bank $8F) holds 15 entries; a character record holds 2·id at +$03',
     entries: [
         ['chase', 'pursues its target, lines up within reach and strikes; backs off while recharging'],
@@ -144,7 +145,7 @@ export const behavioursCodec = handlerTable({
 export const ANIMATION_MODE_COUNT = 6;
 
 export const animationModesCodec = handlerTable({
-    kind: ANIMATION_MODES, at: 0x0CE100, group: 'animations', folder: 'animations/modes',
+    kind: ANIMATION_MODES, at: map.file('animation_modes.table'), group: 'animations', folder: 'animations/modes',
     why: "animate()'s mode is 2·id into the table at $8C:E100 (JMP ($E100,x) at $8C:E0FD, handlers in bank $8C), 6 entries with code right after them; every handler ends in the animation start $8C:E139",
     entries: [
         ['once', 'plays the animation, nothing more'],

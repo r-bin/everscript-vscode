@@ -5,6 +5,7 @@
 // `label_<n>:` where a jump lands, `skip <n>` for bytes that are not the script's. `scriptText` writes a script from
 // the ROM; `parse` reads a file and `assemble` builds a group of scripts into one item, working out jumps, relative
 // calls and ids, and taking a longer form where a shorter one does not reach. Facts: scripts.mts.
+import * as map from '../map.mts';
 import { createRequire } from 'node:module';
 import type { ImplodeContext, Segment, Span } from '../../codec.mts';
 import { ENUM } from '../../enum.mts';
@@ -19,7 +20,7 @@ const { OPCODES: SPEC } = require('../../../../dist/games/evermore/script-vm/spe
 
 export const SCRIPTS = 'scripts', META = '_scripts.json';
 /** File banks $92-$BF: their upper halves are the script window (4 MiB HiROM at most). */
-export const WINDOW = { from: 0x12, to: 0x40 };
+export const WINDOW = map.window('scripts');
 /** The operand an opcode names another script with, as the last bytes of its line. */
 export const REF: Record<number, { size: number; form: 'u24' | 'cb' | 'c16' }> = {
     0x07: { size: 3, form: 'u24' }, 0x29: { size: 3, form: 'u24' }, 0xAF: { size: 3, form: 'u24' }, 0xB4: { size: 3, form: 'u24' },

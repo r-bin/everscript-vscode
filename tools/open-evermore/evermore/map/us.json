@@ -1,0 +1,301 @@
+{
+  "release": "us",
+  "name": "Secret of Evermore (USA)",
+  "what": "Where Open Evermore finds and rewrites each table in this release, and where each kind may be placed (docs/open-evermore/mapping.md). Addresses as the game uses them; the evidence is in each codec's header and in docs/open-evermore/resources.md.",
+  "addresses": {
+    "common": {
+      "data_bank": "$C4:0000"
+    },
+    "strings": {
+      "key_table_sites": ["$8C:CCF7", "$8C:CD35"],
+      "singles": "$91:F3AE",
+      "pairs": "$91:F32E",
+      "word_offsets": "$91:F3EC",
+      "words": "$91:F66C",
+      "phrase_offsets": "$91:F46C",
+      "phrases": "$91:F7D5"
+    },
+    "tiles": {
+      "table_readers": ["$8C:C899", "$8C:C8A2+2", "$90:A16B+1", "$90:A171", "$90:A238+1", "$90:A23E"]
+    },
+    "scripts": {
+      "header": "$92:8000",
+      "boot_pointer": "$92:800C",
+      "table_readers": ["$8C:CE64", "$8C:CE6A+2", "$8C:D3B6", "$8C:D3BC+2"]
+    },
+    "maps": {
+      "table_readers": ["$90:8F6A", "$90:8F70+1"],
+      "enter_table_readers": ["$8C:CECD", "$8C:CED3+1"]
+    },
+    "entities": {
+      "handler_table": "$8C:F041"
+    },
+    "opcodes": {
+      "handler_table": "$8C:E8BD"
+    },
+    "palettes": {
+      "offset_adc": "$90:D065",
+      "bank_lda": "$90:D079"
+    },
+    "sprite_palettes": {
+      "table": "$D0:A7EB"
+    },
+    "sprite_blocks_16": {
+      "base": "$D9",
+      "table_readers": ["$80:9743+1", "$80:9752", "$80:A2E7"]
+    },
+    "sprite_blocks_8": {
+      "base": "$D1",
+      "table_readers": ["$80:A4FD+1", "$80:A50C", "$80:A801"]
+    },
+    "music": {
+      "count": "$81:9900",
+      "pointers": "$81:9903",
+      "music_ids": "$8C:8442",
+      "package_of_music": "$81:99D8",
+      "sfx_packages": "$81:9A1E"
+    },
+    "sounds": {
+      "table": "$8C:8362"
+    },
+    "characters": {
+      "records": "$8E:B678",
+      "records_mvn": "$8F:8046",
+      "enemy_index_readers": ["$8C:DCA2", "$8C:DCCD", "$8C:DCE3", "$8C:DCF4"]
+    },
+    "experience": {
+      "boy_table": "$8C:8BD0",
+      "dog_table": "$8C:8CFC",
+      "boy_readers": ["$8D:B677-3", "$8D:B67F-2", "$8F:8337+1", "$8F:833E"],
+      "dog_readers": ["$8D:B692-3", "$8D:B69A-2", "$8F:851C+1", "$8F:8523"]
+    },
+    "attack_procs": {
+      "table": "$8F:B6AE"
+    },
+    "behaviours": {
+      "table": "$8F:CBE0"
+    },
+    "animation_modes": {
+      "table": "$8C:E100"
+    },
+    "option_actions": {
+      "table": "$8E:A444"
+    },
+    "item_actions": {
+      "table": "$8E:A873"
+    },
+    "alchemy_actions": {
+      "table": "$8E:A777"
+    },
+    "caller_actions": {
+      "table": "$8E:99CA"
+    },
+    "spell_actions": {
+      "table": "$8E:AD43"
+    },
+    "ring_items": {
+      "pointers": "$8E:8000",
+      "entries": "$8E:8144"
+    },
+    "rings": {
+      "buffers": "$8E:9920",
+      "loops": "$8E:9944",
+      "flags": "$8E:9968",
+      "boy_options_sites": ["$8E:9A86", "$8E:9A8C", "$8E:9A92", "$8E:9A98", "$8E:9A9E", "$8E:9AB8", "$8E:9AD1", "$8E:9AD9"],
+      "dog_options_sites": ["$8E:9AF5", "$8E:9AFB", "$8E:9B01", "$8E:9B07", "$8E:9B0D", "$8E:9B24"],
+      "boy_items_sites": ["$8E:9B87"],
+      "call_bead_callers_sites": ["$8E:8D0F", "$8E:8D24", "$8E:8D38", "$8E:8D4C"],
+      "call_bead_spells_fire_eyes_sites": ["$8E:9CEB", "$8E:9CF1", "$8E:9CF7", "$8E:9CFD"],
+      "call_bead_spells_horace_sites": ["$8E:9D16", "$8E:9D1C", "$8E:9D22", "$8E:9D34", "$8E:9D48"],
+      "call_bead_spells_camellia_sites": ["$8E:9D64", "$8E:9D6A", "$8E:9D70", "$8E:9D76"],
+      "call_bead_spells_professor_sites": ["$8E:9D8F", "$8E:9D95", "$8E:9D9B"],
+      "bazooka_ammo_sites": ["$8E:9A43", "$8E:9A56", "$8E:9A69"]
+    },
+    "ring_flows": {
+      "table": "$8E:998C",
+      "end": "$8E:99CA"
+    },
+    "consumables": {
+      "targets": "$C4:5A84",
+      "blocks": "$C4:5A92",
+      "powers": "$C4:5AA0",
+      "ring_items": "$C4:5AAE",
+      "targets_read": "$8E:8CC0",
+      "powers_read": "$8E:8CE8",
+      "blocks_read": "$8E:8CF9",
+      "ring_items_read": "$8E:9BA3",
+      "count_reads": ["$8E:8CDC", "$8E:9B96", "$8E:A817"],
+      "count_writes": ["$8E:8CE1"],
+      "bound": "$8E:9B70",
+      "dispatch": "$8E:A866",
+      "use_handler": "$8E:8CA7"
+    },
+    "named_items": {
+      "flags": "$8C:BBB0",
+      "masks": "$8C:BBD8",
+      "names": "$8C:BC1A",
+      "descriptions": "$8C:C3D0",
+      "icons": "$C4:5A12",
+      "flags_reads": ["$8C:C0F6", "$8C:C345", "$8C:C39B", "$8C:C403", "$8F:9215", "$8F:9245"],
+      "masks_reads": ["$8C:C0F0", "$8C:C33F", "$8C:C395", "$8C:C40B", "$8F:921A", "$8F:924A"],
+      "names_reads": ["$8C:C11E"],
+      "descriptions_reads": ["$8C:C3BB"],
+      "icons_reads": ["$8C:C359"],
+      "icons_read_high": "$8C:C35F",
+      "name_bank": "$8C:C125",
+      "description_bank": "$8C:C3C2",
+      "last_compares": ["$8C:C149", "$8C:C401"],
+      "end_compares": ["$8C:C386", "$8C:C3B0"]
+    },
+    "ingredients": {
+      "name_bank": "$8D:C1F3",
+      "name_table_read": "$8D:C1F7",
+      "icons": "$C4:5CC7",
+      "icon_reads": ["$8D:BE5E", "$8D:BE99", "$8D:C307", "$8D:C8A6", "$8D:C8DC"],
+      "bounds": ["$8D:C1AB", "$8D:C2CC"],
+      "count_reads": ["$8D:C1AD", "$8D:C2CE", "$8E:A923", "$91:CDF1", "$91:CE1E"],
+      "count_writes": ["$91:CDF8", "$91:CE25"],
+      "count_reads_8": ["$91:CE4C", "$91:CE70"],
+      "shop_read": "$8E:8DC5",
+      "shop_write": "$8E:8DDF"
+    },
+    "alchemy": {
+      "formula_names": "$C4:5D09",
+      "formula_ring_items": "$C4:5BAF",
+      "formula_descriptions": "$C4:5D51",
+      "formula_blocks": "$C4:5DDF",
+      "formula_powers": "$C4:5E6B",
+      "formula_targets": "$C4:5BF5",
+      "formula_learned_flags": "$C4:5C3B",
+      "formula_learned_bits": "$C4:5C81",
+      "formula_costs": "$C4:601F",
+      "experience_per_cast": "$C4:5B9C",
+      "power_factor": "$C4:5BA5",
+      "ingredient_names": "$C4:5FF3"
+    },
+    "equipment": {
+      "record_pointers": "$C4:3874",
+      "weapon_records": "$C4:38E6",
+      "ammo_records": "$C4:3A96",
+      "armour_records": "$C4:3B02",
+      "weapon_schools": "$C4:59DC",
+      "weapon_owned_flags": "$C4:59A4",
+      "weapon_owned_bits": "$C4:59C0",
+      "weapon_descriptions": "$C4:59F8"
+    },
+    "weapon_schools": {
+      "skill_draw": "$8E:93D8",
+      "skill_loop": "$8E:9404"
+    },
+    "animations": {
+      "animate_readers": ["$8C:E13D"],
+      "animate_table": "$C4:3C92"
+    },
+    "animation_scripts": {
+      "default_bank": "$C7:0000"
+    },
+    "projectiles": {
+      "table": "$90:D986",
+      "records": "$90:D9A6",
+      "movement_routines": "$90:D967"
+    },
+    "fonts": {
+      "table": "$8C:E6E6"
+    },
+    "hud": {
+      "tiles": "$C4:3704",
+      "box": "$8F:8000",
+      "palette_box": "$C4:3864",
+      "palette_gauge": "$C4:386C",
+      "boy_column": ["$8F:875F", "$8F:8A05"],
+      "boy_column_alone": ["$8F:89FD"],
+      "dog_column": ["$8F:8765", "$8F:89D3"],
+      "dog_column_alone": ["$8F:89C5"],
+      "boy_portrait": "$8F:810F",
+      "boy_portrait_bank": "$8F:8116",
+      "boy_portrait_palette": "$D0:AD6B"
+    }
+  },
+  "placement": {
+    "strings": {
+      "half": "lower",
+      "noCrossBank": true,
+      "reach": "first4MiB",
+      "why": "a string key holds 15 bits of address in a bank's lower half and 8 bits of bank above $C0; the decoder steps a 16-bit pointer (strings.mts)"
+    },
+    "texts": {
+      "banks": "$C4",
+      "noCrossBank": true,
+      "why": "menu texts are read through 16-bit pointers and printed by $8C:9E03 with bank #$C4 (texts.mts)"
+    },
+    "scripts": {
+      "window": "$92-$BF",
+      "why": "a packed script pointer is a position in the upper halves of $92-$BF; the program counter steps from $xx:FFFF on to $xx+1:8000 (docs/scripts/vm.md)"
+    },
+    "maps": {
+      "half": "upper",
+      "noCrossBank": true,
+      "maxSize": 32768,
+      "why": "a room is read in the $80-$BF form inside one bank, into a 32 KiB buffer (maps.mts)"
+    },
+    "tiles": {
+      "noCrossBank": true,
+      "why": "the loader and the streamer read a tile by DMA, whose source stays in its bank (tiles.mts)"
+    },
+    "palettes": {
+      "half": "upper",
+      "noCrossBank": true,
+      "why": "palette n is read at base + 32·n with a 16-bit address in one bank half (palettes.mts)"
+    },
+    "sprite_blocks": {
+      "noCrossBank": true,
+      "reach": "first4MiB",
+      "why": "a block's bank is the table's base bank + 7 bits; codecs add the base (sprite-blocks.mts)"
+    },
+    "metasprites": {
+      "banks": "$CA-$D3",
+      "noCrossBank": true,
+      "why": "animation scripts and records hold metasprite pointers into these banks (metasprites.mts)"
+    },
+    "music": {
+      "half": "upper",
+      "noCrossBank": true,
+      "noBankEnd": true,
+      "reach": "first4MiB",
+      "why": "a package in the $80-$BF form; a read that ends on a bank's last byte turns the bank and costs cycles vanilla never spent (progress.md §2)"
+    },
+    "music/lower": {
+      "noCrossBank": true,
+      "noBankEnd": true,
+      "reach": "first4MiB",
+      "why": "a package vanilla keeps in a lower half: the same reader, $C0-$FF form"
+    },
+    "music/window": {
+      "window": "$80-$BF",
+      "why": "a package that runs on from one bank's upper half into the next one's"
+    },
+    "characters": {
+      "half": "upper",
+      "reach": "first4MiB",
+      "why": "code and saves keep a record by its 16-bit address ($xx:B678 + 74·k): only the bank moves, read by mvn (characters.mts)"
+    },
+    "animation_records": {
+      "banks": "$C4",
+      "noCrossBank": true,
+      "why": "animate() reads its records with 16-bit pointers in bank $C4 (animations.mts)"
+    },
+    "animation_scripts": {
+      "noCrossBank": true,
+      "noBankEnd": true,
+      "why": "the animation VM steps a 16-bit pointer; jumps between scripts stay in their bank (animations.mts)"
+    },
+    "grown_tables": {
+      "noCrossBank": true,
+      "reach": "first4MiB",
+      "why": "a grown table or hook is reached by a long operand implode writes in the $80/$C0 form (items.mts, ingredients.mts)"
+    }
+  },
+  "pastEnd": [
+    ["$B0:E293", 1984]
+  ]
+}

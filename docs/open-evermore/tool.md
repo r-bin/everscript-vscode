@@ -17,17 +17,21 @@ T=tools/open-evermore/open-evermore.mts
 node $T explode [rom] [--out <dir>] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]   # rom: else the library's base ROM; dir: out/open-evermore; --kinds: only those (proving kinds apart); --previews: each room drawn (preview.png)
 node $T implode <dir> [--random [seed]] [--check-only] [--strict]
 node $T prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
+node $T locate <rom> [--out <dir>]                                    # dir: out/open-evermore-map
 ```
 
 | Action | Does | Writes |
 |---|---|---|
 | `explode` | ROM → tree; refuses a folder in the repository outside `out/`, and an existing tree without `--force` | the tree |
 | `implode` | validate, ids, encode, place (stable, or shuffled by `--random`, which grows the image to 4 MiB), tables, checksum, validate again. Without `--strict` a kind may write a command in another form (scripts: every relative call into another script absolute, so each script goes anywhere); `--strict` keeps every form as written (G0: the vanilla sha1), and warnings become errors | `<dir>/_build/evermore.sfc` (only without errors), `report.md`, `report.json` |
+| `locate` | another release's ROM → a draft of its mapping file: every address of `evermore/map/us.json` found again by the US ROM's bytes ([mapping.md](mapping.md) §6) | `<dir>/<release>.draft.json` |
 | `prove` | build the original and a random layout (`--strict`: lockstep needs vanilla's cycle counts; `--promoted` builds it as plain implode does) from the tree, play every stored playback recorded on the original in lockstep (G1, [README.md](README.md) §5.1) | `<dir>/_build/prove-<seed>/REPORT.md`, both ROMs, one result per playback |
 
 A fresh US tree (36,792 files, 39 MB): explode ~7.5 s, `implode --check-only` ~4 s, `implode` ~14 s (9 s of it the
 round trip), `prove` ~1 min a seed ([optimizing.md](optimizing.md) §1). An unknown flag is ignored today: check the
 spelling of `--strict`.
+
+The release (the ROM's variant for explode, `manifest.json` `base.release` otherwise) selects `evermore/map/<release>.json` before the codecs load ([mapping.md](mapping.md) §2.3).
 
 Planned: `rename` (a resource and every reference to it, logged in the manifest), a BPS patch next to the ROM.
 
