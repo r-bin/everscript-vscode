@@ -168,7 +168,7 @@ function readKeys(rom: Uint8Array, count: number): { at: number; compressed: boo
 }
 
 export const stringsCodec: Codec = {
-    kind: KIND, version: 1, path: DIR,
+    kind: KIND, version: 1, path: DIR, folder: 'strings/dialogue',
 
     defaultName: id => 'string_' + id.toString(16).padStart(4, '0'),
 

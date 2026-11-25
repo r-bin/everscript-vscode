@@ -20,7 +20,7 @@
 //                 +8 the ring item
 // Names: each weapon, ammo and armour from its ring item's text (menus.mts), so no game text is in this file.
 import { nameRingItems } from './menus.mts';
-import { recordsCodec, wramText } from './records.mts';
+import { recordsCodec, wramLink } from './records.mts';
 import type { Field, Form } from './records.mts';
 
 const GROUP = 'equipment';
@@ -38,7 +38,7 @@ const PALETTE: Form = { type: 'sprite_palette' };
 function recordFields(base: number, ids?: (id: number) => boolean): Field[] {
     const f = (path: string, offset: number, form: Form): Field => ({ path, at: base + offset, stride: RECORD, form, ids });
     return [
-        f('name', 0x02, { type: 'ring_text' }), f('ring_item', 0x1E, RING_ITEM), f('attack', 0x00, { type: 'number' }),
+        f('name', 0x02, { type: 'text' }), f('ring_item', 0x1E, RING_ITEM), f('attack', 0x00, { type: 'number' }),
         f('range', 0x06, { type: 'number' }), f('palette', 0x04, PALETTE),
         ...['stand', 'walk', 'run', 'attack_0', 'attack_1', 'attack_2', 'attack_3', 'dodge', 'knockback'].map((n, k) => f(`animations/${n}`, 0x08 + 2 * k, ANIMATION)),
         f('unknown_1a', 0x1A, ANIMATION_OPT), f('unknown_1c', 0x1C, ANIMATION_OPT),
@@ -78,7 +78,7 @@ export const weaponsCodec = recordsCodec({
         ...recordFields(WEAPON_RECORDS - RECORD, hasRecord),
     ],
     notes: id => ({
-        skill: wramText(0x0ADD + 2 * id),
+        skill: wramLink(0x0ADD + 2 * id),
         ...(id === 0 ? { what: 'no weapon: no record, owned flag or description' } : {}),
         ...(id === 13 ? { what: 'its record is the ammo\'s (equipment/bazooka_ammo/): $C4:3874 + 2·13 is the first ammo\'s, and boy_load_weapon takes $C4:388E + 2·ammo' } : {}),
     }),
@@ -111,7 +111,7 @@ export const armourCodec = recordsCodec({
     kind: ARMOUR, group: GROUP, count: ARMOUR_COUNT, names: () => ARMOUR_NAMES, prepare,
     why: 'armour id = the record pointer\'s place after $C4:3894 (a ring item\'s index); WRAM keeps the equipped record\'s address ($0AC0-$0AC4), so the 40 records stay where they are',
     fields: [
-        { path: 'name', at: ARMOUR_RECORDS + 4, stride: ARMOUR_RECORD, form: { type: 'ring_text' } },
+        { path: 'name', at: ARMOUR_RECORDS + 4, stride: ARMOUR_RECORD, form: { type: 'text' } },
         { path: 'ring_item', at: ARMOUR_RECORDS + 8, stride: ARMOUR_RECORD, form: RING_ITEM },
         { path: 'defense', at: ARMOUR_RECORDS, stride: ARMOUR_RECORD, form: { type: 'number' } },
         { path: 'defense_shown', at: ARMOUR_RECORDS + 2, stride: ARMOUR_RECORD, form: { type: 'number' } },

@@ -24,6 +24,9 @@ import { EQUIPMENT_KINDS } from './codecs/equipment.mts';
 import { ALCHEMY_KINDS } from './codecs/alchemy.mts';
 import { ITEM_KINDS } from './codecs/items.mts';
 import { wramCodec } from './codecs/wram.mts';
+import { textsCodec } from './codecs/texts.mts';
+import { targetsCodec } from './codecs/targets.mts';
+import { setFolders } from '../links.mts';
 
 export const GAME = 'evermore';
 
@@ -39,5 +42,7 @@ export const POINTER_WINDOWS = [SCRIPT_WINDOW];
 
 // wram first: every later kind names WRAM through it.
 // spritePalettesCodec and metaspritesCodec provide names/ids to animationsCodec and record codecs; animationsCodec must run before characters/projectiles/menus/equipment.
-export const KINDS: Codec[] = [wramCodec, mapsCodec, palettesCodec, spritePalettesCodec, collisionsCodec, tilesCodec, stringsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
+export const KINDS: Codec[] = [wramCodec, mapsCodec, palettesCodec, spritePalettesCodec, collisionsCodec, tilesCodec, stringsCodec, textsCodec, targetsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
     animationsCodec, animationModesCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, spriteBlocks16Codec, spriteBlocks8Codec, metaspritesCodec, musicCodec, soundsCodec, fontsCodec, hudCodec, ...MENU_KINDS, ...EQUIPMENT_KINDS, ...ALCHEMY_KINDS, ...ITEM_KINDS];
+// References are written as `<folder>/<name>` (links.mts): every kind's folder, once.
+setFolders(KINDS);

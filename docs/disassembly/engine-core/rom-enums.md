@@ -228,22 +228,24 @@ typedef enum {
 
 ---
 
-## 9. Formula Targeting Cursor Modes (`TARGETING_MODE`)
+## 9. Target words (`$C4:5BF5` formulas, `$C4:5A84` consumables)
 
-Bitfield values loaded from `$C4:5BF5` to control targeting reticle behavior:
+The word is stored to the request mask `$05AD` before the target cursor; its bits are rules (knowledge
+`TARGET_REQUEST_MASK`; Open Evermore names each word by its rules, `docs/open-evermore/resources.md` §targets). The ten
+vanilla words (corrected 2026-11-25: an earlier table here had several byte-swapped and invented values):
 
-| Bitmask | Mode Identifier | Target Scope | Representative Formulas |
-|---|---|---|---|
-| `0x0008` | `TARGET_PARTY_MEMBER` | Single party member (Boy or Dog) | Heal, Defend, Barrier, Speed, Regrowth |
-| `0x0800` | `TARGET_BOY_ONLY` | Boy character only | Atlas, Call Up, One Up |
-| `0x0802` | `TARGET_PARTY_BOTH` | Both Boy and Dog simultaneously | Escape, Super Heal |
-| `0x0A00` | `TARGET_PARTY_ITEM` | Consumable item targeting | Petal, Nectar, Honey, Essence, Pixie Dust |
-| `0x2010` | `TARGET_ENEMY_ALL` | Single enemy or all enemies in room | Flash, Fireball, Crush, Sting, Acid Rain, Nitro |
-| `0x0014` | `TARGET_DOG_DEAD` | Defeated / unconscious Dog entity | Revive |
-| `0x0214` | `TARGET_DOG_BISCUIT` | Dog snack reward | Dog Biscuit |
-| `0x2200` | `TARGET_ENVIRONMENT` | Environmental puzzle trigger | Levitate |
-| `0x0240` | `TARGET_REVEALER` | Invisible bridge / secret passage | Revealer |
-| `0x6600` | `TARGET_MENU` | Ring menu trigger invocation | Call Beads, Pouch |
+| Word | Rules | Used by |
+|---|---|---|
+| `$0008` | party | Barrier, Cure, Defend, Energize, Force Field, Heal, Miracle Cure, Reflect, Regrowth, Speed |
+| `$000A` | party, or all | Petals, Nectar, Honey, Essence, Pixie Dust |
+| `$0208` | party, all | Escape, Super Heal, Wings |
+| `$0800` | the Boy only | Atlas, Call Up, One Up |
+| `$1400` | the Dog only, dead | Revive |
+| `$1402` | the Dog only, dead, or all | Dog Biscuit |
+| `$0210` | enemies, all | Corrosion |
+| `$2010` | enemies (all: three nearest the Boy) | Acid Rain, Crush, Double Drain, Drain, Explosion, Fire Power, Fireball, Flash, Hard Ball, Lance, Laser, Lightning Storm, Nitro, Slow Burn, Sting, Stop |
+| `$0022` | marked friends, or all | Levitate |
+| `$4002` | record bit 3 only, or all | Revealer |
 
 ---
 

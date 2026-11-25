@@ -15,7 +15,9 @@ before touching its codec. This skill is how to work on it and what bit us.
   only through what implode generates (tables, pointers, ids); a kind is exploded only when that holds.
 - **Names, never addresses.** Every reference between resources is a name: scripts by `@name` (calls by
   id too), handlers by routine name (`readers.mts` `routines(bank)`), fields by the name of the entry they
-  pick, flag words as `a | b` (null when 0), operands that are one entity or projectile byte by its name. No name yet: create the knowledge entry first
+  pick, flag words as `a | b` (null when 0), operands that are one entity or projectile byte by its name. In JSON a
+  reference is typed, `<folder>/<name>` (`wram/DOG_BISCUIT`, `strings/menu/rare_item`, `targets/party`: `links.mts`
+  `link`/`unlink`; read the bare name too). No name yet: create the knowledge entry first
   (`game-knowledge` skill), then use it.
 - **Hard-coded asset addresses are semi-prohibited — use resource names/links wherever possible**
   (e.g. `"record": "$C4:4182"`, `"palette": "$AD6B"`, `"name": "$C4705A"`). A raw ROM pointer to an asset
@@ -115,6 +117,7 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   in `_base/`), so anything longer grows the image to 4 MiB (the fast forms: ~10 KB).
 - `--random` starts at 4 MiB on purpose (half the items leave their bank); it is not growth.
 - A test that asserts a random layout moved a given item is a coin flip; assert what the rule guarantees.
+- Implode places nothing while encode has errors: a `no-space` case needs a test of its own, not one among encode errors.
 - **A round trip does not prove a layout**: any reading of bytes round-trips. Look at a wide and an odd item (v0.453.0
   read glyphs as ink and shadow planes; "W" showed they are two byte columns) and read the reader's loop.
 - `npm run typecheck` does not check `tools/**/*.mts` strictly: run `npx tsc --noEmit --ignoreConfig

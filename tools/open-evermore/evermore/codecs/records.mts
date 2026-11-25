@@ -7,22 +7,25 @@
 // How a field is written:
 //   number     a whole number (at most `max` when the reader uses less than the field's width)
 //   hex        "$xxxx" (with `bank`: "$BB:xxxx")
-//   ring_text  a pointer to text in bank $C4 that a ring item shows: the ring item by name (menus.mts owns the text)
-//   text       a pointer to text in bank $C4 no ring item shows: the text itself, written where it was (at most as long);
-//              a record that shares an earlier record's text says so by name, { "same_as": <record> }
-//   ref        `scale`·id of another kind's entry (or of a fixed list `names`): its name
-//   wram       a WRAM address: the wram kind's variable by name, "+n" for a byte inside it
+//   text       a pointer to text in bank $C4: the text by reference, `strings/menu/<name>` (texts.mts owns the bytes;
+//              records and ring items that show the same text name the same file)
+//   target     the target cursor's rules ($05AD): the target by reference, `targets/<name>` (targets.mts)
+//   ref        `scale`·id of another kind's entry (or of a fixed list `names`): `<folder>/<name>` (a list's entry bare)
+//   wram       a WRAM address: the wram kind's variable, `wram/NAME`, `wram/NAME+n` for a byte inside it
 //   routine    a 16-bit code address in `bank`: the routine's name (readers.mts `routines`)
-// A field may apply to some ids only (`ids`); the bytes of the others stay in _base/.
-import type { Codec, CountOf, ImplodeContext, Item, NameAt, NameOf, Span, Write } from '../../codec.mts';
+// A field may apply to some ids only (`ids`); the bytes of the others stay in _base/. References are typed (links.mts):
+// explode writes `<folder>/<name>`, implode reads that or the bare name.
+import type { Codec, ImplodeContext, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
-import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
+import { json, NAME_RE, readText } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
+import { link, unlink } from '../../links.mts';
 import { ANIMATIONS, animationPlacedOffset, animationRef } from './animations.mts';
 import { hexText, parseHex, routines } from './readers.mts';
-import { RING_ITEMS, ringItemNameKey, ringItemTexts } from './menus.mts';
 import { SPRITE_PALETTES, spritePaletteAddr, spritePaletteName } from './sprite-palettes.mts';
-import { wramAddress, wramHolding, wramName, wramSize } from './wram.mts';
+import { addTargetSource, TARGETS, targetLink, targetValue } from './targets.mts';
+import { addTextSource, TEXTS, textLink, textName, textPointer } from './texts.mts';
+import { KIND as WRAM, wramAddress, wramHolding, wramName, wramSize } from './wram.mts';
 
 const TEXT_BANK = 0x040000;
 const ROUTINES = new Map<number, ReturnType<typeof routines>>();
@@ -31,8 +34,8 @@ const routinesOf = (bank: number) => ROUTINES.get(bank) ?? ROUTINES.set(bank, ro
 export type Form =
     | { type: 'number'; max?: number }
     | { type: 'hex'; bank?: number }
-    | { type: 'ring_text' }
     | { type: 'text' }
+    | { type: 'target' }
     | { type: 'ref'; kind?: string; names?: readonly string[]; scale?: number }
     | { type: 'wram' }
     | { type: 'routine'; bank: number }
@@ -76,7 +79,13 @@ export function wramText(at: number): string {
     const inside = wramHolding(bus);
     return inside ? `${inside.name}+${inside.offset}` : hexText(at, 4, 0x7E);
 }
-export function wramAt(text: unknown): number | null {
+/** A WRAM address as a reference: `wram/NAME`, `wram/NAME+n`, or `$7E:xxxx` when no variable holds it. */
+export function wramLink(at: number): string {
+    const t = wramText(at);
+    return t.startsWith('$') ? t : link(WRAM, t);
+}
+export function wramAt(ref: unknown): number | null {
+    const text = typeof ref === 'string' && ref.startsWith('$') ? ref : unlink(WRAM, ref);
     if (typeof text !== 'string') return null;
     const m = /^([A-Za-z_][A-Za-z0-9_]*)(?:\+(\d+))?$/.exec(text);
     if (m) {
@@ -101,14 +110,6 @@ function setPath(v: any, path: string, value: unknown): void {
 }
 
 const word = (b: Uint8Array, at: number, width: number) => width === 1 ? b[at] : b[at] | (b[at + 1] << 8);
-function textAt(rom: Uint8Array, at: number, what: string): string {
-    let s = '';
-    for (let i = at; rom[i] !== 0; i++) {
-        if (rom[i] < 0x20 || rom[i] > 0x7E) throw new Error(`${what}: the text at $C4:${hexText(at & 0xFFFF, 4)} has byte $${rom[i].toString(16)}; explode would lose it`);
-        s += String.fromCharCode(rom[i]);
-    }
-    return s;
-}
 
 /** Every records kind's `prepare`: a kind's names may be asked for by another kind's explode first. */
 const PREPARE: ((rom: Uint8Array) => void)[] = [];
@@ -117,61 +118,54 @@ export function recordsCodec(r: Records): Codec {
     if (r.prepare) PREPARE.push(r.prepare);
     const DIR = r.kind, applies = (f: Field, id: number) => id < r.count && (f.ids?.(id) ?? true);
     const fieldAt = (f: Field, id: number) => f.at + f.stride * id;
-    const textKey = (n: string, f: Field) => `${DIR}/${n}.${f.path.replace(/\//g, '.')}`;
     const refNames = (form: Extract<Form, { type: 'ref' }>, ctx?: ImplodeContext) => form.names ? new Map(form.names.map((n, k) => [n, k])) : ctx?.ids.get(form.kind!);
+    const ids = (f: Field) => Array.from({ length: r.count }, (_, id) => id).filter(id => applies(f, id));
 
-    /** A field's value as the file holds it → its number, or the reason it is none (text fields: their text). */
-    function value(f: Field, v: unknown, ctx: ImplodeContext): number | string | { same: string } | { anim: string } | { error: string } {
+    // The texts and targets this kind's records point at (texts.mts, targets.mts name them from every reader).
+    for (const f of r.fields) {
+        if (f.form.type === 'text') addTextSource(rom => ids(f).map(id => TEXT_BANK | word(rom, fieldAt(f, id), 2)));
+        if (f.form.type === 'target') addTargetSource(rom => ids(f).map(id => word(rom, fieldAt(f, id), f.width ?? 2)));
+    }
+
+    /** A field's value as the file holds it → its number, or the reason it is none (a text: its name; an animation: its). */
+    function value(f: Field, v: unknown, ctx: ImplodeContext): number | { text: string } | { anim: string } | { error: string } {
         const form = f.form, max = form.type === 'number' && form.max !== undefined ? form.max : (f.width ?? 2) === 1 ? 0xFF : 0xFFFF;
         switch (form.type) {
             case 'number': return Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max ? v as number : { error: `a whole number 0-${max}` };
             case 'hex': { const n = parseHex(v, max, form.bank); return n ?? { error: form.bank === undefined ? `"$${'x'.repeat(2 * (f.width ?? 2))}"` : `"$${form.bank.toString(16).toUpperCase()}:xxxx"` }; }
-            case 'wram': return wramAt(v) ?? { error: 'a WRAM name (knowledge wram/), "NAME+n" for a byte inside one, or "$7E:xxxx"' };
+            case 'wram': return wramAt(v) ?? { error: 'a WRAM variable, "wram/NAME" (wram/), "wram/NAME+n" for a byte inside one, or "$7E:xxxx"' };
             case 'routine': return routinesOf(form.bank).at(v) ?? { error: `a routine of bank $${form.bank.toString(16).toUpperCase()} by name (soe://rom/code/), or "$${form.bank.toString(16).toUpperCase()}:xxxx"` };
             case 'sprite_palette': {
                 if (form.optional && v === null) return 0;
-                const pals = ctx.ids.get(SPRITE_PALETTES);
-                if (pals && typeof v === 'string' && !v.startsWith('$')) {
-                    const id = pals.get(v);
-                    return id !== undefined ? spritePaletteAddr(id) : { error: `"${v}" is no sprite palette in palettes/sprites/` };
+                const pals = ctx.ids.get(SPRITE_PALETTES), n = unlink(SPRITE_PALETTES, v);
+                if (pals && n !== undefined && !n.startsWith('$')) {
+                    const id = pals.get(n);
+                    return id !== undefined ? spritePaletteAddr(id) : { error: `"${v}" is no sprite palette in ${link(SPRITE_PALETTES, '')}` };
                 }
-                const n = parseHex(v, max);
-                return n ?? { error: pals ? `a sprite palette name${form.optional ? ' or null' : ''}` : '"$xxxx"' };
+                const x = parseHex(v, max);
+                return x ?? { error: pals ? `a sprite palette, "${link(SPRITE_PALETTES, '<name>')}"${form.optional ? ' or null' : ''}` : '"$xxxx"' };
             }
             case 'animation': {
                 if (form.optional && v === null) return 0;
-                const anims = ctx.names.get(ANIMATIONS);
-                if (anims && typeof v === 'string' && !v.startsWith('$')) {
-                    return anims.has(v) ? { anim: v } : { error: `"${v}" is no animation in animations/` };
-                }
-                const n = parseHex(v, max, 0xC4);
-                return n ?? { error: anims ? `an animation name${form.optional ? ' or null' : ''}` : '"$C4:xxxx"' };
+                const anims = ctx.names.get(ANIMATIONS), n = unlink(ANIMATIONS, v);
+                if (anims && n !== undefined && !n.startsWith('$')) return anims.has(n) ? { anim: n } : { error: `"${v}" is no animation in ${link(ANIMATIONS, '')}` };
+                const x = parseHex(v, max, 0xC4);
+                return x ?? { error: anims ? `an animation, "${link(ANIMATIONS, '<owner>/<name>')}"${form.optional ? ' or null' : ''}` : '"$C4:xxxx"' };
             }
             case 'text': {
-                const same = (v as { same_as?: unknown } | null)?.same_as;
-                if (typeof same === 'string') return ctx.ids.get(r.kind)?.has(same) ? { same } : { error: `"${same}" is no ${r.kind} entry` };
-                return typeof v === 'string' && /^[\x20-\x7E]*$/.test(v) ? v : { error: 'the text, printable ASCII, or { "same_as": <entry> } for another entry\'s' };
+                const n = textName(ctx, v);
+                return n === undefined ? { error: `a text, "${link(TEXTS, '<name>')}" (one file there): the record points at it` } : { text: n };
             }
-            case 'ring_text': {
-                const id = typeof v === 'string' ? ctx.ids.get(RING_ITEMS)?.get(v) : undefined;
-                if (id === undefined) return { error: 'a ring item by name (menus/ring_items/): the record shows that item\'s text' };
-                return v as string;
+            case 'target': {
+                const x = targetValue(ctx, v);
+                return x === null || x > max ? { error: `a target, "${link(TARGETS, '<name>')}" (a file there, or a name its rules give)` } : x;
             }
             case 'ref': {
-                const id = typeof v === 'string' ? refNames(form, ctx)?.get(v) : undefined;
-                return id !== undefined && id * (form.scale ?? 1) <= max ? id * (form.scale ?? 1) : { error: form.names ? `one of ${form.names.slice(0, 4).join(', ')} …` : `an entry of ${form.kind} by name` };
+                const n = form.names ? (typeof v === 'string' ? v : undefined) : unlink(form.kind!, v);
+                const id = n === undefined ? undefined : refNames(form, ctx)?.get(n);
+                return id !== undefined && id * (form.scale ?? 1) <= max ? id * (form.scale ?? 1) : { error: form.names ? `one of ${form.names.slice(0, 4).join(', ')} …` : `an entry of ${form.kind}, "${link(form.kind!, '<name>')}"` };
             }
         }
-    }
-
-    /** Whether a record holds its own text in field `f` (not `same_as` another's). */
-    const ownsText = (ctx: ImplodeContext, n: string, f: Field) => { const v = readFile(ctx, `${DIR}/${n}.json`); return typeof getPath(v, f.path) === 'string'; };
-    /** Where a record's own text was: by its name, or (renamed) the home of the same rank among the records that own
-     *  one, homes being in id order. */
-    function homeOf(ctx: ImplodeContext, n: string, f: Field, id: number) {
-        const suffix = `.${f.path.replace(/\//g, '.')}`, byId = new Map([...(ctx.ids.get(r.kind) ?? [])].map(([m, k]) => [k, m]));
-        const rank = Array.from({ length: id }, (_, k) => k).filter(k => applies(f, k) && byId.has(k) && ownsText(ctx, byId.get(k)!, f)).length;
-        return ctx.base.homes.get(textKey(n, f)) ?? [...ctx.base.homes].filter(([k]) => k.startsWith(`${DIR}/`) && k.endsWith(suffix))[rank]?.[1];
     }
 
     function readFile(ctx: ImplodeContext, path: string): any | null {
@@ -182,19 +176,29 @@ export function recordsCodec(r: Records): Codec {
         kind: r.kind, version: 1, path: DIR, folder: `${r.group}/${DIR}`,
         defaultName: id => r.names()[id] ?? `${r.kind}_${id.toString(16).padStart(2, '0')}`,
 
-        // The fields only (notes are for the reader); a ref by name and the same ref spelt alike compare equal.
-        canonical(path, bytes) {
+        // The fields only (notes are for the reader); a reference typed or bare compares equal, a target by its word.
+        canonical(path, bytes, ctx) {
             if (path === `${DIR}/${ENUM}`) return [path, bytes];
             const v = JSON.parse(readText(bytes)), out = {};
-            for (const f of r.fields) { const x = getPath(v, f.path); if (x !== undefined) setPath(out, f.path, x); }
+            for (const f of r.fields) {
+                let x = getPath(v, f.path);
+                if (x === undefined) continue;
+                const t = f.form.type;
+                if (t === 'target') x = targetValue(ctx, x) ?? x;
+                else if (t === 'text') x = unlink(TEXTS, x) ?? x;
+                else if (t === 'wram') x = wramAt(x) ?? x;
+                else if (t === 'sprite_palette') x = unlink(SPRITE_PALETTES, x) ?? x;
+                else if (t === 'animation') x = unlink(ANIMATIONS, x) ?? x;
+                else if (t === 'ref' && f.form.kind) x = unlink(f.form.kind, x) ?? x;
+                setPath(out, f.path, x);
+            }
             return [path, json(out)];
         },
 
         explode(rom, name, _options, countOf, nameAt) {
             r.check?.(rom);
             for (const p of PREPARE) p(rom);
-            const texts = ringItemTexts(rom), files: Tree = new Map(), names: string[] = [], tables: Span[] = [], pool: Span[] = [], homes = [];
-            const owners = new Map<string, Map<number, string>>();
+            const files: Tree = new Map(), names: string[] = [], tables: Span[] = [];
             for (let id = 0; id < r.count; id++) {
                 const n = name(r.kind, id), v: Record<string, unknown> = {};
                 names.push(n);
@@ -206,40 +210,27 @@ export function recordsCodec(r: Records): Codec {
                     switch (form.type) {
                         case 'number': out = x; break;
                         case 'hex': out = hexText(x, 2 * width, form.bank); break;
-                        case 'wram': out = wramText(x); break;
+                        case 'wram': out = wramLink(x); break;
                         case 'routine': out = routinesOf(form.bank).name(x); break;
                         case 'sprite_palette': {
                             if (form.optional && !x) { out = null; break; }
-                            try { out = spritePaletteName(rom, x, name, countOf, nameAt) ?? null; }
-                            catch { out = hexText(x, 2 * width); }
+                            let p: string | undefined;
+                            try { p = spritePaletteName(rom, x, name, countOf, nameAt) ?? undefined; } catch { p = undefined; }
+                            out = p ? link(SPRITE_PALETTES, p) : hexText(x, 2 * width);
                             break;
                         }
                         case 'animation': {
                             if (form.optional && !x) { out = null; break; }
                             const ref = animationRef(rom, x, name, countOf, nameAt);
                             if (ref?.facing) throw new Error(`${r.kind}: ${n} ${f.path} points at interior facing $${x.toString(16)}`);
-                            out = ref ? ref.animation : hexText(x, 2 * width, 0xC4);
+                            out = ref ? link(ANIMATIONS, ref.animation) : hexText(x, 2 * width, 0xC4);
                             break;
                         }
-                        case 'ring_text': {
-                            const item = texts.get(x);
-                            if (item === undefined) throw new Error(`${r.kind}: ${n} ${f.path} points at $C4:${hexText(x, 4)}, which no ring item shows; another release?`);
-                            out = name(RING_ITEMS, item); break;
-                        }
-                        case 'text': {
-                            if (texts.has(x)) throw new Error(`${r.kind}: ${n} ${f.path} is a ring item's text; make the field ring_text`);
-                            const own = owners.get(f.path) ?? owners.set(f.path, new Map()).get(f.path)!;
-                            if (own.has(x)) { out = { same_as: own.get(x) }; break; }
-                            own.set(x, n);
-                            const t = textAt(rom, TEXT_BANK | x, r.kind), home = TEXT_BANK | x;
-                            out = t;
-                            pool.push({ start: home, end: home + t.length + 1 });
-                            homes.push({ key: textKey(n, f), at: home, length: t.length + 1, sha1: sha1(rom.slice(home, home + t.length + 1)) });
-                            break;
-                        }
+                        case 'text': out = textLink(rom, TEXT_BANK | x, name, nameAt); break;
+                        case 'target': out = targetLink(x); break;
                         case 'ref': {
                             const k = x / (form.scale ?? 1), list = form.names;
-                            out = Number.isInteger(k) && (list ? k < list.length : true) ? (list ? list[k] : name(form.kind!, k)) : null;
+                            out = Number.isInteger(k) && (list ? k < list.length : true) ? (list ? list[k] : link(form.kind!, name(form.kind!, k))) : null;
                             if (out === null) throw new Error(`${r.kind}: ${n} ${f.path} holds $${x.toString(16)}, no entry; another release?`);
                         }
                     }
@@ -249,7 +240,7 @@ export function recordsCodec(r: Records): Codec {
                 files.set(`${DIR}/${n}.json`, json(notes ? { ...v, ...notes } : v));
             }
             files.set(`${DIR}/${ENUM}`, enumFile({ kind: r.kind, limit: r.count, names, why: r.why }));
-            return { files, pool, tables, homes };
+            return { files, pool: [], tables, homes: [] };
         },
 
         names({ tree, findings }) {
@@ -262,10 +253,9 @@ export function recordsCodec(r: Records): Codec {
             return names;
         },
 
-        // Fields are checked here; each own text becomes an item at its home.
+        // Fields are checked here; texts are the texts kind's items.
         encode(ctx, names) {
-            const ids = ctx.ids.get(r.kind) ?? new Map<string, number>(), items: Item[] = [];
-            const byHome = new Map<number, { key: string; text: string; length: number; file: string; from: string }>();
+            const ids = ctx.ids.get(r.kind) ?? new Map<string, number>();
             for (const n of names) {
                 const path = `${DIR}/${n}.json`, id = ids.get(n);
                 if (!NAME_RE.test(n)) { ctx.findings.error('bad-name', path, '', `"${n}": snake_case, at most 80 characters`); continue; }
@@ -275,26 +265,10 @@ export function recordsCodec(r: Records): Codec {
                 for (const f of r.fields) {
                     if (!applies(f, id)) continue;
                     const x = value(f, getPath(v, f.path), ctx);
-                    if (typeof x === 'object' && 'error' in x) { ctx.findings.error(f.form.type === 'ref' || f.form.type === 'ring_text' || /^"/.test(x.error) ? 'unknown-reference' : 'invalid-value', path, `/${f.path}`, x.error); continue; }
-                    if (f.form.type !== 'text') continue;
-                    if (typeof x === 'object' && 'same' in x) {
-                        if (!ownsText(ctx, x.same, f)) ctx.findings.error('unknown-reference', path, `/${f.path}/same_as`, `"${x.same}" has no text of its own here (it is same_as another): name the one that has`);
-                        continue;
-                    }
-                    const home = homeOf(ctx, n, f, id);
-                    if (!home) { ctx.findings.error('no-room', path, `/${f.path}`, 'no text of this record in the base'); continue; }
-                    if ((x as string).length + 1 > home.length) { ctx.findings.error('no-room', path, `/${f.path}`, `at most ${home.length - 1} characters: the text is written where it was`); continue; }
-                    const seen = byHome.get(home.at);
-                    if (seen) { ctx.findings.error('no-room', path, `/${f.path}`, `${seen.from} has its text where this one was: one of them may be { "same_as": … } the other`); continue; }
-                    byHome.set(home.at, { key: textKey(n, f), text: x as string, length: home.length, file: path, from: `${DIR}/${n}.json` });
+                    if (typeof x === 'object' && 'error' in x) ctx.findings.error(['ref', 'text', 'target', 'sprite_palette', 'animation'].includes(f.form.type) ? 'unknown-reference' : 'invalid-value', path, `/${f.path}`, x.error);
                 }
             }
-            for (const [at, h] of byHome) {
-                const bytes = new Uint8Array(h.length);
-                for (let i = 0; i < h.text.length; i++) bytes[i] = h.text.charCodeAt(i);
-                items.push({ key: h.key, file: h.file, bytes, rule: { above: at, below: at + h.length, bankOffset: at & 0xFFFF } });
-            }
-            return items;
+            return [];
         },
 
         tables(ctx, placed) {
@@ -310,15 +284,10 @@ export function recordsCodec(r: Records): Codec {
                     if (!applies(f, id)) continue;
                     let x = value(f, getPath(v, f.path), ctx);
                     if (typeof x === 'object' && 'error' in x) continue;
-                    if (f.form.type === 'ring_text') {
-                        const key = ringItemNameKey(x as string), at = placed.get(key) ?? ctx.base.homes.get(key)?.at;
-                        if (at === undefined) { ctx.findings.error('unknown-reference', path, `/${f.path}`, `the text of ring item "${x}" was not placed (explode menus/ring_items with this kind)`); continue; }
-                        x = at & 0xFFFF;
-                    } else if (f.form.type === 'text') {
-                        const owner = typeof x === 'object' && 'same' in x ? x.same : n;
-                        const home = homeOf(ctx, owner, f, ctx.ids.get(r.kind)!.get(owner)!);
-                        if (!home) continue;
-                        x = home.at & 0xFFFF;
+                    if (typeof x === 'object' && 'text' in x) {
+                        const p = textPointer(ctx, placed, x.text);
+                        if (p === null) { ctx.findings.error('no-room', path, `/${f.path}`, `the text ${link(TEXTS, x.text)} was not placed in bank $C4, where this record reads it`); continue; }
+                        x = p;
                     } else if (typeof x === 'object' && 'anim' in x) {
                         const off = animationPlacedOffset(ctx, placed, x.anim);
                         if (off === null) continue;

@@ -109,9 +109,10 @@ its own: the form is bits 3–0 of each collision word in a room's Block 3, whic
 - **Renaming** a form (its `_enum.json` entry and its file) renames it in every room; the G0 test renames `solid` to
   `wall` and gets the vanilla ROM. Without the kind (`--kinds`) a metatile's form is read by these default names.
 
-## strings *(built, S4)*
+## strings *(built, S4; `strings/dialogue/` v0.469.0)*
 
-**Folder.** `strings/_enum.json`, `strings/_strings.json` and one `strings/<string>.txt` per string, UTF-8:
+**Folder.** `strings/dialogue/_enum.json`, `_strings.json` and one `<string>.txt` per string, UTF-8 (the menus' plain
+texts are the texts kind beside it, `strings/menu/`):
 
 ```
 [SLOW]Whoa![PAUSE:3d] Now I know how `Dandy' Don Carlisle felt in `Sink, Boat, Sink!'[B]I think …
@@ -557,6 +558,67 @@ lowercased (`once`, `once_freeze`, `loop`, `freeze`, `pause`) and `clear_script_
 compiler does not name (the skeleton ship in the Desert of Doom uses it). Scripts write the mode by these names.
 The table is written in place (code follows it).
 
+## References between kinds *(v0.469.0)*
+
+A value that names another kind's resource is written as its place in the tree, `<folder>/<name>`, so a reader sees what
+it is and where to look (`links.mts`): `wram/DOG_BISCUIT`, `menus/ring_items/item_honey`, `strings/menu/rare_item`,
+`targets/party_or_all`, `animations/icon/item_honey`, `palettes/sprites/ring_icon_011`, `alchemy/ingredients/root`.
+Written so by the records kinds (equipment, alchemy, items) and ring items; implode reads that or the bare name. Still
+bare: names inside scripts, rings' `items`, ring flows, characters, a fixed list's entry (`block: "petals"`), routines.
+
+## texts — the menus' plain texts *(built, v0.469.0)*
+
+```
+strings/menu/<name>.txt     the text, one line (printable ASCII); ids are ROM order
+```
+
+Every NUL-terminated text in bank `$C4` that a known reader points at (16-bit pointers, bank `$C4` fixed by the
+reader): ring item names (`$8E:8000` entries `+0`), weapon, ammo and armour record names and armour `text_2`, weapon
+descriptions (`$C4:59F8`), formula names and descriptions (`$C4:5D09`, `$C4:5D51`), ingredient names (`$C4:5FF3`),
+named items' names and descriptions (`$8C:BC1A`, `$8C:C3D0`). 246 texts; a reader names one by reference, and texts
+the ROM shares by pointer are one file (a weapon's name is its ring item's; the six key items share
+`strings/menu/rare_item`; all 40 armour `text_2` are `strings/menu/empty`). Names from the text (`armor_polish`,
+descriptions cut at a word within 40 characters). Explode throws if a pointer lands inside another text.
+
+- **Placement.** A text stays where it was while it fits (padded with zeros: same bytes, same readers' cycles). A longer
+  or new one may go anywhere free in bank `$C4` (`no-space` otherwise): vanilla has no free byte there, so it fits only
+  where a text was left out or shortened (§Why a name keeps its length).
+- **A new named item, ingredient** writes its own text (`"name": "Lucky Coin"`) or names one; its codec copies it into
+  its generated strings, so it needs no room in `$C4`.
+- **Proven** (v0.469.0): G0 (vanilla sha1) with every kind; seeds 1 and 2026 round-trip; a shorter text lands in its
+  bytes, a longer one is `no-space` (`g0.test.mts`). Same bytes and places as v0.468.0, so no new `prove` seeds.
+
+## targets — what the target cursor may pick *(built, v0.469.0)*
+
+```
+targets/<name>.json         { rules: [ ... ] }   no bytes, no ids: a formula's or consumable's target names it
+```
+
+A formula (`$C4:5BF5`) and a consumable (`$C4:5A84`) store the same word to the request mask `$05AD` before the target
+cursor (`alchemy_cast_action_direct_targeting`, `_area_targeting`, `item_use_on_target`), so both name one shared
+resource. A file is the rules by name; the name explode gives is the rules joined (`enemies_nearest_three` = `$2010`,
+Fireball's; `party_or_all` = `$000A`, Petals'), so a new file is a new target and a word reads back to the same name.
+The rules (disassembly `$8C:8658`-`$8C:89DE`, knowledge `TARGET_REQUEST_MASK`):
+
+| rule | bit | picks |
+|---|---|---|
+| `boy`, `dog` | `$0800`, `$0400` | only the Boy, only the Dog |
+| `party` | `$0008` | entities whose `+$10` has bit `$0004` (the party) |
+| `enemies` | `$0010` | ordinary entities (no friendly bit) |
+| `marked_friends` | `$0020` | friendly entities whose record `+$07` has bit 2 |
+| `record_bit_3_only` | `$4000` | only entities whose record `+$07` has bit 3 |
+| `also_flag_1000` | `$0040` | entities whose `+$10` has bit `$1000` too |
+| `alive_or_dead`, `dead` | `$0080`, `$1000` | HP 0 allowed; only HP 0 |
+| `or_all` | `$0002` | the cursor may step past the last entity to all of them |
+| `all` | `$0200` | all valid entities, the cursor cannot leave it |
+| `nearest_three` | `$2000` | all of them: the three nearest the Boy when four or more |
+| `off_screen_too` | `$0004` | no on-screen test |
+| `result_several`, `listing`, `bit_8000` | `$0001`, `$0100`, `$8000` | written by the cursor and builders; no reader of `$8000` |
+
+Vanilla has 10: `boy`, `dog_dead`, `dog_dead_or_all` (Dog Biscuit), `enemies_all`, `enemies_nearest_three`,
+`marked_friends_or_all`, `party`, `party_all`, `party_or_all`, `record_bit_3_only_or_all`. **Proven** (v0.469.0): G0, seeds 1
+and 2026 round-trip (same bytes as before). Not cast in game with a changed target yet.
+
 ## menus — the ring menus *(built, v0.455.0)*
 
 Everything sits in bank `$8E` between code and is read by fixed addresses or code immediates, so it is written in
@@ -565,16 +627,15 @@ place; counts are fixed. Facts: knowledge `RING_ITEMS`, `RING_BUFFERS`, `RING_LO
 the Call Bead rings formula actions and shop options, and ids `$F8`-`$116` unused formulas).
 
 ```
-menus/ring_items/<item>.json    { name, icon, palette, index | action | formula }; <item>.png a preview (derived)
+menus/ring_items/<item>.json    { name (a text), icon, palette, index | action | formula }; <item>.png a preview (derived)
 menus/rings/<ring>.json         { buffer, loop, flags, items | items_by_caller (code immediates), filled_from (derived) }
 menus/ring_flows/<flow>.json    { rings: [...] }: what Up/Down cycles through, in order
 menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (option, item, alchemy, caller, spell)
 ```
 
-- **ring items** (162, `$8E:8000` → 8-byte entries `$8E:8144`): `name` is the text the ring prints, a plain ASCII
-  string in bank `$C4`. Weapon records, formula and ingredient names point at the same strings, so a name changes the
-  item everywhere and is written where it was: at most its vanilla length (`no-room`, why: §Why a name keeps its
-  length). `icon` names an animation in `animations/`, `palette` names a palette in `palettes/sprites/`. The index is what the ring that shows the item reads: by id range it is an
+- **ring items** (162, `$8E:8000` → 8-byte entries `$8E:8144`): `name` is the text the ring prints, by reference
+  (`strings/menu/<text>`, §texts). Weapon records, formula and ingredient names name the same texts, so editing the text
+  changes the item everywhere; a longer one needs room in bank `$C4` (`no-space`, why: §Why a name keeps its length). `icon` names an animation in `animations/`, `palette` names a palette in `palettes/sprites/`. The index is what the ring that shows the item reads: by id range it is an
   `action` (options → `option_actions`, consumables → `item_actions`, Call Bead callers → `caller_actions`, their
   spells → `spell_actions`), a `formula` (`alchemy_actions`: also the number the learned bits and levels use) or a
   plain `index` (weapon, ammo, armour ×2, ingredient). Names from the item's own text (`weapon_bone_crusher`).
@@ -594,9 +655,10 @@ menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (o
   `$C4:5BAF`, ingredients `$C4:5B10`, weapon records +`$1E`) as references by name; moving names (needs every reader
   of a name string); `when` conditions as data (code today); shop rings named from `$0E6C`.
 
-### Why a name keeps its length *(open)*
+### Why a name keeps its length *(open; (b) built v0.469.0: the texts kind)*
 
-Implode writes each ring item's name back into its own bytes, padded with zeros; a longer name is `no-room`. A longer
+Implode writes each text back into its own bytes, padded with zeros; a longer one needs free room in bank `$C4`
+(`no-space`). A longer
 name would have to move, and nothing may move unless every reader is generated (the hard rule). What stands in the way:
 
 1. **The string is shared, and its readers are not all known.** The ring item's `+0` points at it, and so do the
@@ -662,20 +724,19 @@ equipment/weapon_schools/<school>.json { skill_screen {draw, loop}; what (derive
 equipment/armour/<armour>.json         { name, ring_item, defense, defense_shown, text_2; slot (derived) }
 ```
 
-- **weapons** (14, the weapon index: `fist`, 12 weapons, `bazooka`): `name` is the ring item whose text the record
-  shows (the text is the ring item's, menus); `ring_item` the item the weapons ring shows; `owned` the WRAM byte and bit
+- **weapons** (14, the weapon index: `fist`, 12 weapons, `bazooka`): `name` is the text the record shows (its ring
+  item's, `strings/menu/`); `ring_item` the item the weapons ring shows; `owned` the WRAM byte and bit
   (`$22DA`/`$22DB`: bits `$40`, `$80` of `$22DB` are free); `palette` names a `palettes/sprites/` entry, `animations` and
   `unknown_1a`/`unknown_1c` name `animations/` entries `boy_load_weapon` copies into the Boy's character record;
-  `description` the weapon skill page's line, written where it was. The fist has only a school; the Bazooka has no record
+  `description` the weapon skill page's line (a text). The fist has only a school; the Bazooka has no record
   of its own (its ammo's).
 - **weapon schools** (4: `sword`, `axe`, `spear`, `bazooka`): a weapon's `school` is 2·id. What a school is, is code:
   the weapon skill screen (options ring) jumps by the equipped weapon's school to a draw and a loop of its own page
   (`$8E:93D8`, `$8E:9404`: the Bazooka's are the sword's), and school `sword` adds a quarter of the attack again
   (`$8F:8491`). So a school can point at another school's page; a new school needs a page (code in `$8D`) and a slot in
   both jump tables (code follows them).
-- **armour** (40): 12 body, 12 helm, 12 gloves, 4 collars (`slot`, derived). `text_2` is one empty string all 40 share
-  (`$C4:60AD`): the first record has it, the others say `{ "same_as": "grass_vest" }` (any text field of a record kind
-  that shares an earlier record's text in vanilla does that).
+- **armour** (40): 12 body, 12 helm, 12 gloves, 4 collars (`slot`, derived). `text_2` is one empty text all 40 share
+  (`$C4:60AD`, `strings/menu/empty`); what reads it is not known.
 - **Proven** (v0.456.0): G0 alone and with every kind, seeds 1 and 2026 round-trip; an attack, a school and a defence
   land in place (`g0.test.mts`). Not yet seen in game.
 - **To add a weapon or a school** (open): every per-weapon table holds 14 words with the next table right after it, the
@@ -694,7 +755,7 @@ block map, power is one byte).
 ```
 alchemy/formulas/<formula>.json        { name, ring_item, description, block, power, target, learned {flags, bit},
                                          cost [{ingredient, count} ×2]; wram (derived: experience, level, casts) }
-alchemy/ingredients/<ingredient>.json  { name; held (derived) }  ids 0-21; a new one (id 22-63): { text, held, icon }
+alchemy/ingredients/<ingredient>.json  { name (a text); held (derived) }  ids 0-21; a new one (id 22-63): { text, held, icon }
 alchemy/alchemy_levels/level_<n>.json  { experience_per_cast (0-8), power_factor }
 ```
 
@@ -705,7 +766,7 @@ alchemy/alchemy_levels/level_<n>.json  { experience_per_cast (0-8), power_factor
   Lance's effect at that power (written and round-tripped; not cast in game yet). An effect of its own needs a new
   block, which is `$91` code and data, not a kind yet.
 - **power** is one byte: the cast ORs the word with the level factor << 8 and multiplies (`$4202`), so 0-255.
-- **target** stays hex (the bits are only partly understood: knowledge `ALCHEMY_TARGET`).
+- **target** names a target (`targets/enemies_nearest_three`, §targets), shared with the consumables.
 - **Proven** (v0.456.0): G0 alone and with every kind, seeds 1 and 2026 round-trip; Laser's block, power and a shorter
   description land in place; a longer text, a power past 255 and an unknown block are errors (`g0.test.mts`).
 - **Adding an ingredient** *(v0.460.0)*: a file past the 22 (and its name in `_enum.json`, limit 64) is a new one,
@@ -734,7 +795,7 @@ alchemy/alchemy_levels/level_<n>.json  { experience_per_cast (0-8), power_factor
 ## items — consumables, named items *(built, v0.461.0)*
 
 ```
-items/consumables/<name>.json   { ring_item, target, block, power; held (derived) }   ids 0-8 (8 the Pouch: no fields)
+items/consumables/<name>.json   { ring_item, target, block, power; held, action (derived) }   ids 0-8 (8 the Pouch: action only)
                                 a new one (id 9-15): { held, ring_item, target, block, power }
 items/named_items/<name>.json   { name, description, flag {flags, bit} }              ids 0-19 (0-13 charms, 14-19 key items)
                                 a new one (id 20-39): { name, description, flag {flags, bit}, icon }
@@ -744,7 +805,10 @@ Records read in place (`records.mts`, wrapped by `items.mts`); the facts and eve
 knowledge entries `item_use_on_target`, `tbl_C45A84`, `tbl_C45A92`, `tbl_consumable_items`, `tbl_8CBBB0`, `tbl_8CC3D0`,
 `tbl_C45A12`. With vanilla's count every byte is vanilla's (G0).
 
-- **A consumable** is the ring item's index: using it (`item_use_on_target`) picks a target by `target`, counts one down
+- **A consumable** is the ring item's index, and so the entry of `menus/item_actions/` that pressing it runs (`action`, a
+  link to read on): 0-6 `item_use_on_target`, Call Bead its callers ring, the Pouch `pause_menu_entry_and_dispatcher`,
+  which runs the pause screen loop itself (`pause_menu_loop`, no menu id: nothing more to explode). Using one of 0-6
+  picks a target by `target` (a target, §targets), counts one down
   and plays `block` (an alchemy block by name, as formulas take it: Wings play `escape`) with `power`. **A new one** needs a
   ring item no ring shows, i.e. a `debug_*` one (11): give it a name (at most its vanilla length), an icon, a palette and
   `"index": <the consumable's id>`, and name it as `ring_item`. `held` is a `temp[]` cell (wiped on every room load, not

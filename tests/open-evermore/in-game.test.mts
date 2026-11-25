@@ -165,11 +165,11 @@ if (!path || !existsSync(path)) {
     // 3. A new string, shown by a script: the key table grows past vanilla's 3,002 and moves.
     const said = new Map(tree);
     const copiedString = `string_${COPIED_STRING.toString(16).padStart(4, '0')}`;
-    said.set('strings/test_new_string.txt', said.get(`strings/${copiedString}.txt`)!);
-    const se = JSON.parse(Buffer.from(said.get('strings/_enum.json')!).toString());
+    said.set('strings/dialogue/test_new_string.txt', said.get(`strings/dialogue/${copiedString}.txt`)!);
+    const se = JSON.parse(Buffer.from(said.get('strings/dialogue/_enum.json')!).toString());
     const key = se.names.length * 3;
     se.names.push('test_new_string');
-    said.set('strings/_enum.json', new TextEncoder().encode(JSON.stringify(se)));
+    said.set('strings/dialogue/_enum.json', new TextEncoder().encode(JSON.stringify(se)));
     const show = (t: Tree, k: number): Tree => { const o = new Map(t); o.set(INTRO_SCRIPT, new TextEncoder().encode(`51 ${k}\n00\n`)); return o; };
     const told = implode(show(said, key), GAME, KINDS);
     assert.deepStrictEqual(told.findings.list.filter(f => f.severity === 'error').map(f => `${f.rule} ${f.file}`), []);

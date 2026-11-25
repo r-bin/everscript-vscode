@@ -31,10 +31,12 @@ and the order to fix it in. The kinds themselves: [resources.md](resources.md); 
 | room object | `sniff_03` in a room's script | the room's `objects.json` | built (v0.457.0) |
 | tile, background palette | `"tile_0d7b"`, `"palette_020"` (also in each layer word) | `maps/tiles/`, `palettes/backgrounds/` | built (v0.458.0; moved to `palettes/` v0.464.0) |
 | collision form | `"solid"`, `"diagonal_sw_slides"` (level and flags are fields) | `maps/collisions/` | built (v0.458.1) |
-| string | `string_0afb` | `strings/` (dialogue) | built for dialogue; **names and UI text (`$C4`) are pointers** (§4) |
+| string | `string_0afb` | `strings/dialogue/` | built for dialogue |
+| menu text | `"strings/menu/rare_item"` | `strings/menu/` (texts) | built (v0.469.0): ring items, equipment, formulas, ingredients, named items; character names (`$C4705A`) still pointers |
+| target | `"targets/enemies_nearest_three"` | `targets/` (rules of `$05AD`) | built (v0.469.0): formulas, consumables |
 | sprite palette | `"boy_bone_crusher"`, `"ring_icon_04d"` | `palettes/sprites/` | built (v0.464.0; 269 bank `$90`/`$D0` palettes) |
 | animation | `"boy/walk"`, `"dog/act2_leap"` (`animate.json` keys) | `animations/` (`animate.json` for ids) | built (v0.465.0: 783 animations with inline scripts + 212 `animate()` ids; no addresses) |
-| WRAM | `LEVEL_LOW_CURE`, `temp[n]` | `wram/` (v0.459.0, from names.json, the compiler and the WRAM map) | built: scripts, records, rings name it through `wram/`; **unnamed cells stay `$7E:xxxx`**; moving: W2 ([wram.md](wram.md)) |
+| WRAM | `wram/LEVEL_LOW_CURE` (typed, v0.469.0), `temp[n]` | `wram/` (v0.459.0, from names.json, the compiler and the WRAM map) | built: scripts, records, rings name it through `wram/`; **unnamed cells stay `$7E:xxxx`**; moving: W2 ([wram.md](wram.md)) |
 | flag | `WEAPONS_OWNED_FLAGS_0+1` and its bit | knowledge entries, compiler FLAG enum | the word by name; **the bit is a number** |
 | routine | `script_op_5c_set_object_state` | `soe://rom/code/` | built (handlers) |
 
@@ -56,7 +58,7 @@ scripts have none (247 of 73,540 lines keep a `<0x…>` WRAM cell). Score: again
 | `scripts/global` | 6.5 | 0 | 223 of 522 `global_NN` | name by what they do |
 | `sprites/blocks_8`, `_16`, `metasprites` | 7.5 | 0 | blocks grouped by owner but still numbered (`<owner>/<owner>_block_xxxx`); metasprites named by what plays them | step 5b (`$C7–$C9` scripts) for relocation |
 | `strings` | 6 | 0 | 3,002 `string_xxxx`; `$C4` names not here | step 3 |
-| `alchemy/formulas`, `alchemy/ingredients` | 6 | 105 | `target: "$2010"`, `level: "$7E:2F98"`, `bit: "$0001"`; `held: "ING_QTY_GREASE+11"` (a cell named off another item) | target enum, flag bits, step 6 |
+| `alchemy/formulas`, `alchemy/ingredients` | 7 | 70 | targets by name (v0.469.0); `bit: "$0001"`; `held: "wram/ING_QTY_GREASE+11"` (a cell named off another item) | flag bits, step 6 |
 | `menus/ring_items`, `menus/rings` | 7.5 | 18 | `icon` and `palette` named (v0.464.0); `flags: "$000A"`, `$C4` names capped | flag names, step 3 |
 | `music/sounds` | 6 | 0 | only `{ sfx, package }` | — |
 | `equipment/weapons`, `bazooka_ammo` | 7.5 | 0 | all 9 animation slots, `unknown_1a`/`1c`, and `palette` named (v0.464.0); `skill: "WEAPON_SKILL_FIST+16"` | step 6 |
@@ -98,7 +100,7 @@ The Rooms tab already draws a tree's rooms from their files (`src/games/evermore
 |---|---|---|
 | 1 *(built, v0.457.0)* | Rooms: scripts out of map folders (`scripts/rooms/<map>/`), `scripts.json`, one concern per file, triggers and objects named, previews optional | R1, R3, R4, R5 for maps; 0 addresses in `maps/rooms` |
 | 2 | Small naming gaps: pickup objects, animation channels, ring flags and flag bits by name | R2, R3 in scripts and menus |
-| 3 | `$C4` names and UI text as a strings kind (movable, any length) | names of characters, items, weapons, formulas (review §9.2) |
+| 3 *(texts built, v0.469.0)* | `$C4` names and UI text as a strings kind (movable, any length: needs free `$C4`; character names still pointers) | names of characters, items, weapons, formulas (review §9.2) |
 | 4 *(built, v0.464.0)* | Sprite palettes (`palettes/sprites/`, 269 entries at `$90:A7EB-$C98A`) | R2 for characters, items, equipment, projectiles |
 | 5a *(built, v0.464.0, unified v0.465.0)* | Animations (`animations/<owner>/<name>.json`, all 783 + facing modes + programmatic palettes + inline scripts, `animate.json`); single-file `characters/records/<name>.json` (`animations.json` dumps removed); `sprites/{blocks_16,blocks_8,metasprites}/` | R1, R2, R4 for characters & animations; adding groups (`vacate_c4`) |
 | 5b *(built, v0.465.0)* | `$C7–$C9` animation scripts inline in `animations/` (relocatable, symbolic) | relocatable metasprites & edited scripts |

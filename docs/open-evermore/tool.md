@@ -41,6 +41,7 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `manifest.mts` | `manifest.json`: types, schema and region checks, header agreement, the SNES checksum |
 | `codec.mts` | the interface every kind implements (§4) |
 | `prove.mts`, `play.mts` | the proof: two snes9x cores in one process, lockstep, pointer translation |
+| `links.mts` | typed references, `<folder>/<name>` (`link`, `unlink`); the kinds register their folders (`setFolders`) |
 | `tree.mts`, `findings.mts`, `report.mts` | the tree as path → bytes; findings; terminal and `report.md` |
 | `evermore/kinds.mts` | Evermore's kinds, in migration order — the only place with game facts, with `evermore/codecs/` |
 | `evermore/codecs/maps.mts` | the maps kind ([resources.md](resources.md) §maps): files, names, placement, the map and enter-script tables (generated items) and `roomBlobs` (every kind walks the rooms through it); the room ↔ files mapping is `src/games/evermore/maps/tree-map.ts` |

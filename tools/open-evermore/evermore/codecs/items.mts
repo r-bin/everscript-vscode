@@ -22,12 +22,15 @@
 import type { Codec, ImplodeContext, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, readText } from '../../tree.mts';
+import { link, unlink } from '../../links.mts';
 import { BLOCKS } from './alchemy.mts';
 import { DISPATCH, HOOKS_LENGTH, hooks, LDA, POUCH, STA, USE_HANDLER, VANILLA_CONSUMABLES } from './consumable-hooks.mts';
 import { heldAt } from './ingredients.mts';
-import { RING_ITEMS } from './menus.mts';
+import { ITEM_ACTIONS, RING_ITEMS } from './menus.mts';
 import { hexText, parseHex } from './readers.mts';
-import { recordsCodec, wramText } from './records.mts';
+import { recordsCodec, wramLink } from './records.mts';
+import { addTargetSource, TARGETS, targetLink, targetValue } from './targets.mts';
+import { TEXTS, textContent } from './texts.mts';
 
 const GROUP = 'items';
 export const CONSUMABLES = 'consumables', NAMED_ITEMS = 'named_items';
@@ -93,12 +96,21 @@ export const consumablesCodec = growConsumables(recordsCodec({
     why: 'consumable = the ring item\'s index: ids 0-7 counted at $2315 + id, 8 the Pouch; using one reads its target, block and power from three tables in bank $C4',
     fields: [
         { path: 'ring_item', at: RING, stride: 2, form: { type: 'ref', kind: RING_ITEMS, scale: 2 }, ids: id => id < POUCH },
-        { path: 'target', at: TARGET, stride: 2, form: { type: 'hex' }, ids: id => id < USED },
+        { path: 'target', at: TARGET, stride: 2, form: { type: 'target' }, ids: id => id < USED },
         { path: 'block', at: BLOCK, stride: 2, form: { type: 'ref', names: BLOCKS, scale: 2 }, ids: id => id < USED },
         { path: 'power', at: POWER, stride: 2, form: { type: 'number' }, ids: id => id < USED },
     ],
-    notes: id => id < POUCH ? { held: wramText(0x2315 + id) } : { what: 'the Pouch: its action opens the pouch screen (menus/item_actions/pouch)' },
+    notes: id => id < POUCH ? { held: wramLink(0x2315 + id) } : undefined,
 }));
+
+/** A target as a new consumable's file writes it: a target by reference, or (older files) the word "$xxxx". */
+const targetOf = (ctx: ImplodeContext | undefined, v: unknown) => targetValue(ctx, v) ?? parseHex(v, 0xFFFF);
+
+// A grown build's new consumables keep their targets in the moved table (vanilla's are records.mts' source).
+addTargetSource(rom => {
+    const count = rom[BOUND] === POUCH ? VANILLA_CONSUMABLES : rom[BOUND], table = fileOf(u24(rom, TABLE_SITES.target + 1));
+    return Array.from({ length: Math.max(0, count - VANILLA_CONSUMABLES) }, (_, k) => u16(rom, table + 2 * (VANILLA_CONSUMABLES + k)));
+});
 
 function growConsumables(inner: Codec): Codec {
     const kind = inner.kind;
@@ -109,14 +121,14 @@ function growConsumables(inner: Codec): Codec {
         const rings = ctx.ids.get(RING_ITEMS), out: NewConsumable[] = [];
         let ok = true;
         for (const { name, id, path, v } of files) {
-            const held = heldAt(v.held), ring = typeof v.ring_item === 'string' ? rings?.get(v.ring_item) : undefined;
-            const target = parseHex(v.target, 0xFFFF), block = typeof v.block === 'string' ? BLOCKS.indexOf(v.block) : -1;
+            const ringName = unlink(RING_ITEMS, v.ring_item), held = heldAt(v.held), ring = ringName === undefined ? undefined : rings?.get(ringName);
+            const target = targetOf(ctx, v.target), block = typeof v.block === 'string' ? BLOCKS.indexOf(v.block) : -1;
             const check = () => {
-                if (held === null) return bad(ctx, path, '/held', 'the WRAM word that counts it: "temp[n]" (n even, 0-198: wiped on every room load and not saved) or a WRAM name');
+                if (held === null) return bad(ctx, path, '/held', 'the WRAM word that counts it: "temp[n]" (n even, 0-198: wiped on every room load and not saved) or a WRAM variable, "wram/NAME"');
                 if (ring === undefined) { ctx.findings.error('unknown-reference', path, '/ring_item', 'the ring item the items ring shows for it, by name: one no other ring shows (a debug_* one), its "index" this consumable\'s id'); return null; }
-                const item = readFile(ctx, `${RING_ITEMS}/${v.ring_item}.json`);
-                if (item?.index !== id) return bad(ctx, path, '/ring_item', `ring item ${v.ring_item} has "index": ${JSON.stringify(item?.index)}; the ring reads its index as the consumable: make it ${id}`);
-                if (target === null) return bad(ctx, path, '/target', 'the target cursor flags, "$xxxx" (a vanilla consumable\'s: Petals "$000A")');
+                const item = readFile(ctx, `${RING_ITEMS}/${ringName}.json`);
+                if (item?.index !== id) return bad(ctx, path, '/ring_item', `ring item ${ringName} has "index": ${JSON.stringify(item?.index)}; the ring reads its index as the consumable: make it ${id}`);
+                if (target === null) { ctx.findings.error('unknown-reference', path, '/target', `what the target cursor may pick, a target: "${link(TARGETS, '<name>')}" (Petals: "${targetLink(0x000A)}")`); return null; }
                 if (block < 0) { ctx.findings.error('unknown-reference', path, '/block', `the effect it plays, a block by name (${BLOCKS.slice(0, 3).join(', ')} …: Wings play escape)`); return null; }
                 if (!Number.isInteger(v.power) || v.power < 0 || v.power > 0xFFFF) return bad(ctx, path, '/power', 'a whole number 0-65535 (what the block does with it: Petals heal 40)');
                 return true;
@@ -136,8 +148,8 @@ function growConsumables(inner: Codec): Codec {
         const byId = new Map([...ctx.ids.get(kind)!].map(([m, id]) => [id, m]));
         for (let id = 0; id < VANILLA_CONSUMABLES; id++) {
             const v = readFile(ctx, `${kind}/${byId.get(id)}.json`) ?? {};
-            if (id < USED) { t[0][id] = parseHex(v.target, 0xFFFF) ?? 0; t[1][id] = 2 * Math.max(0, BLOCKS.indexOf(v.block)); t[2][id] = Number.isInteger(v.power) ? v.power : 0; }
-            if (id < POUCH) t[3][id] = 2 * (ctx.ids.get(RING_ITEMS)?.get(v.ring_item) ?? 0);
+            if (id < USED) { t[0][id] = targetValue(ctx, v.target) ?? 0; t[1][id] = 2 * Math.max(0, BLOCKS.indexOf(v.block)); t[2][id] = Number.isInteger(v.power) ? v.power : 0; }
+            if (id < POUCH) t[3][id] = 2 * (ctx.ids.get(RING_ITEMS)?.get(unlink(RING_ITEMS, v.ring_item) ?? '') ?? 0);
         }
         for (const x of extra) { t[0][x.id] = x.target; t[1][x.id] = 2 * x.block; t[2][x.id] = x.power; t[3][x.id] = 2 * x.ring; }
         return t;
@@ -152,7 +164,7 @@ function growConsumables(inner: Codec): Codec {
             const id = ctx?.ids.get(kind)?.get(path.slice(kind.length + 1, -'.json'.length));
             if (id === undefined || id < VANILLA_CONSUMABLES) return inner.canonical!(path, bytes, ctx);
             const v = JSON.parse(readText(bytes));
-            return [path, json({ held: heldAt(v.held), ring_item: v.ring_item, target: parseHex(v.target, 0xFFFF), block: v.block, power: v.power })];
+            return [path, json({ held: heldAt(v.held), ring_item: unlink(RING_ITEMS, v.ring_item) ?? v.ring_item, target: targetOf(ctx, v.target), block: v.block, power: v.power })];
         },
 
         explode(rom, name, options, countOf, nameAt) {
@@ -165,14 +177,19 @@ function growConsumables(inner: Codec): Codec {
             const out = inner.explode(rom, name, options, countOf, nameAt);
             const count = rom[BOUND] === POUCH ? VANILLA_CONSUMABLES : rom[BOUND];
             const names = Array.from({ length: count }, (_, id) => name(kind, id));
+            // What pressing a vanilla one does is item_actions' entry of its id (the ring dispatches by it): a link to read on.
+            for (let id = 0; id < VANILLA_CONSUMABLES; id++) {
+                const path = `${kind}/${names[id]}.json`, v = JSON.parse(readText(out.files.get(path)!));
+                out.files.set(path, json({ ...v, action: link(ITEM_ACTIONS, name(ITEM_ACTIONS, id)) }));
+            }
             if (count > VANILLA_CONSUMABLES) {
                 const code = fileOf(u24(rom, GET16[0] + 1)), cells = code + HOOKS_LENGTH;
                 const table = (k: keyof typeof TABLE_SITES) => fileOf(u24(rom, TABLE_SITES[k] + 1));
                 for (let id = VANILLA_CONSUMABLES; id < count; id++) {
                     const at = (k: keyof typeof TABLE_SITES) => u16(rom, table(k) + 2 * id);
                     out.files.set(`${kind}/${names[id]}.json`, json({
-                        held: heldText(u16(rom, cells + 2 * (id - VANILLA_CONSUMABLES))), ring_item: name(RING_ITEMS, at('ring') / 2),
-                        target: hexText(at('target'), 4), block: BLOCKS[at('block') / 2] ?? `block_${at('block') / 2}`, power: at('power'),
+                        held: heldText(u16(rom, cells + 2 * (id - VANILLA_CONSUMABLES))), ring_item: link(RING_ITEMS, name(RING_ITEMS, at('ring') / 2)),
+                        target: targetLink(at('target')), block: BLOCKS[at('block') / 2] ?? `block_${at('block') / 2}`, power: at('power'),
                     }));
                 }
             }
@@ -212,7 +229,7 @@ function growConsumables(inner: Codec): Codec {
     };
 }
 
-const heldText = (at: number) => at >= TEMP && at + 1 < TEMP + TEMP_SIZE ? `temp[${at - TEMP}]` : wramText(at);
+const heldText = (at: number) => at >= TEMP && at + 1 < TEMP + TEMP_SIZE ? `temp[${at - TEMP}]` : wramLink(at);
 
 // ── named items ──
 
@@ -267,12 +284,11 @@ interface NewNamed { name: string; id: number; text: string; description: string
 function growNamed(inner: Codec): Codec {
     const kind = inner.kind;
 
-    /** An entry's own text in a field, `same_as` followed (one step: records allow no chains). */
+    /** An entry's text in a field: a text by reference (its file's), or (a new entry) the text itself. */
     function textIn(ctx: ImplodeContext, v: any, field: 'name' | 'description'): string | null {
         const x = v?.[field];
-        if (typeof x === 'string') return x;
-        const other = typeof x?.same_as === 'string' ? readFile(ctx, `${kind}/${x.same_as}.json`)?.[field] : undefined;
-        return typeof other === 'string' ? other : null;
+        if (typeof x === 'string' && x.startsWith(link(TEXTS, ''))) return textContent(ctx, x);
+        return typeof x === 'string' ? x : null;
     }
 
     function grown(ctx: ImplodeContext, report = false): NewNamed[] | null {
@@ -283,11 +299,11 @@ function growNamed(inner: Codec): Codec {
         for (const { name, id, path, v } of files) {
             const text = textIn(ctx, v, 'name'), description = textIn(ctx, v, 'description');
             const flags = typeof v.flag?.flags === 'string' ? heldAt(v.flag.flags) : null, bit = parseHex(v.flag?.bit, 0xFFFF);
-            const icon = typeof v.icon === 'string' ? ids.get(v.icon) : undefined;
+            const iconName = unlink(kind, v.icon), icon = iconName === undefined ? undefined : ids.get(iconName);
             const check = () => {
-                if (text === null || !/^[\x20-\x7E]+$/.test(text)) return bad(ctx, path, '/name', 'the name the list prints, printable ASCII (or { "same_as": <entry> })');
-                if (description === null || !/^[\x20-\x7E]*$/.test(description)) return bad(ctx, path, '/description', 'the line shown when it is picked, printable ASCII, or { "same_as": <entry> } (the key items share "Rare Item")');
-                if (flags === null) return bad(ctx, path, '/flag/flags', 'the WRAM word holding its flag: a WRAM name, "NAME+n" or "$7E:xxxx" (saved bits still free: $22DB bits $40, $80; $225C bits $08-$40)');
+                if (text === null || !/^[\x20-\x7E]+$/.test(text)) return bad(ctx, path, '/name', `the name the list prints, printable ASCII, or a text, "${link(TEXTS, '<name>')}"`);
+                if (description === null || !/^[\x20-\x7E]*$/.test(description)) return bad(ctx, path, '/description', `the line shown when it is picked, printable ASCII, or a text, "${link(TEXTS, '<name>')}" (the key items share ${link(TEXTS, 'rare_item')})`);
+                if (flags === null) return bad(ctx, path, '/flag/flags', 'the WRAM word holding its flag: a WRAM variable, "wram/NAME", "wram/NAME+n" or "$7E:xxxx" (saved bits still free: $22DB bits $40, $80; $225C bits $08-$40)');
                 if (bit === null || bit === 0) return bad(ctx, path, '/flag/bit', 'its mask in that word, "$xxxx"');
                 if (icon === undefined || icon >= VANILLA_NAMED) { ctx.findings.error('unknown-reference', path, '/icon', 'a vanilla named item by name: this one shows its icon'); return null; }
                 return true;
@@ -338,7 +354,7 @@ function growNamed(inner: Codec): Codec {
             const v = JSON.parse(readText(bytes));
             if (v?.icon === undefined) return inner.canonical!(path, bytes, ctx);
             const text = (f: 'name' | 'description') => ctx ? textIn(ctx, v, f) : v[f];
-            return [path, json({ name: text('name'), description: text('description'), flags: heldAt(v.flag?.flags), bit: parseHex(v.flag?.bit, 0xFFFF), icon: v.icon })];
+            return [path, json({ name: text('name'), description: text('description'), flags: heldAt(v.flag?.flags), bit: parseHex(v.flag?.bit, 0xFFFF), icon: unlink(kind, v.icon) ?? v.icon })];
         },
 
         explode(rom, name, options, countOf, nameAt) {
@@ -359,7 +375,7 @@ function growNamed(inner: Codec): Codec {
                     const icon = Array.from({ length: VANILLA_NAMED }, (_, k) => k).find(k => iconOf(k) === iconOf(id)) ?? 0;
                     out.files.set(`${kind}/${names[id]}.json`, json({
                         name: textOf(rom, fileOf(textBank | w('names'))), description: textOf(rom, fileOf(textBank | w('descriptions'))),
-                        flag: { flags: wramText(w('flags')), bit: hexText(w('masks'), 4) }, icon: name(kind, icon),
+                        flag: { flags: wramLink(w('flags')), bit: hexText(w('masks'), 4) }, icon: link(kind, name(kind, icon)),
                     }));
                 }
             }

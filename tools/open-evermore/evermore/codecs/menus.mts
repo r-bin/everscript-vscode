@@ -4,9 +4,9 @@
 //
 // Facts used (knowledge routines/RING_*.md, *_ACTIONS.md, ring_*_loop.md, v0.455.0):
 //   ring items  $8E:8000 162 words (ring item id = 2·id) → the 8-byte entry in bank $8E ($8E:8144-$8653, not in id
-//               order; the pointers stay in _base/): +0 the name, a plain NUL-terminated ASCII string in bank $C4 (every
+//               order; the pointers stay in _base/): +0 the name, a text in bank $C4 (texts.mts, `strings/menu/`; every
 //               ring loop prints it with $8C:9E03, bank #$C4; weapon records, formula and ingredient names point at the
-//               same strings, so a name is written where it was); +2 the icon, an animation in animations/
+//               same texts); +2 the icon, an animation in animations/
 //               ($8E:AEBC); +4 its palette in palettes/sprites/; +6 the index, which the ring that shows the item reads:
 //               an action table's entry (×2, consumables ×1: the loop doubles it) or a weapon, armour or ingredient number
 //   rings       ring id = 2·id into three tables: $8E:9920 the WRAM buffer (+0 count, +2 cursor, +4 16 item ids; DP $95),
@@ -19,14 +19,16 @@
 //               $8E:99CA (ring_call_bead_callers_loop), their spells $8E:AD43 (ring_call_bead_spells_loop)
 // Names: a ring item is named from its own text in the ROM (no game text in this file), with its category as prefix.
 import { createRequire } from 'node:module';
-import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
+import type { Codec, ImplodeContext, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
-import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
+import { json, NAME_RE, readText } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
+import { link, unlink } from '../../links.mts';
 import { ANIMATIONS, animationInitialOffset, animationPlacedOffset, animationRef } from './animations.mts';
 import { handlerTable } from './handler-tables.mts';
 import { hexText, parseHex, routines } from './readers.mts';
 import { SPRITE_PALETTES, spritePaletteAddr, spritePaletteName } from './sprite-palettes.mts';
+import { addTextSource, TEXTS, textLink, textName, textPointer } from './texts.mts';
 import { wramAddress, wramName } from './wram.mts';
 
 const require = createRequire(import.meta.url);
@@ -146,30 +148,26 @@ export function nameRingItems(rom: Uint8Array): string[] {
     return NAMES = names;
 }
 
-const nameKey = (n: string) => `${RING_ITEMS}/${n}.name`;
-/** The item key of a ring item's text (records.mts: weapons, armour, formulas point at the same text). */
-export const ringItemNameKey = nameKey;
-/** Each ring item's text pointer (16 bits in bank $C4) → the first ring item that shows it. */
-export function ringItemTexts(rom: Uint8Array): Map<number, number> {
-    const out = new Map<number, number>();
-    for (let id = 0; id < ITEM_COUNT; id++) { const p = word(rom, entryAt(rom, id) & 0x3FFFFF); if (!out.has(p)) out.set(p, id); }
-    return out;
-}
+// Every ring item's name is a text (texts.mts names them from this source among others).
+addTextSource(rom => Array.from({ length: ITEM_COUNT }, (_, id) => NAME_BANK | word(rom, entryAt(rom, id) & 0x3FFFFF)));
 
 interface RingItem { text: string; icon: number; iconGroup?: string; palette: number; index: number }
 interface ReadItemError { rule: 'invalid-value' | 'unknown-reference'; path: string; why: string }
 
 /** A ring item file → its entry, or a validation error; `ctx` resolves icons, palettes and actions by name. */
 function readItem(v: any, id: number, ctx?: ImplodeContext): RingItem | ReadItemError {
-    if (typeof v?.name !== 'string' || !/^[\x20-\x7E]*$/.test(v.name)) return { rule: 'invalid-value', path: '/name', why: 'the text, printable ASCII' };
+    // The name: a text by reference (with `ctx`, its name in the tree; without, the reference as written).
+    const text = ctx ? textName(ctx, v?.name) : unlink(TEXTS, v?.name);
+    if (text === undefined) return { rule: 'unknown-reference', path: '/name', why: `a text, "${link(TEXTS, '<name>')}" (one file there): the ring prints it` };
 
     let icon = 0, iconGroup: string | undefined;
     if (v.icon !== null) {
         const anims = ctx?.names.get(ANIMATIONS);
-        if (anims && typeof v.icon === 'string' && !v.icon.startsWith('$')) {
-            if (!anims.has(v.icon)) return { rule: 'unknown-reference', path: '/icon', why: `"${v.icon}" is no animation in animations/` };
-            iconGroup = v.icon;
-            icon = animationInitialOffset(ctx!, v.icon) ?? 0;
+        const name = unlink(ANIMATIONS, v.icon);
+        if (anims && name !== undefined && !name.startsWith('$')) {
+            if (!anims.has(name)) return { rule: 'unknown-reference', path: '/icon', why: `"${v.icon}" is no animation in animations/` };
+            iconGroup = name;
+            icon = animationInitialOffset(ctx!, name) ?? 0;
         } else {
             const raw = parseHex(v.icon, 0xFFFF, 0xC4) ?? parseHex(v.icon, 0xFFFF);
             if (raw === null) return { rule: 'invalid-value', path: '/icon', why: anims ? 'an animation name in animations/, or null' : 'an animation record in bank $C4, "$xxxx"' };
@@ -180,8 +178,9 @@ function readItem(v: any, id: number, ctx?: ImplodeContext): RingItem | ReadItem
     let pal = 0;
     if (v.palette !== null) {
         const pals = ctx?.ids.get(SPRITE_PALETTES);
-        if (pals && typeof v.palette === 'string' && !v.palette.startsWith('$')) {
-            const pid = pals.get(v.palette);
+        const name = unlink(SPRITE_PALETTES, v.palette);
+        if (pals && name !== undefined && !name.startsWith('$')) {
+            const pid = pals.get(name);
             if (pid === undefined) return { rule: 'unknown-reference', path: '/palette', why: `"${v.palette}" is no sprite palette in palettes/sprites/` };
             pal = spritePaletteAddr(pid);
         } else {
@@ -194,13 +193,13 @@ function readItem(v: any, id: number, ctx?: ImplodeContext): RingItem | ReadItem
     const c = categoryOf(id);
     let index: number | null = Number.isInteger(v.index) && v.index >= 0 && v.index <= 0xFFFF ? v.index : null;
     if (c.field && v[c.field] !== undefined) {
-        const k = ctx?.ids.get(c.actions!)?.get(v[c.field]);
-        if (ctx && k === undefined) return { rule: 'invalid-value', path: `/${c.field}`, why: `"${v[c.field]}" is no entry of ${c.actions}` };
+        const action = unlink(c.actions!, v[c.field]), k = action === undefined ? undefined : ctx?.ids.get(c.actions!)?.get(action);
+        if (ctx && k === undefined) return { rule: 'invalid-value', path: `/${c.field}`, why: `"${v[c.field]}" is no entry of ${c.actions} ("${link(c.actions!, '<name>')}")` };
         index = k === undefined ? null : k * c.scale!;
-        if (!ctx) return { text: v.name, icon, ...(iconGroup ? { iconGroup } : {}), palette: pal, index: -1 };
+        if (!ctx) return { text, icon, ...(iconGroup ? { iconGroup } : {}), palette: pal, index: -1 };
     }
     if (index === null) return { rule: 'invalid-value', path: c.field ? `/${c.field}` : '/index', why: c.field ? `an entry of ${c.actions} (or /index, a number)` : 'a number 0-65535' };
-    return { text: v.name, icon, ...(iconGroup ? { iconGroup } : {}), palette: pal, index };
+    return { text, icon, ...(iconGroup ? { iconGroup } : {}), palette: pal, index };
 }
 
 export const ringItemsCodec: Codec = {
@@ -219,35 +218,33 @@ export const ringItemsCodec: Codec = {
 
     explode(rom, name, _options, countOf, nameAt) {
         nameRingItems(rom);
-        const files: Tree = new Map(), names: string[] = [], pool = [], homes = [];
+        const files: Tree = new Map(), names: string[] = [];
         for (let id = 0; id < ITEM_COUNT; id++) {
             const n = name(RING_ITEMS, id), e = entryAt(rom, id) & 0x3FFFFF, c = categoryOf(id);
             names.push(n);
-            const at = NAME_BANK | word(rom, e), text = textAt(rom, at), index = word(rom, e + 6);
+            const index = word(rom, e + 6);
             const icon16 = word(rom, e + 2), pal16 = word(rom, e + 4);
             let iconVal: unknown = null;
             if (icon16) {
                 const ref = animationRef(rom, icon16, name, countOf, nameAt);
                 if (ref?.facing) throw new Error(`${RING_ITEMS}: ${n}.icon points to interior facing $${icon16.toString(16)}`);
-                iconVal = ref ? ref.animation : hexText(icon16, 4);
+                iconVal = ref ? link(ANIMATIONS, ref.animation) : hexText(icon16, 4);
             }
             let palVal: unknown = null;
             if (pal16) {
-                try { palVal = spritePaletteName(rom, pal16, name, countOf, nameAt) ?? hexText(pal16, 4, PALETTE_BANK); }
+                try { const p = spritePaletteName(rom, pal16, name, countOf, nameAt); palVal = p ? link(SPRITE_PALETTES, p) : hexText(pal16, 4, PALETTE_BANK); }
                 catch { palVal = hexText(pal16, 4, PALETTE_BANK); }
             }
-            const v: Record<string, unknown> = { name: text, icon: iconVal, palette: palVal };
+            const v: Record<string, unknown> = { name: textLink(rom, NAME_BANK | word(rom, e), name, nameAt), icon: iconVal, palette: palVal };
             const k = c.scale ? index / c.scale : -1;
-            if (c.field && Number.isInteger(k) && k < (c.actions === ALCHEMY_ACTIONS ? 36 : 18)) v[c.field] = name(c.actions!, k);
+            if (c.field && Number.isInteger(k) && k < (c.actions === ALCHEMY_ACTIONS ? 36 : 18)) v[c.field] = link(c.actions!, name(c.actions!, k));
             else v.index = index;
             files.set(`${RING_ITEMS}/${n}.json`, json(v));
             const img = renderItemIcon(rom, 2 * id);
             if (img) files.set(`${RING_ITEMS}/${n}.png`, new Uint8Array(encodePng(img.width, img.height, img.data)));
-            pool.push({ start: at, end: at + text.length + 1 });
-            homes.push({ key: nameKey(n), at, length: text.length + 1, sha1: sha1(rom.slice(at, at + text.length + 1)) });
         }
         files.set(`${RING_ITEMS}/${ENUM}`, enumFile({ kind: RING_ITEMS, limit: ITEM_COUNT, names, why: 'ring item id = 2·id into the 162 pointers at $8E:8000; code follows the entries ($8E:8654)' }));
-        return { files, pool, tables: [{ start: ENTRIES, end: ENTRIES + ENTRY * ITEM_COUNT }], homes };
+        return { files, pool: [], tables: [{ start: ENTRIES, end: ENTRIES + ENTRY * ITEM_COUNT }], homes: [] };
     },
 
     names({ tree, findings }) {
@@ -260,25 +257,18 @@ export const ringItemsCodec: Codec = {
         return names;
     },
 
+    // Checks the files; the names are the texts kind's items.
     encode(ctx, names) {
-        const items: Item[] = [], ids = ctx.ids.get(RING_ITEMS) ?? new Map<string, number>();
-        const homes = [...ctx.base.homes].filter(([k]) => k.startsWith(`${RING_ITEMS}/`) && k.endsWith('.name'));
+        const ids = ctx.ids.get(RING_ITEMS) ?? new Map<string, number>();
         for (const n of names) {
             const path = `${RING_ITEMS}/${n}.json`, id = ids.get(n);
             if (!NAME_RE.test(n)) { ctx.findings.error('bad-name', path, '', `"${n}": snake_case, at most 80 characters`); continue; }
             if (id === undefined || id >= ITEM_COUNT) { ctx.findings.error('id-over-limit', path, '', `the game has ${ITEM_COUNT} ring items (their pointers at $8E:8000 are followed by code)`); continue; }
             let item: RingItem | ReadItemError;
             try { item = readItem(JSON.parse(readText(ctx.tree.get(path)!)), id, ctx); } catch (e) { ctx.findings.error('parse-error', path, '', (e as Error).message); continue; }
-            if ('rule' in item) { ctx.findings.error(item.rule, path, item.path, item.why); continue; }
-            // Renamed: the home of the same id (homes are in id order).
-            const home = ctx.base.homes.get(nameKey(n)) ?? homes[id]?.[1];
-            if (!home) { ctx.findings.error('no-room', path, '/name', 'no name string of this ring item in the base; a new ring item has no room'); continue; }
-            if (item.text.length + 1 > home.length) { ctx.findings.error('no-room', path, '/name', `at most ${home.length - 1} characters: the name is written where it was (weapon records, formula and ingredient names point at the same text)`); continue; }
-            const bytes = new Uint8Array(home.length);
-            for (let i = 0; i < item.text.length; i++) bytes[i] = item.text.charCodeAt(i);
-            items.push({ key: nameKey(n), file: path, bytes, rule: { above: home.at, below: home.at + home.length, bankOffset: home.at & 0xFFFF } });
+            if ('rule' in item) ctx.findings.error(item.rule, path, item.path, item.why);
         }
-        return items;
+        return [];
     },
 
     tables(ctx, placed) {
@@ -287,11 +277,13 @@ export const ringItemsCodec: Codec = {
         const table = new Uint8Array(ENTRY * ITEM_COUNT);
         for (const [n, id] of ids) {
             if (id >= ITEM_COUNT) continue;
-            const item = readItem(JSON.parse(readText(ctx.tree.get(`${RING_ITEMS}/${n}.json`)!)), id, ctx), at = placed.get(nameKey(n));
-            if ('rule' in item || at === undefined) continue;
+            const path = `${RING_ITEMS}/${n}.json`, item = readItem(JSON.parse(readText(ctx.tree.get(path)!)), id, ctx);
+            if ('rule' in item) continue;
+            const at = textPointer(ctx, placed, item.text);
+            if (at === null) { ctx.findings.error('no-room', path, '/name', `the text ${link(TEXTS, item.text)} was not placed in bank $C4, where the ring reads it`); continue; }
             const slot = word(ctx.base.image, POINTERS + 2 * id) - (ENTRIES & 0xFFFF);
             const iconWord = item.iconGroup ? (animationPlacedOffset(ctx, placed, item.iconGroup) ?? item.icon) : item.icon;
-            [at & 0xFFFF, iconWord, item.palette, item.index].forEach((w, k) => table.set([w & 0xFF, w >> 8], slot + 2 * k));
+            [at, iconWord, item.palette, item.index].forEach((w, k) => table.set([w & 0xFF, w >> 8], slot + 2 * k));
         }
         if (ids.size !== ITEM_COUNT) ctx.findings.error('missing-file', `${RING_ITEMS}/${ENUM}`, '', `all ${ITEM_COUNT} ring items: each has its entry`);
         return [{ at: ENTRIES, bytes: table, file: `${RING_ITEMS}/${ENUM}` }] satisfies Write[];

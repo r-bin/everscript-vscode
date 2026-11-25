@@ -20,7 +20,7 @@ const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 /** Where a kind lives in the tree when not at the top (folders.mts). */
-const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', palettes: 'palettes/backgrounds', sprite_palettes: 'palettes/sprites', collisions: 'maps/collisions', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'animations', animation_modes: 'animations/modes', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'sprites/blocks_16', sprite_blocks_8: 'sprites/blocks_8', metasprites: 'sprites/metasprites', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', ring_items: 'menus/ring_items', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels', consumables: 'items/consumables', named_items: 'items/named_items' };
+const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', palettes: 'palettes/backgrounds', sprite_palettes: 'palettes/sprites', collisions: 'maps/collisions', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'animations', animation_modes: 'animations/modes', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'sprites/blocks_16', sprite_blocks_8: 'sprites/blocks_8', metasprites: 'sprites/metasprites', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', ring_items: 'menus/ring_items', strings: 'strings/dialogue', texts: 'strings/menu', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels', consumables: 'items/consumables', named_items: 'items/named_items' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -121,7 +121,9 @@ if (!path || !existsSync(path)) {
 
     // Ring menus (written in place): a name in its own bytes, an option's action, an options-ring slot, a flow.
     const menus = new Map(tree);
-    editJson(menus, 'menus/ring_items/option_equipment.json', v => { v.name = 'Gear'; v.action = 'alchemy'; });
+    const setText = (t: typeof tree, name: string, s: string) => t.set(`strings/menu/${name}.txt`, new Uint8Array(Buffer.from(`${s}\n`)));
+    setText(menus, 'equipment', 'Gear');
+    editJson(menus, 'menus/ring_items/option_equipment.json', v => { v.action = 'menus/option_actions/alchemy'; });
     editJson(menus, 'menus/rings/boy_options.json', v => { v.items[4].item = 'option_equipment'; });
     editJson(menus, 'menus/ring_flows/boy.json', v => { v.rings = ['boy_items', 'boy_alchemy', 'boy_weapons', 'debug', 'boy_options']; });
     const mb = implode(menus, GAME, KINDS);
@@ -129,18 +131,21 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual([...mb.image!.subarray(0x0467CD, 0x0467D6)], [0x47, 0x65, 0x61, 0x72, 0, 0, 0, 0, 0], '"Gear" where "Equipment" was, the rest zero');
     assert.deepStrictEqual([mb.image![0x0E81D2], mb.image![0x0E9A9F], mb.image![0x0E998E], mb.image![0x0E9996]], [0x10, 0x20, 0x08, 0x00], 'the action index, the slot\'s immediate, the flow\'s first and last ring');
     assert.deepStrictEqual(rules(t => {
-        editJson(t, 'menus/ring_items/option_targeting.json', v => { v.name = 'Targeting all'; });
+        editJson(t, 'menus/ring_items/option_equipment.json', v => { v.name = 'strings/menu/no_such_text'; });
         editJson(t, 'menus/ring_items/option_action.json', v => { v.action = 'no_such_action'; });
         editJson(t, 'menus/rings/dog_options.json', v => { v.items.pop(); });
         editJson(t, 'menus/ring_flows/dog.json', v => { v.rings.push('boy_items'); });
-    }).sort(), ['invalid-value menus/ring_flows/dog.json#/rings', 'invalid-value menus/ring_items/option_action.json#/action', 'invalid-value menus/rings/dog_options.json#/items', 'no-room menus/ring_items/option_targeting.json#/name']);
-    console.log('  ✓ ring menus: a name in its own bytes, an action by name, an options-ring item and a flow land in place; a longer name, an unknown action, a slot less and a flow longer are errors');
+    }).sort(), ['invalid-value menus/ring_flows/dog.json#/rings', 'invalid-value menus/ring_items/option_action.json#/action', 'invalid-value menus/rings/dog_options.json#/items', 'unknown-reference menus/ring_items/option_equipment.json#/name']);
+    // A text longer than its home goes anywhere free in bank $C4: vanilla has no free byte there.
+    assert.deepStrictEqual(rules(t => setText(t, 'targeting', 'Targeting all')), ['no-space strings/menu/targeting.txt#']);
+    console.log('  ✓ ring menus: a name in its own bytes, an action by name, an options-ring item and a flow land in place; a longer text, a text that is none, an unknown action, a slot less and a flow longer are errors');
 
     // Equipment and alchemy (records written in place): Laser given Lance's block and a power, a weapon's attack and
     // school, an armour's defence, a level's factor; a text too long, a shared text changed in one record, a power past
     // a byte and a block that is none are errors.
     const eq = new Map(tree);
-    editJson(eq, 'alchemy/formulas/laser.json', v => { v.power = 60; v.block = 'lance'; v.description = 'Halves HP'; });
+    editJson(eq, 'alchemy/formulas/laser.json', v => { v.power = 60; v.block = 'lance'; });
+    setText(eq, 'halves_targets_hp', 'Halves HP');
     editJson(eq, 'equipment/weapons/bone_crusher.json', v => { v.attack = 99; v.school = 'axe'; });
     editJson(eq, 'equipment/armour/grass_vest.json', v => { v.defense = 50; });
     editJson(eq, 'alchemy/alchemy_levels/level_0.json', v => { v.power_factor = 9; });
@@ -150,11 +155,27 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual([w16(0x045E6B + 40), w16(0x045DDF + 40), w16(0x0438E6), w16(0x0459DC + 2), w16(0x043B02), eb.image![0x045BA5]], [60, 0x26, 99, 2, 50, 9], 'power, block, attack, school, defence, factor in place');
     assert.deepStrictEqual([...eb.image!.subarray(0x040000 + w16(0x045D51 + 40), 0x040000 + w16(0x045D51 + 40) + 10)], [...Buffer.from('Halves HP'), 0], 'the shorter description where it was');
     assert.deepStrictEqual(rules(t => {
-        editJson(t, 'alchemy/formulas/laser.json', v => { v.description = 'Halves the target enemy HP!'; });
         editJson(t, 'equipment/armour/shell_plate.json', v => { v.text_2 = 'x'; });
         editJson(t, 'alchemy/formulas/heal.json', v => { v.power = 300; v.block = 'no_block'; });
-    }).sort(), ['invalid-value alchemy/formulas/heal.json#/power', 'no-room alchemy/formulas/laser.json#/description', 'no-room equipment/armour/shell_plate.json#/text_2', 'unknown-reference alchemy/formulas/heal.json#/block']);
+    }).sort(), ['invalid-value alchemy/formulas/heal.json#/power', 'unknown-reference alchemy/formulas/heal.json#/block', 'unknown-reference equipment/armour/shell_plate.json#/text_2']);
     console.log('  ✓ equipment and alchemy: a formula\'s block, power and description, a weapon\'s attack and school, an armour\'s defence and a level\'s factor land in place; a longer text, a power past a byte and an unknown block are errors');
+
+    // Targets are shared and named by their rules: a hand-made target on Fireball and a formula's target on Petals store
+    // their words; the round trip reads the hand-made name back as its rules' name. An unknown rule or target is an error.
+    const tg = new Map(tree), bytesOf = (v: unknown) => new Uint8Array(Buffer.from(JSON.stringify(v)));
+    tg.set('targets/boy_and_dog.json', bytesOf({ rules: ['boy', 'dog', 'or_all'] }));
+    editJson(tg, 'alchemy/formulas/fireball.json', v => { v.target = 'targets/boy_and_dog'; });
+    editJson(tg, 'items/consumables/petals.json', v => { v.target = 'targets/enemies_nearest_three'; });
+    const tb = implode(tg, GAME, KINDS);
+    assert.deepStrictEqual(tb.findings.list.filter(f => f.severity === 'error'), []);
+    const fireball = JSON.parse(Buffer.from(tree.get('alchemy/formulas/_enum.json')!).toString()).names.indexOf('fireball');
+    const t16 = (at: number) => tb.image![at] | (tb.image![at + 1] << 8);
+    assert.deepStrictEqual([t16(0x045BF5 + 2 * fireball), t16(0x045A84)], [0x0C02, 0x2010], 'Fireball\'s and Petals\' target words');
+    assert.deepStrictEqual(rules(t => {
+        t.set('targets/boy_and_dog.json', bytesOf({ rules: ['boy', 'cat'] }));
+        editJson(t, 'alchemy/formulas/heal.json', v => { v.target = 'targets/no_such_target'; });
+    }).sort(), ['invalid-value targets/boy_and_dog.json#/rules', 'unknown-reference alchemy/formulas/heal.json#/target']);
+    console.log('  ✓ targets: a hand-made target and a shared one land as their words and round-trip; an unknown rule and an unknown target are errors');
 
     // A 23rd ingredient (docs/todo/growable-items.md): a cost of Cure, its name, icon and count cell generated, every
     // count reader a jsl into the hooks, the alchemy screen's loops one longer (in game by hand: docs/todo/growable-items.md I-steps).
@@ -189,7 +210,8 @@ if (!path || !existsSync(path)) {
     // count, dispatch and tables generated; the named item's four tables, icons and strings moved, every loop one longer
     // (in game by hand: the Salve heals by its power, the Lucky Coin shows in the Pouch).
     const it = new Map(tree), json = (v: unknown) => new Uint8Array(Buffer.from(JSON.stringify(v)));
-    editJson(it, 'menus/ring_items/debug_heel.json', v => { v.name = 'Salve'; v.index = 9; });
+    setText(it, 'debug_heel', 'Salve');
+    editJson(it, 'menus/ring_items/debug_heel.json', v => { v.index = 9; });
     it.set('items/consumables/salve.json', json({ held: 'temp[196]', ring_item: 'debug_heel', target: '$000A', block: 'petals', power: 10 }));
     editJson(it, 'items/consumables/_enum.json', v => { v.names.push('salve'); });
     it.set('items/named_items/lucky_coin.json', json({ name: 'Lucky Coin', description: 'A coin.', flag: { flags: '$7E:22DB', bit: '$0040' }, icon: 'wizards_coin' }));
@@ -255,12 +277,12 @@ if (!path || !existsSync(path)) {
     console.log('  ✓ palettes as PNG stripes and tiles as JSON rows: the same ROM; one tile as JSON among PNGs too');
 
     // Strings: an unknown tag is an error; an edited string is encoded anew (our encoder) and explodes back.
-    assert.deepStrictEqual(rules(t => { t.set('strings/string_0000.txt', new TextEncoder().encode('Hello [WAVE]\n')); }), ['invalid-value strings/string_0000.txt#']);
+    assert.deepStrictEqual(rules(t => { t.set('strings/dialogue/string_0000.txt', new TextEncoder().encode('Hello [WAVE]\n')); }), ['invalid-value strings/dialogue/string_0000.txt#']);
     const said = new Map(tree);
-    said.set('strings/string_0375.txt', new TextEncoder().encode('[SLOW]Whoa![PAUSE:3d] Now I know how a moved string feels.[B]\n'));
+    said.set('strings/dialogue/string_0375.txt', new TextEncoder().encode('[SLOW]Whoa![PAUSE:3d] Now I know how a moved string feels.[B]\n'));
     const sr = implode(said, GAME, KINDS);
     assert.deepStrictEqual(sr.findings.list.filter(f => f.severity === 'error'), []);
-    assert.ok(sr.findings.list.some(f => f.rule === 'reencoded' && f.file === 'strings/string_0375.txt'));
+    assert.ok(sr.findings.list.some(f => f.rule === 'reencoded' && f.file === 'strings/dialogue/string_0375.txt'));
     console.log('  ✓ strings: an unknown tag is an error; an edited string is encoded anew and round-trips');
 
     // Scripts: one file per script, a command per line (the opcode by name, its operands in hex), `@name` for another
@@ -323,7 +345,7 @@ if (!path || !existsSync(path)) {
     };
     const grown = new Map(tree);
     grow('maps/tiles', 'tile_0000', 'tile_new', 'png')(grown);
-    grow('strings', 'string_0000', 'string_new', 'txt')(grown);
+    grow('strings/dialogue', 'string_0000', 'string_new', 'txt')(grown);
     grown.set('scripts/global/script_new.txt', grown.get('scripts/global/boot.txt')!);
     editJson(grown, 'scripts/_enum.json', e => { e.names.push('script_new'); });
     const g = implode(grown, GAME, KINDS);

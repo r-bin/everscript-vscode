@@ -1,7 +1,7 @@
 // The ingredients kind grown past vanilla's 22 (docs/todo/growable-items.md, docs/open-evermore/resources.md §alchemy).
 // Ids 0-21 are records read in place (records.mts, wrapped here); a file past them is a new ingredient:
-//   { "text": "Salt", "held": "temp[198]", "icon": "crystal" }
-// text its name, held the WRAM word that counts it (a `temp[]` cell: wiped on every room load and not saved, the
+//   { "text": "Salt", "held": "temp[198]", "icon": "alchemy/ingredients/crystal" }
+// text its name (or a text by reference, "strings/menu/<name>"), held the WRAM word that counts it (a `temp[]` cell: wiped on every room load and not saved, the
 // owner's choice until WRAM can be allocated), icon the vanilla ingredient whose icon it shows. With 22 ingredients
 // every byte below stays vanilla; with more, implode generates three items and rewrites the code that reads them.
 //
@@ -21,7 +21,9 @@ import type { Codec, ImplodeContext, Item, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, readText } from '../../tree.mts';
 import { HOOKS_LENGTH, hooks, LDA, le24, STA, VANILLA_INGREDIENTS } from './ingredient-hooks.mts';
-import { wramAt, wramText } from './records.mts';
+import { link, unlink } from '../../links.mts';
+import { wramAt, wramLink } from './records.mts';
+import { TEXTS, textContent } from './texts.mts';
 
 /** Ids an ingredient may have: bytes in the formulas' cost, and `temp[]` has 100 words for the new ones. */
 const LIMIT = 64;
@@ -53,13 +55,14 @@ const SITES = vanillaSites();
 const SPANS: Span[] = [...SITES].map(([at, b]) => ({ start: at, end: at + b.length }));
 const same = (rom: Uint8Array, at: number, bytes: number[]) => bytes.every((x, k) => rom[at + k] === x);
 
-/** `temp[n]` (the temp area's byte n, as scripts write it), a WRAM name, or "$7E:xxxx" → the address in bank $7E. */
+/** `temp[n]` (the temp area's byte n, as scripts write it), a WRAM variable (`wram/NAME`), or "$7E:xxxx" → the address
+ *  in bank $7E. */
 export function heldAt(text: unknown): number | null {
     const m = typeof text === 'string' ? /^temp\[(\d+)\]$/.exec(text) : null;
     if (m) { const n = Number(m[1]); return n + 1 < TEMP_SIZE ? TEMP + n : null; }
     return wramAt(text);
 }
-const heldText = (at: number) => at >= TEMP && at + 1 < TEMP + TEMP_SIZE ? `temp[${at - TEMP}]` : wramText(at);
+const heldText = (at: number) => at >= TEMP && at + 1 < TEMP + TEMP_SIZE ? `temp[${at - TEMP}]` : wramLink(at);
 
 interface New { name: string; id: number; text: string; held: number; icon: number; file: string }
 
@@ -82,7 +85,8 @@ export function growIngredients(inner: Codec): Codec {
             if (n === undefined) { ctx.findings.error('missing-file', `${DIR}/${ENUM}`, `/names/${id}`, `ingredient ids are a list the code counts down: no gap (id ${id} is missing)`); ok = false; continue; }
             const path = `${DIR}/${n}.json`, v = readFile(ctx, path);
             if (v === null) { ctx.findings.error('parse-error', path, '', 'not JSON'); ok = false; continue; }
-            const text = v.text, held = heldAt(v.held), icon = typeof v.icon === 'string' ? ids.get(v.icon) : undefined;
+            const text = typeof v.text === 'string' && v.text.startsWith(`${link(TEXTS, '')}`) ? textContent(ctx, v.text) : v.text;
+            const held = heldAt(v.held), iconName = unlink(kind, v.icon), icon = iconName === undefined ? undefined : ids.get(iconName);
             const bad = (p: string, why: string) => { ctx.findings.error('invalid-value', path, p, why); ok = false; };
             if (typeof text !== 'string' || !/^[\x20-\x7E]+$/.test(text)) { bad('/text', 'the name the alchemy screen prints, printable ASCII'); continue; }
             if (held === null) { bad('/held', 'the WRAM word that counts it: "temp[n]" (n even, 0-198: wiped on every room load and not saved) or a WRAM name'); continue; }
@@ -98,10 +102,7 @@ export function growIngredients(inner: Codec): Codec {
     /** Each id's name text: a vanilla one's ring item text (menus owns it), a new one's own. */
     function nameTexts(ctx: ImplodeContext, extra: New[]): string[] {
         const byId = new Map([...ctx.ids.get(kind)!].map(([n, id]) => [id, n])), out: string[] = [];
-        for (let id = 0; id < VANILLA_INGREDIENTS; id++) {
-            const item = readFile(ctx, `${DIR}/${byId.get(id)}.json`)?.name, ring = readFile(ctx, `ring_items/${item}.json`);
-            out.push(typeof ring?.name === 'string' ? ring.name : '');
-        }
+        for (let id = 0; id < VANILLA_INGREDIENTS; id++) out.push(textContent(ctx, readFile(ctx, `${DIR}/${byId.get(id)}.json`)?.name) ?? '');
         return [...out, ...extra.map(x => x.text)];
     }
 
@@ -112,7 +113,8 @@ export function growIngredients(inner: Codec): Codec {
             if (path === `${DIR}/${ENUM}`) return [path, bytes];
             const v = JSON.parse(readText(bytes));
             if (typeof v?.text !== 'string') return inner.canonical!(path, bytes, ctx);
-            return [path, json({ text: v.text, held: heldAt(v.held), icon: v.icon })];
+            const text = ctx && typeof v.text === 'string' && v.text.startsWith(`${link(TEXTS, '')}`) ? textContent(ctx, v.text) : v.text;
+            return [path, json({ text, held: heldAt(v.held), icon: unlink(kind, v.icon) ?? v.icon })];
         },
 
         explode(rom, name, options, countOf, nameAt) {
@@ -132,7 +134,7 @@ export function growIngredients(inner: Codec): Codec {
                 for (let id = VANILLA_INGREDIENTS; id < count; id++) {
                     const icon = Array.from({ length: VANILLA_INGREDIENTS }, (_, k) => k).find(k => iconOf(k) === iconOf(id)) ?? 0;
                     const held = rom[cells + 2 * (id - VANILLA_INGREDIENTS)] | (rom[cells + 2 * (id - VANILLA_INGREDIENTS) + 1] << 8);
-                    out.files.set(`${DIR}/${names[id]}.json`, json({ text: textOf(rom, ((bank | (rom[table + 2 * id] | (rom[table + 2 * id + 1] << 8))) & 0x3FFFFF)), held: heldText(held), icon: name(kind, icon) }));
+                    out.files.set(`${DIR}/${names[id]}.json`, json({ text: textOf(rom, ((bank | (rom[table + 2 * id] | (rom[table + 2 * id + 1] << 8))) & 0x3FFFFF)), held: heldText(held), icon: link(kind, name(kind, icon)) }));
                 }
             }
             out.files.set(`${DIR}/${ENUM}`, enumFile({ kind, limit: LIMIT, names, why: `ingredient = id: ids 0-21 are vanilla's (name pointers $C4:5FF3, held count $22FF + id); a new one (from 22) has its own name, a WRAM word for its count and an icon, and implode moves the alchemy screen's names and icons and redirects every count reader (docs/todo/growable-items.md)` }));

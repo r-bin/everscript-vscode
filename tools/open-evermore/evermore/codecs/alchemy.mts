@@ -12,9 +12,10 @@
 //   $C4:601F the cost, 4 bytes: ingredient 1, ingredient 2, count 1, count 2 (ingredient = index into $C4:5FF3, $22FF)
 //   $C4:5B9C experience per cast by level (0-8, a byte), $C4:5BA5 the power factor by level (0-9, a byte)
 // Names: the formulas' are menus.mts' (the compiler's ALCHEMY_INDEX order); ingredients from their ring item's text.
+// A formula's target is a shared resource, targets/ (targets.mts): consumables store the same rules.
 import { FORMULAS, nameRingItems } from './menus.mts';
 import { growIngredients } from './ingredients.mts';
-import { recordsCodec, wramText } from './records.mts';
+import { recordsCodec, wramLink } from './records.mts';
 
 const GROUP = 'alchemy';
 export const FORMULA_KIND = 'formulas', INGREDIENTS = 'ingredients', LEVELS = 'alchemy_levels';
@@ -61,24 +62,24 @@ export const formulasCodec = recordsCodec({
     kind: FORMULA_KIND, group: GROUP, count: FORMULA_COUNT, names: () => FORMULAS,
     why: 'formula = id (2·id indexes nine tables in bank $C4 that touch each other); WRAM keeps 35 of each: learned bits $2258-$225C, experience $2F52, level $2F98, casts $2FDE (a word each)',
     fields: [
-        { path: 'name', at: C4 + 0x5D09, stride: 2, form: { type: 'ring_text' } },
+        { path: 'name', at: C4 + 0x5D09, stride: 2, form: { type: 'text' } },
         { path: 'ring_item', at: C4 + 0x5BAF, stride: 2, form: { type: 'ref', kind: 'ring_items', scale: 2 } },
         { path: 'description', at: C4 + 0x5D51, stride: 2, form: { type: 'text' } },
         { path: 'block', at: C4 + 0x5DDF, stride: 2, form: { type: 'ref', names: BLOCKS, scale: 2 } },
         { path: 'power', at: C4 + 0x5E6B, stride: 2, form: { type: 'number', max: 0xFF } },
-        { path: 'target', at: C4 + 0x5BF5, stride: 2, form: { type: 'hex' } },
+        { path: 'target', at: C4 + 0x5BF5, stride: 2, form: { type: 'target' } },
         { path: 'learned/flags', at: C4 + 0x5C3B, stride: 2, form: { type: 'wram' } },
         { path: 'learned/bit', at: C4 + 0x5C81, stride: 2, form: { type: 'hex' } },
         ...cost(0), ...cost(1),
     ],
-    notes: id => ({ wram: { experience: wramText(0x2F52 + 2 * id), level: wramText(0x2F98 + 2 * id), casts: wramText(0x2FDE + 2 * id) } }),
+    notes: id => ({ wram: { experience: wramLink(0x2F52 + 2 * id), level: wramLink(0x2F98 + 2 * id), casts: wramLink(0x2FDE + 2 * id) } }),
 });
 
 export const ingredientsCodec = growIngredients(recordsCodec({
     kind: INGREDIENTS, group: GROUP, count: INGREDIENT_COUNT, names: () => INGREDIENT_NAMES, prepare, check,
     why: 'ingredient = id: the name pointers at $C4:5FF3 (22 words, the cast names before them), the held count at $22FF + id',
-    fields: [{ path: 'name', at: C4 + 0x5FF3, stride: 2, form: { type: 'ring_text' } }],
-    notes: id => ({ held: wramText(0x22FF + id) }),
+    fields: [{ path: 'name', at: C4 + 0x5FF3, stride: 2, form: { type: 'text' } }],
+    notes: id => ({ held: wramLink(0x22FF + id) }),
 }));
 
 export const levelsCodec = recordsCodec({
