@@ -10,7 +10,9 @@
 //   weapon record 36 bytes ($C4:38E6 + 36·(index-1)), as boy_load_weapon ($8F:81C9) copies them into the Boy's character
 //                 record in WRAM ($0A26): +0 attack (and +¼ more for school 0, $8F:8491), +2 the name ($8E ring loop), +4 the
 //                 palette (record +$09), +6 the range (+$13), +8-+$14 stand, walk, run, attack 0-3 (+$32-+$3E), +$16 dodge
-//                 (+$48), +$18 knockback (+$40), +$1A/+$1C two more words ($1460, $1462; use not traced), +$1E the ring item;
+//                 (+$48), +$18 knockback (+$40), +$1A/+$1C the idle animations
+//                 ($1460, $1462: player_human_control_boy plays one after 1200-3247 frames without a direction held, $1462 one
+//                 roll in 16; 0: none), +$1E the ring item;
 //                 +$20-+$23 zero, read by nothing seen (stay in _base/)
 //   ammo          the Bazooka's record is its ammo's: $C4:388E + 2·ammo ($2349) → $C4:3A96 + 36·ammo
 //   schools       2·school: the weapon skill screen draws and runs one page per school (JMP ($93D8,x), JMP ($9404,x) in
@@ -41,7 +43,7 @@ function recordFields(base: number, ids?: (id: number) => boolean): Field[] {
         f('name', 0x02, { type: 'text' }), f('ring_item', 0x1E, RING_ITEM), f('attack', 0x00, { type: 'number' }),
         f('range', 0x06, { type: 'number' }), f('palette', 0x04, PALETTE),
         ...['stand', 'walk', 'run', 'attack_0', 'attack_1', 'attack_2', 'attack_3', 'dodge', 'knockback'].map((n, k) => f(`animations/${n}`, 0x08 + 2 * k, ANIMATION)),
-        f('unknown_1a', 0x1A, ANIMATION_OPT), f('unknown_1c', 0x1C, ANIMATION_OPT),
+        f('animations/idle', 0x1A, ANIMATION_OPT), f('animations/idle_rare', 0x1C, ANIMATION_OPT),
     ];
 }
 

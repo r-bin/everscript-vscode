@@ -20,7 +20,7 @@ const { encodePng } = require('../../dist/platform/png');
 
 const path = games.baseRomPath('evermore');
 /** Where a kind lives in the tree when not at the top (folders.mts). */
-const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', palettes: 'palettes/backgrounds', sprite_palettes: 'palettes/sprites', collisions: 'maps/collisions', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'animations', animation_modes: 'animations/modes', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'sprites/blocks_16', sprite_blocks_8: 'sprites/blocks_8', metasprites: 'sprites/metasprites', entities: 'scripts/entities', projectiles: 'characters/projectiles', fonts: 'graphics/fonts', hud: 'graphics/hud', ring_items: 'menus/ring_items', strings: 'strings/dialogue', texts: 'strings/menu', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels', consumables: 'items/consumables', named_items: 'items/named_items' };
+const FOLDER: Record<string, string> = { maps: 'maps/rooms', scripts: 'scripts', characters: 'characters/records', music: 'music/packages', tiles: 'maps/tiles', palettes: 'palettes/backgrounds', sprite_palettes: 'palettes/sprites', collisions: 'maps/collisions', opcodes: 'scripts/opcodes', sounds: 'music/sounds', animations: 'animations', animation_modes: 'animations/modes', attack_procs: 'characters/attack_procs', behaviours: 'characters/behaviours', sprite_blocks_16: 'sprites/blocks_16', sprite_blocks_8: 'sprites/blocks_8', metasprites: 'sprites/metasprites', entities: 'scripts/entities', projectiles: 'characters/projectiles', experience: 'characters/experience', fonts: 'graphics/fonts', hud: 'graphics/hud', ring_items: 'menus/ring_items', strings: 'strings/dialogue', texts: 'strings/menu', rings: 'menus/rings', ring_flows: 'menus/ring_flows', option_actions: 'menus/option_actions', item_actions: 'menus/item_actions', alchemy_actions: 'menus/alchemy_actions', caller_actions: 'menus/caller_actions', spell_actions: 'menus/spell_actions', weapon_schools: 'equipment/weapon_schools', weapons: 'equipment/weapons', bazooka_ammo: 'equipment/bazooka_ammo', armour: 'equipment/armour', ingredients: 'alchemy/ingredients', formulas: 'alchemy/formulas', alchemy_levels: 'alchemy/alchemy_levels', consumables: 'items/consumables', named_items: 'items/named_items' };
 if (!path || !existsSync(path)) {
     console.log('\nOpen Evermore G0: skipped (no Evermore base ROM in the ROM library)');
 } else {
@@ -77,14 +77,14 @@ if (!path || !existsSync(path)) {
     const renamed = new Map(tree);
     const move = (from: string, to: string) => { renamed.set(to, renamed.get(from)!); renamed.delete(from); };
     move('scripts/entities/dog.json', 'scripts/entities/the_dog.json');
-    move('characters/projectiles/projectile_13.json', 'characters/projectiles/hit_marker.json');
+    move('characters/projectiles/cutscene_trail.json', 'characters/projectiles/hit_marker.json');
     editJson(renamed, 'scripts/entities/_enum.json', e => { e.names[0x51] = 'the_dog'; });
     editJson(renamed, 'characters/projectiles/_enum.json', e => { e.names[13] = 'hit_marker'; });
     let hex = 0;
     for (const [p, b] of renamed) {
         if (!p.endsWith('.txt') || p.startsWith('strings/')) continue;
         // A whole operand `dog` alternates with its byte `[d1]`; inside an expression it is renamed.
-        const was = text(b), now = was.replace(/(?<=[ ,])projectile_13(?=,|$)/gm, 'hit_marker')
+        const was = text(b), now = was.replace(/(?<=[ ,])cutscene_trail(?=,|$)/gm, 'hit_marker')
             .replace(/^[^(\n]*$/gm, l => l.replace(/(?<=^\S+ |, )dog(?=,|$)/g, () => hex++ % 2 ? 'the_dog' : '[d1]')).replace(/(?<=[ (!)])dog(?=[ ,).]|$)/gm, 'the_dog');
         if (now !== was) renamed.set(p, bytes(now));
     }
@@ -94,8 +94,8 @@ if (!path || !existsSync(path)) {
     assert.strictEqual(same.sha1, sha1(rom));
     const line = [...tree.keys()].find(p => p.endsWith('.txt') && !p.startsWith('strings/') && / dog(,|$)/m.test(text(tree.get(p)!)))!;
     assert.deepStrictEqual(rules(t => { t.set(line, bytes(text(t.get(line)!).replace(/ dog(,|$)/m, ' cat$1'))); }).filter(r => r.startsWith('unknown-reference')), [`unknown-reference ${line}#/${text(tree.get(line)!).split('\n').findIndex(l => / dog(,|$)/.test(l)) + 1}`]);
-    assert.deepStrictEqual(rules(t => { t.set('characters/projectiles/new_shot.json', t.get('characters/projectiles/projectile_00.json')!); }).sort(), ['no-room characters/projectiles/new_shot.json#']);
-    assert.deepStrictEqual(rules(t => { t.set('characters/projectiles/new_shot.json', t.get('characters/projectiles/projectile_00.json')!); editJson(t, 'characters/projectiles/_enum.json', e => { e.names.push('new_shot'); }); }).sort(), ['id-over-limit characters/projectiles/_enum.json#/names', 'no-room characters/projectiles/new_shot.json#']);
+    assert.deepStrictEqual(rules(t => { t.set('characters/projectiles/new_shot.json', t.get('characters/projectiles/tiny_juggle.json')!); }).sort(), ['no-room characters/projectiles/new_shot.json#']);
+    assert.deepStrictEqual(rules(t => { t.set('characters/projectiles/new_shot.json', t.get('characters/projectiles/tiny_juggle.json')!); editJson(t, 'characters/projectiles/_enum.json', e => { e.names.push('new_shot'); }); }).sort(), ['id-over-limit characters/projectiles/_enum.json#/names', 'no-room characters/projectiles/new_shot.json#']);
     console.log(`  ✓ entities and projectiles by name: renamed (and ${Math.ceil(hex / 2)} dogs as d1) the same ROM; an unknown name and a new projectile are errors`);
 
     // Script lines name rooms, objects, own animations, flag enums, attach scripts, fonts and cell values; a font is
@@ -398,7 +398,10 @@ if (!path || !existsSync(path)) {
     assert.ok(!crusher.palette.startsWith('$') && !crusher.animations.attack_0.startsWith('$'), 'weapon references named palette & animation');
     const ringOpt = JSON.parse(Buffer.from(tree.get('menus/ring_items/option_equipment.json')!).toString());
     assert.ok(!ringOpt.icon.startsWith('$') && !ringOpt.palette.startsWith('$'), 'ring item references named icon animation & sprite palette');
-    assert.ok(tree.has('characters/projectiles/anim_projectile_04.json'), 'all 21 bank-$90 projectiles exploded');
+    assert.ok(tree.has('characters/projectiles/guard_bot_shot.json') && tree.has('characters/projectiles/vigor_boomerang.json'), 'all 21 bank-$90 projectiles exploded, named by what throws them');
+    assert.strictEqual(crusher.animations.idle, 'animations/boy/bone_crusher_idle', 'weapon +$1A is the idle animation');
+    const xp = (who: string) => JSON.parse(Buffer.from(tree.get(`characters/experience/${who}.json`)!).toString()).next_level_at as number[];
+    assert.ok(xp('boy').length === 100 && xp('boy')[99] === 0xFFFFFF && xp('dog').length === 99 && xp('dog')[1] === 35, 'experience tables: Boy 100 levels, Dog 99');
 
     // Editing an inline animation script (growing past vanilla 25B) relocates it cleanly and round-trips.
     const dragEdited = new Map(tree);

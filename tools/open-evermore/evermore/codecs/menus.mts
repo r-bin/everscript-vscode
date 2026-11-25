@@ -216,7 +216,7 @@ export const ringItemsCodec: Codec = {
         return [path, json({ text: item.text, icon: item.iconGroup ?? item.icon, palette: item.palette, index: item.index })];
     },
 
-    explode(rom, name, _options, countOf, nameAt) {
+    explode(rom, name, options, countOf, nameAt) {
         nameRingItems(rom);
         const files: Tree = new Map(), names: string[] = [];
         for (let id = 0; id < ITEM_COUNT; id++) {
@@ -240,7 +240,8 @@ export const ringItemsCodec: Codec = {
             if (c.field && Number.isInteger(k) && k < (c.actions === ALCHEMY_ACTIONS ? 36 : 18)) v[c.field] = link(c.actions!, name(c.actions!, k));
             else v.index = index;
             files.set(`${RING_ITEMS}/${n}.json`, json(v));
-            const img = renderItemIcon(rom, 2 * id);
+            // The icon is its animation (`icon`); the drawing only with `explode --previews`.
+            const img = options.previews ? renderItemIcon(rom, 2 * id) : null;
             if (img) files.set(`${RING_ITEMS}/${n}.png`, new Uint8Array(encodePng(img.width, img.height, img.data)));
         }
         files.set(`${RING_ITEMS}/${ENUM}`, enumFile({ kind: RING_ITEMS, limit: ITEM_COUNT, names, why: 'ring item id = 2·id into the 162 pointers at $8E:8000; code follows the entries ($8E:8654)' }));

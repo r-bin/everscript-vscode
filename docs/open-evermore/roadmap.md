@@ -53,18 +53,18 @@ scripts have none (247 of 73,540 lines keep a `<0x…>` WRAM cell). Score: again
 | `maps/rooms` | 8.5 | 0 | objects `unknown_NN`; animation channels by position; metatile ids and object `cells` as hex (`"000"`, `"301 302"`); header numbers (`mainScreen: 23`); `metatiles.json` ~2,700 lines a room | step 2; header fields by name |
 | `scripts/rooms` | 8 | 0 | 287 of 2,766 scripts `unknown_NN` | name by what they do |
 | behaviours, attack_procs, animation_modes, `menus/*_actions`, `ring_flows`, `weapon_schools`, `graphics/fonts` | 8–8.5 | 0 | `what` in every file | one README per kind |
-| `equipment/armour`, `graphics/hud` | 7 | 0 / 7 | `"text_2": { "same_as": … }` unexplained; hud's `what` one long string | name the field; README |
+| `equipment/armour`, `graphics/hud` | 7 | 0 / 7 | `text_2` a text link since v0.469.0 (one empty text all 40 share; reader unknown); `slot` derived from code ranges (§7); hud's `what` one long string | armour slots kind (§7); README |
 | `maps/tiles`, `palettes/backgrounds`, `alchemy/alchemy_levels` | 7 | 0 | numbered names (6,690 `tile_xxxx`, 365 `palette_xxx`) | names by use, where known |
 | `scripts/global` | 6.5 | 0 | 223 of 522 `global_NN` | name by what they do |
 | `sprites/blocks_8`, `_16`, `metasprites` | 7.5 | 0 | blocks grouped by owner but still numbered (`<owner>/<owner>_block_xxxx`); metasprites named by what plays them | step 5b (`$C7–$C9` scripts) for relocation |
 | `strings` | 6 | 0 | 3,002 `string_xxxx`; `$C4` names not here | step 3 |
 | `alchemy/formulas`, `alchemy/ingredients` | 7 | 70 | targets by name (v0.469.0); `bit: "$0001"`; `held: "wram/ING_QTY_GREASE+11"` (a cell named off another item) | flag bits, step 6 |
 | `menus/ring_items`, `menus/rings` | 7.5 | 18 | `icon` and `palette` named (v0.464.0); `flags: "$000A"`, `$C4` names capped | flag names, step 3 |
-| `music/sounds` | 6 | 0 | only `{ sfx, package }` | — |
-| `equipment/weapons`, `bazooka_ammo` | 7.5 | 0 | all 9 animation slots, `unknown_1a`/`1c`, and `palette` named (v0.464.0); `skill: "WEAPON_SKILL_FIST+16"` | step 6 |
-| `characters/projectiles` | 7.5 | 32 | `animation` and `palette` named (v0.464.0); `projectile_NN`, `unknown_04`/`06`, `what` per file | README |
+| `music/sounds` | 6 | 0 | only `{ sfx, package }`: a driver effect number and its (derived) package, nothing says what it sounds like | §7: driver effects by name |
+| `equipment/weapons`, `bazooka_ammo` | 8 | 0 | all 11 animation slots named, `idle`/`idle_rare` decoded (v0.470.0); `skill: "WEAPON_SKILL_FIST+16"` | step 6 |
+| `characters/projectiles` | 8.5 | 0 | named by what throws them, field docs in one README (v0.470.0); `unknown_04`/`06` (no reader seen) | — |
 | `characters/records` | 8 | 142 | single `<name>.json` per character with named `palette`/`palette2` and 12 `animations` (v0.464.0); `name: "$C4705A"` | step 3 |
-| `music/packages` | 4 | 3,754 | 2,650 opaque `data_N.bin`; `to` is ARAM (the sound CPU's RAM), legitimate | decode sequences and samples; named ARAM regions |
+| `music/packages` | 4 | 3,754 | 2,650 opaque `data_N.bin`; `to` is ARAM (the sound CPU's RAM), legitimate but unnamed | §7: an ARAM map, then decode |
 | `animations` | 9 | 0 | 783 animations with `facing_mode`, inline symbolic scripts and programmatic palettes; `animate.json` (v0.465.0) | name unnamed frames by pose |
 
 Overall ~6.5: maps and scripts are near the product, everything that points into `$C4`, palettes or animations is
@@ -107,3 +107,47 @@ The Rooms tab already draws a tree's rooms from their files (`src/games/evermore
 | 6 | WRAM names for every remaining `$7E:` field ([wram.md](wram.md)) | R2 everywhere |
 | 7 | Editor §5.1–5.3 | one look, one click |
 | 8 | Growable in-place tables (ring items, item actions, weapons, formulas); ingredients, consumables, named items first: [../todo/growable-items.md](../todo/growable-items.md) | adding, not repurposing (review §4) |
+
+## 7. Owner's review, 2026-11-25: answers and what is next
+
+Built in v0.470.0: projectile names, weapon idle animations, ring icons as previews only, `characters/experience/`
+([progress.md](progress.md) log). The rest, with what was found:
+
+- **Known tables not exploded yet** (the Data tab's list, `src/games/evermore/data-tab/model/tables.ts`, against a fresh
+  tree). Content a hack edits, in order of value: Dog growth curves (`$8C:9515`) beside `characters/experience/`; Dog
+  forms (`$8F:945D`: animations and palettes, today only names in `animation-analysis.mts`); weapon skill thresholds
+  (`$C4:5B4A`, a weapon school's levels); Call Bead spell powers (`$C4:5F17`) and the script cast spells
+  (`$C4:5F97`); the sfx distance curve (`$8C:84D4`); the dialogue dictionaries (`$91:F32E`, `$F3EC`, `$F46C`: the
+  strings encoder's, a translation would change them). Engine constants stay in `_base/` (sine `$80:88A3`, the boomerang
+  ellipse `$80:8923`, squares `$80:AA27`). Already kinds: XP, projectiles, armour, weapons, ammo, formulas, ingredients,
+  consumables, ring icons, rooms, enter scripts, opcodes, behaviours, attack procs, sound ids.
+- **Vigor's boomerang and `projectile()`**: yes, id 6 (`vigor_boomerang`) is in the script table, but a script launch
+  runs `script_routine` (the straight flight), so it would not orbit; set `script_routine` to its `routine`
+  ([resources.md](resources.md) §projectiles). Not tried in game.
+- **Colour variants as groups** (planned): records that draw with the same animations, grouped by the owner folder of
+  those animations: 25 families, 57 records (`flower_black`/`_orange`/`_purple`, `raptor_*`, `slime_*`, `rat_*`, `boy` and
+  `boy_black`, `dog` and `dog_1_black`/`dog_4_black`, the two Thraxx fights' parts, `tinker`/`tinker_twin`, …). Layout as
+  sprite blocks (v0.467.0): `characters/records/<family>/<name>.json`, names unchanged (scripts say `spawn flower_orange`),
+  the family named by the shared prefix (`flower/`), its animations' owner folder renamed the same. Needs the records
+  codec's paths, the Rooms tab's tree reader and the animation owner rule. Also open there: records still write animations
+  bare (`bee/stand`, not `animations/bee/stand`) and `name` as `$C4…` (step 3).
+- **Armour `slot`**: code, not data (id ranges in `$8E:9DAE`, equipped words `$0AC0`-`$0AC4`, `$0ABE`); a new type is an
+  `armour_slots` kind plus a ring, a ring flow entry, a saved equipped word (W2) and the defence sum taught it
+  ([resources.md](resources.md) §equipment). After W2.
+- **Weapon schools**: weapons already link theirs (`"school": "equipment/weapon_schools/axe"`); a school is what the
+  skill screen draws and whether the quarter-attack bonus applies.
+- **ARAM** (`"to": "$206C"`): yes, those are sound-CPU addresses. Named regions need an `aram` knowledge space like
+  `wram/` (the driver at `$0700`, its tables: songs `$2EB8`, instruments `$2124`; the small transfers every package makes
+  around `$1F38`-`$21FF` (role not decoded); the large ones higher up (`$678E`-`$BE5E` in one package); the echo buffer `$D400-$FBFF`; `$2400-$3ABF` unused
+  everywhere: [../todo/audio-and-music.md](../todo/audio-and-music.md), the SPC dumper notes). Then a transfer names its
+  target (`"to": "aram/INSTRUMENT_TABLE+12"`) and the pieces get roles (sequence, instrument, sample).
+- **Sounds** (`{ "sfx": 15, "package": "sound_base" }`): `sfx` is the sound driver's effect number (the script id → effect
+  table `$8C:8362`), `package` derived (`$81:9A1E`). To read: a `music/effects/` kind naming the driver's effects (and
+  what loads each), so a sound says `"effect": "music/effects/explosion"`; `package` is then the effect's. Names from
+  listening (the Music tab plays effects).
+- **Weapon `description`, armour `text_2`**: text links since v0.469.0 (`strings/menu/…`); the `out/open-evermore` tree
+  the review read was exploded with v0.467.0: re-explode (`--force`).
+- **Open naming debt found on the way**: routines still named for the Dog though they serve the Boy's idle
+  (`dog_forage_random_timer_reset`, `animation_script_reset_dog_forage_timer`; bound C uses the first), to rename with
+  their C file.
+

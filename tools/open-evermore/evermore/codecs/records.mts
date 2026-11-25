@@ -48,7 +48,8 @@ export interface Field {
     /** File offset of id 0's field; id k's is `at + stride·k`. */
     at: number;
     stride: number;
-    width?: 1 | 2;
+    /** Bytes (default 2); 3: a 24-bit number (the experience tables). */
+    width?: 1 | 2 | 3;
     form: Form;
     /** The ids that have this field (default: all). */
     ids?: (id: number) => boolean;
@@ -109,7 +110,9 @@ function setPath(v: any, path: string, value: unknown): void {
     v[ss[ss.length - 1]] = value;
 }
 
-const word = (b: Uint8Array, at: number, width: number) => width === 1 ? b[at] : b[at] | (b[at + 1] << 8);
+const word = (b: Uint8Array, at: number, width: number) => width === 1 ? b[at] : width === 3 ? b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) : b[at] | (b[at + 1] << 8);
+/** A field's bytes, little-endian. */
+const bytesOf = (x: number, width: number) => Uint8Array.from({ length: width }, (_, k) => (x >> (8 * k)) & 0xFF);
 
 /** Every records kind's `prepare`: a kind's names may be asked for by another kind's explode first. */
 const PREPARE: ((rom: Uint8Array) => void)[] = [];
@@ -129,7 +132,7 @@ export function recordsCodec(r: Records): Codec {
 
     /** A field's value as the file holds it → its number, or the reason it is none (a text: its name; an animation: its). */
     function value(f: Field, v: unknown, ctx: ImplodeContext): number | { text: string } | { anim: string } | { error: string } {
-        const form = f.form, max = form.type === 'number' && form.max !== undefined ? form.max : (f.width ?? 2) === 1 ? 0xFF : 0xFFFF;
+        const form = f.form, max = form.type === 'number' && form.max !== undefined ? form.max : 2 ** (8 * (f.width ?? 2)) - 1;
         switch (form.type) {
             case 'number': return Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max ? v as number : { error: `a whole number 0-${max}` };
             case 'hex': { const n = parseHex(v, max, form.bank); return n ?? { error: form.bank === undefined ? `"$${'x'.repeat(2 * (f.width ?? 2))}"` : `"$${form.bank.toString(16).toUpperCase()}:xxxx"` }; }
@@ -293,8 +296,7 @@ export function recordsCodec(r: Records): Codec {
                         if (off === null) continue;
                         x = off;
                     }
-                    const width = f.width ?? 2, n16 = x as number;
-                    writes.push({ at: fieldAt(f, id), bytes: width === 1 ? Uint8Array.of(n16) : Uint8Array.of(n16 & 0xFF, n16 >> 8), file: path });
+                    writes.push({ at: fieldAt(f, id), bytes: bytesOf(x as number, f.width ?? 2), file: path });
                 }
             }
             return writes;

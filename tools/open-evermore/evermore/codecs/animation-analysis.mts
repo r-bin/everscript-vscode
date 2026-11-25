@@ -5,6 +5,7 @@ import type { CountOf, ImplodeContext, NameAt, NameOf } from '../../codec.mts';
 import { NAME_RE, readText } from '../../tree.mts';
 import { ANIMATION_SLOTS, CHARACTERS, STRIDE as CHAR_STRIDE, characterNames, recordsAt } from './characters.mts';
 import { nameRingItems } from './menus.mts';
+import { animProjectileName, projectileDefaultName } from './projectile-names.mts';
 import { hexText, tableAt } from './readers.mts';
 import type { Reader } from './readers.mts';
 import { KIND as SCRIPTS, scriptLayout } from './scripts.mts';
@@ -228,7 +229,7 @@ export function analyzeAnimations(rom: Uint8Array, name: NameOf, countOf: CountO
         const rec = WEAPON_RECORDS + WEAPON_STRIDE * k, wSlug = ringSlug(word(rom, rec + 0x1E) / 2, 'weapon');
         const school = SCHOOL_NAMES[word(rom, WEAPON_SCHOOLS_TABLE + 2 * (k + 1)) / 2] ?? 'sword', pal = word(rom, rec + 0x04);
         WEAPON_SLOTS.forEach((slot, s) => { const r = word(rom, rec + 0x08 + 2 * s); if (r) push(weaponUses, r, { name: wSlug, school, slot, pal, kind: 'weapon' }); });
-        for (const [slot, o] of [['unknown_1a', 0x1A], ['unknown_1c', 0x1C]] as const) { const r = word(rom, rec + o); if (r) push(weaponUses, r, { name: wSlug, school, slot, pal, kind: 'weapon' }); }
+        for (const [slot, o] of [['idle', 0x1A], ['idle_rare', 0x1C]] as const) { const r = word(rom, rec + o); if (r) push(weaponUses, r, { name: wSlug, school, slot, pal, kind: 'weapon' }); }
     }
     for (let k = 0; k < AMMO_COUNT; k++) {
         const rec = AMMO_RECORDS + WEAPON_STRIDE * k, aSlug = ringSlug(word(rom, rec + 0x1E) / 2, 'ammo'), pal = word(rom, rec + 0x04);
@@ -269,7 +270,7 @@ export function analyzeAnimations(rom: Uint8Array, name: NameOf, countOf: CountO
         if (!r) continue;
         const tid = projTable.indexOf(addr16);
         const rt = countOf('projectiles') !== undefined ? nameAt('projectiles', pAt) : undefined;
-        const pName = rt ?? (tid >= 0 ? (countOf('projectiles') !== undefined ? name('projectiles', tid) : `projectile_${String(tid).padStart(2, '0')}`) : `anim_projectile_${String(animProjIdx.indexOf(addr16)).padStart(2, '0')}`);
+        const pName = rt ?? (tid >= 0 ? (countOf('projectiles') !== undefined ? name('projectiles', tid) : projectileDefaultName(tid)) : animProjectileName(animProjIdx.indexOf(addr16)));
         push(projUses, r, { name: pName, pal, throwers: projThrowers.get(addr16) ?? [] });
     }
     try { for (const f of (alchemyModel(rom) as { formulas: { name: string; records: { record: number }[] }[] }).formulas) for (const r of f.records) push(alchUses, r.record, { name: slug(f.name) }); } catch { /* optional */ }

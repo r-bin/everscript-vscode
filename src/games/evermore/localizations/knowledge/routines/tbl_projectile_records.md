@@ -16,5 +16,8 @@ movement dispatch routine ID (`+0x08`), behavior type (`+0x0C`: falling, timed, 
 speed in 1/16 px per tick (`+0x0E`), and base power (`+0x16`). Spawned by animation command `$4C`.
 `+0x0A` is the setup routine when script opcode `0xB5` launches the record (`$90:DCDD`), `+0x14` its attack proc
 (2·id, `g_attack_proc_table`). 16 of the 21 are listed by `SCRIPT_PROJECTILE_TABLE` and written as
-`characters/projectiles/projectile_NN`; the other five (`$D9EE`, `$DB0E`, `$DB26`, `$DB56`, `$DB6E`) only animation scripts throw (opcode `$4C`) and are `anim_projectile_00`..`04` (v0.465.0).
+`characters/projectiles/<name>`, named by what throws them (v0.470.0, `projectile-names.mts`: `vigor_boomerang` is id 6,
+`vigor_arena_throw_1`-`4` ids 9-12, which Vigor's colosseum scripts launch by `temp[21]`); the other five (`$D9EE`, `$DB0E`,
+`$DB26`, `$DB56`, `$DB6E`) only animation scripts throw (opcode `$4C`): `spear_piercing_streak`, `dog_act4_attack_0_shot`,
+`dog_act4_attack_2_shot`, `gate_bot_shot`, `guard_bot_shot`.
 

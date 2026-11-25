@@ -16,5 +16,8 @@ Core per-frame human movement and controller input handler for the Boy:
 - Gated by full stamina gauge: requires `$4EB7 >= 0x0400` (1024 points).
 - Drains 3 stamina units per frame while running (`ADC #$FFFD`).
 - Decodes D-pad bits `$0105 & $000F` into 16-way directional heading via `$8F:CC0E`.
+- Idle animation: saves `BOY_IDLE_TIMER` (`$1464`), reloads it (`$8F:B28D`), and with no direction held writes the saved
+  value - 1 back (`$8F:CE91`): at 0 it draws `BOY_IDLE_ROLL` and plays `BOY_IDLE_ANIMATION` (15 in 16) or
+  `BOY_IDLE_ANIMATION_RARE` (`$8F:CEB6`); no idle when `$1460` is 0.
 - Dispatches Ring Menu triggers on Y button (`$05A7 = $4E89`, `$05A9 |= 0x0002`) and attack swing via `$8C:ABED`.
 Full clean C decompilation: `docs/disassembly/engine-core/player-movement.md`.

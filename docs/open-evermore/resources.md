@@ -512,14 +512,25 @@ record addresses in bank `$90`, read only by `lda.l $90D986,x` at `$8C:E851`, X 
 animation throws it), `script_routine` (`+$0A`, setup when a script launches it), `behaviour` (`+$0C`, the tick) by
 routine name (the table `$90:D967`, 2·k, k ≤ 14; a selector outside it as hex), `speed`, `lifetime`, `z_speed`,
 `attack_proc` by its `attack_procs/` name, `power` (0: the thrower's attack by its stamina). Decoder:
-`maps/projectiles.ts`. Names: `projectile_<id>` (no names known yet; vanilla scripts launch 13-15 as constants).
+`maps/projectiles.ts`. Names (v0.470.0, `projectile-names.mts`) by what throws each: the animation that throws it
+(`vigor_boomerang`: `vigor/attack_1`; `bazooka_shell`: every ammo's `attack_1`), or the scripts that launch it
+(`vigor_arena_throw_1`-`4`: Vigor's colosseum scripts pick 2·id 18-24 at random into `temp[21]`; `cutscene_trail`,
+`script_strike`, `falling_shell`: cutscenes and the final boss). What each field does is in the kind's `README.md`, once
+(not a `what` in every file).
+
+- **Vigor's boomerang from a script.** Possible: `projectile vigor_boomerang, …` is a valid script line (id 6 is in the
+  table), but a script launch runs the record's `script_routine`, which for ids 0-12 is the straight flight to the
+  target (`projectile_motion_straight_to_target`); the tick (`behaviour`, the orbit) then runs on an ellipse its setup
+  never placed. For the orbit, set `script_routine` to the boomerang's `routine` (`projectile_trajectory_polar_to_cartesian`):
+  implode takes it (one word at `$90:DA58`), not tried in game. A copy with its own setup needs a free record, and bank
+  `$90` has none: repurpose one of ids 9-12 (only Vigor's colosseum uses them).
 
 - **Implode generates** the table, in place (the records follow it: 16 ids, no gap).
 - **Records stay home.** Animation command `0x4C` throws records by their address, from animation scripts in
   `_base/`, so each record is an item only its home fits; a renamed projectile keeps its id's home (vanilla lists them
   in address order). A new one is an error (`no-room`: bank `$90` has no free byte). The five records the table does
   not list (`$D9EE`, `$DB0E`, `$DB26`, `$DB56`, `$DB6E`) stay in `_base/`.
-- **Next.** Records that move once animation scripts name them; names from what each projectile is.
+- **Next.** Records that move once animation scripts name them (they do since v0.465.0; the home rule is what is left).
 
 ## fonts, hud *(built, 2026-11-21; sliced v0.454.0)*
 
@@ -627,7 +638,8 @@ place; counts are fixed. Facts: knowledge `RING_ITEMS`, `RING_BUFFERS`, `RING_LO
 the Call Bead rings formula actions and shop options, and ids `$F8`-`$116` unused formulas).
 
 ```
-menus/ring_items/<item>.json    { name (a text), icon, palette, index | action | formula }; <item>.png a preview (derived)
+menus/ring_items/<item>.json    { name (a text), icon, palette, index | action | formula }; <item>.png a preview, only
+                                with `explode --previews` (v0.470.0: `icon` is the animation, animated icons included)
 menus/rings/<ring>.json         { buffer, loop, flags, items | items_by_caller (code immediates), filled_from (derived) }
 menus/ring_flows/<flow>.json    { rings: [...] }: what Up/Down cycles through, in order
 menus/<x>_actions/<entry>.json  { handler, what }: what pressing an item does (option, item, alchemy, caller, spell)
@@ -736,7 +748,7 @@ v0.456.0: the pointer table is 57 words with the armour's, armour `+2` is the de
 
 ```
 equipment/weapons/<weapon>.json        { school, owned {flags, bit}, description, name, ring_item, attack, range, palette,
-                                         animations {stand … knockback}, unknown_1a, unknown_1c; skill (derived) }
+                                         animations {stand … knockback, idle, idle_rare}; skill (derived) }
 equipment/bazooka_ammo/<ammo>.json     the same record fields (the Bazooka's record is its ammo's)
 equipment/weapon_schools/<school>.json { skill_screen {draw, loop}; what (derived) }
 equipment/armour/<armour>.json         { name, ring_item, defense, defense_shown, text_2; slot (derived) }
@@ -744,9 +756,11 @@ equipment/armour/<armour>.json         { name, ring_item, defense, defense_shown
 
 - **weapons** (14, the weapon index: `fist`, 12 weapons, `bazooka`): `name` is the text the record shows (its ring
   item's, `strings/menu/`); `ring_item` the item the weapons ring shows; `owned` the WRAM byte and bit
-  (`$22DA`/`$22DB`: bits `$40`, `$80` of `$22DB` are free); `palette` names a `palettes/sprites/` entry, `animations` and
-  `unknown_1a`/`unknown_1c` name `animations/` entries `boy_load_weapon` copies into the Boy's character record;
-  `description` the weapon skill page's line (a text). The fist has only a school; the Bazooka has no record
+  (`$22DA`/`$22DB`: bits `$40`, `$80` of `$22DB` are free); `palette` names a `palettes/sprites/` entry, `animations` name
+  `animations/` entries `boy_load_weapon` copies into the Boy's character record. `idle`/`idle_rare` (record
+  `+$1A`/`+$1C`, v0.470.0; were `unknown_1a`/`1c`) go to `BOY_IDLE_ANIMATION`/`_RARE` (`$1460`/`$1462`): after
+  1200-3247 frames standing still the Boy plays `idle` (15 rolls in 16) or `idle_rare` (1 in 16); vanilla gives both
+  the same animation, none for the spears; `description` the weapon skill page's line (a text). The fist has only a school; the Bazooka has no record
   of its own (its ammo's).
 - **weapon schools** (4: `sword`, `axe`, `spear`, `bazooka`): a weapon's `school` is 2·id. What a school is, is code:
   the weapon skill screen (options ring) jumps by the equipped weapon's school to a draw and a loop of its own page
@@ -754,7 +768,14 @@ equipment/armour/<armour>.json         { name, ring_item, defense, defense_shown
   (`$8F:8491`). So a school can point at another school's page; a new school needs a page (code in `$8D`) and a slot in
   both jump tables (code follows them).
 - **armour** (40): 12 body, 12 helm, 12 gloves, 4 collars (`slot`, derived). `text_2` is one empty text all 40 share
-  (`$C4:60AD`, `strings/menu/empty`); what reads it is not known.
+  (`$C4:60AD`, `strings/menu/empty`; was `{ same_as }` before v0.469.0); what reads it is not known.
+- **The slot is code, not data** (v0.470.0, `ring_menu_inventory_item_availability_filter` `$8E:9DAE`): the id ranges
+  0-11, 12-23, 24-35, 36-39 go to the body, helm, gloves and collar rings (`$0BFF`, `$0C23`, `$0C47`, `$0C6B`), the
+  cursor sits on what `$0AC0`/`$0AC2`/`$0AC4` (the Boy) and `$0ABE` (the Dog) hold, and the defence adds those words. So
+  `slot` stays derived. **A new armour type** needs: a slot kind (`equipment/armour_slots/<slot>.json`: its ids, its ring,
+  its equipped WRAM word) with the filter's range immediates generated; a ring buffer and a ring flow entry (menus); an
+  equipped word in the save area (WRAM W2+, [wram.md](wram.md)); and the defence sum (`$8F:84BD`) taught a fourth Boy
+  word. Tracked in [roadmap.md](roadmap.md) §7.
 - **Proven** (v0.456.0): G0 alone and with every kind, seeds 1 and 2026 round-trip; an attack, a school and a defence
   land in place (`g0.test.mts`). Not yet seen in game.
 - **To add a weapon or a school** (open): every per-weapon table holds 14 words with the next table right after it, the
@@ -809,6 +830,21 @@ alchemy/alchemy_levels/level_<n>.json  { experience_per_cast (0-8), power_factor
   with code after it, and WRAM holds 35 of everything, packed: learned bits `$2258`-`$225C` (5 bits free), experience
   `$2F52`, level `$2F98`, casts `$2FDE` (35 words each, back to back). The WRAM is what cannot grow today:
   [wram.md](wram.md).
+
+## experience — XP per level *(built, v0.470.0)*
+
+```
+characters/experience/boy.json   { next_level_at: [100 numbers] }   by level 0-99: the total experience for the next
+characters/experience/dog.json   { next_level_at: [99 numbers] }    level (24-bit); the Boy's 99th is 16777215 (none)
+```
+
+Two tables in bank `$8C` read in place (`records.mts`, 3-byte fields): the Boy's `$8C:8BD0` (100 entries), the Dog's
+right after it, `$8C:8CFC` (99: the three bytes after them are the next table's, and the Dog stops at level 99 before
+it reads them). Readers (`lda.l table,x`, checked at explode in place of the values): the level-up copy `$8D:B676`,
+`$B67E`, `$B691`, `$B699` and the level-up check `$8F:8336`, `$833D`, `$851B`, `$8522`. Facts: knowledge
+`BOY_XP_PER_LEVEL`, `DOG_XP_PER_LEVEL`. Counts fixed (moving the tables means rewriting those operands; not done).
+**Proven**: G0 (vanilla sha1), seeds 1 and 2026 round-trip, an edited level lands at its byte (`$8C:8BD3`); not seen in
+game.
 
 ## items — consumables, named items *(built, v0.461.0)*
 

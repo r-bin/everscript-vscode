@@ -20,6 +20,7 @@ import type { Tree } from '../../tree.mts';
 import { ANIMATIONS, animationInitialOffset, animationPlacedOffset, animationRef } from './animations.mts';
 import { ATTACK_PROCS } from './handler-tables.mts';
 import { hexText, parseHex, routines } from './readers.mts';
+import { ANIM_PROJECTILE_NAMES, animProjectileName, PROJECTILE_NAMES, projectileDefaultName } from './projectile-names.mts';
 import { SPRITE_PALETTES, spritePaletteAddr, spritePaletteName } from './sprite-palettes.mts';
 
 const require = createRequire(import.meta.url);
@@ -49,6 +50,23 @@ const WHAT: Record<string, string> = {
     lifetime: '+$10: ticks (entity +$1E)', z_speed: '+$12: entity +$24 (routines $02, $04, $16, $18)',
     attack_proc: '+$14: contact handler (entity +$2A)', power: '+$16: damage power; 0 = the thrower\'s attack by its stamina',
 };
+
+const README = 'README.md';
+/** The kind's README: what each field of a record does (one place, not in every file). */
+const readme = () => [
+    '# Projectiles', '',
+    'One file per projectile record (24 bytes in bank `$90`). The 16 in `_enum.json` are the ids script opcode `0xB5`',
+    '(`projectile`) launches; the others only animation scripts throw (`projectile <name>, dx, dy, dz`, opcode `0x4C`).',
+    'Names say what throws each (tools/open-evermore/evermore/codecs/projectile-names.mts). Records stay where they are',
+    '(bank `$90` has no free byte): change one, do not add one.', '',
+    '| Field | Does |', '|---|---|',
+    ...Object.entries(WHAT).map(([k, w]) => `| \`${k}\` | ${w} |`),
+    '| `unknown_04`, `unknown_06` | +$04, +$06: no reader seen |', '',
+    'An animation throws with `routine`; a script launches with `script_routine`; both then tick `behaviour`. A script can',
+    'launch any id, but it runs that record\'s `script_routine` (vanilla: the straight flight for ids 0-12), so the',
+    'boomerang (`vigor_boomerang`) launched by a script flies straight: give it `script_routine:',
+    'projectile_trajectory_polar_to_cartesian` (its `routine`) for the orbit (not tried in game).', '',
+].join('\n');
 
 /** The routine table's words (k ≤ 14), from an image whose $90:D967 is vanilla's. */
 const routineWords = (image: Uint8Array): number[] => Array.from({ length: ROUTINE_COUNT }, (_, k) => image[ROUTINES + 2 * k] | (image[ROUTINES + 2 * k + 1] << 8));
@@ -118,10 +136,10 @@ export function projectileNameAt(rom: Uint8Array, addr16: number, name: NameOf, 
     if (rt !== undefined) return rt;
     const addrs = tableOf(rom);
     const id = addrs.indexOf(addr16);
-    if (id >= 0) return countOf(KIND) !== undefined ? name(KIND, id) : `projectile_${String(id).padStart(2, '0')}`;
+    if (id >= 0) return countOf(KIND) !== undefined ? name(KIND, id) : projectileDefaultName(id);
     const animOnly = allRecordAddrs().filter(a => !addrs.includes(a));
     const idx = animOnly.indexOf(addr16);
-    if (idx >= 0) return `anim_projectile_${String(idx).padStart(2, '0')}`;
+    if (idx >= 0) return animProjectileName(idx);
     return null;
 }
 
@@ -132,10 +150,13 @@ export function projectileInitialOffset(ctx: ImplodeContext, projName: string): 
     const id = ctx.ids.get(KIND)?.get(projName);
     if (id !== undefined && id < COUNT) return tableOf(ctx.base.image)[id];
     const addrs = tableOf(ctx.base.image);
-    const m = /^projectile_(\d+)$/.exec(projName);
+    // Not exploded: the default names (projectile-names.mts), or the numbered names of trees before v0.470.0.
+    const k = PROJECTILE_NAMES.indexOf(projName), m = /^projectile_(\d+)$/.exec(projName);
+    if (k >= 0) return addrs[k];
     if (m && Number(m[1]) < COUNT) return addrs[Number(m[1])];
     const animOnly = allRecordAddrs().filter(a => !addrs.includes(a));
-    const ma = /^anim_projectile_(\d+)$/.exec(projName);
+    const ka = ANIM_PROJECTILE_NAMES.indexOf(projName), ma = /^anim_projectile_(\d+)$/.exec(projName);
+    if (ka >= 0 && ka < animOnly.length) return animOnly[ka];
     if (ma && Number(ma[1]) < animOnly.length) return animOnly[Number(ma[1])];
     return null;
 }
@@ -143,10 +164,11 @@ export function projectileInitialOffset(ctx: ImplodeContext, projName: string): 
 export const projectilesCodec: Codec = {
     kind: KIND, version: 3, path: DIR, folder: `characters/${DIR}`, listedIdsOnly: true,
 
-    defaultName: id => `projectile_${String(id).padStart(2, '0')}`,
+    defaultName: projectileDefaultName,
 
-    // The fields are the record; `what` is for the reader.
+    // The fields are the record; README.md (what each field does) and an old tree's `what` are for the reader.
     canonical(path, bytes) {
+        if (path === `${DIR}/${README}`) return null;
         if (path === `${DIR}/${ENUM}`) return [path, bytes];
         const v = JSON.parse(readText(bytes));
         delete v.what;
@@ -161,14 +183,15 @@ export const projectilesCodec: Codec = {
         const animOnly = allRecordAddrs().filter(a => !addresses.includes(a));
         for (const addr of allRecordAddrs()) {
             const tid = addresses.indexOf(addr);
-            const n = tid >= 0 ? names[tid] : (nameAt(KIND, fileOf(addr)) ?? `anim_projectile_${String(animOnly.indexOf(addr)).padStart(2, '0')}`);
+            const n = tid >= 0 ? names[tid] : (nameAt(KIND, fileOf(addr)) ?? animProjectileName(animOnly.indexOf(addr)));
             const at = fileOf(addr), r = projectileRecord(rom, addr);
             const v: Record<string, unknown> = {};
             for (const [field, key, form] of FIELDS) v[field] = fieldText(rom, r[key], form, words, name, countOf, nameAt);
-            files.set(`${DIR}/${n}.json`, json({ ...v, what: WHAT }));
+            files.set(`${DIR}/${n}.json`, json(v));
             pool.push({ start: at, end: at + PROJECTILE_STRIDE });
             homes.push({ key: `${DIR}/${n}`, at, length: PROJECTILE_STRIDE, sha1: sha1(rom.subarray(at, at + PROJECTILE_STRIDE)) });
         }
+        files.set(`${DIR}/${README}`, new TextEncoder().encode(readme()));
         files.set(`${DIR}/${ENUM}`, enumFile({ kind: KIND, limit: COUNT, names, why: 'the table at $90:D986 (lda.l $90D986,x at $8C:E851, X = 2·id) holds 16 words; the 21 records follow at $90:D9A6-$DB9D (5 used only by animation scripts)' }));
         return { files, pool, tables: [{ start: TABLE, end: TABLE + 2 * COUNT }], homes };
     },
@@ -176,7 +199,7 @@ export const projectilesCodec: Codec = {
     names({ tree, findings }) {
         const names = new Set<string>();
         for (const path of tree.keys()) {
-            if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}`) continue;
+            if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}` || path === `${DIR}/${README}`) continue;
             const m = /^projectiles\/([^/]+)\.json$/.exec(path);
             if (m) names.add(m[1]); else findings.warning('unknown-file', path, '', 'a projectile is one <name>.json; ignored');
         }

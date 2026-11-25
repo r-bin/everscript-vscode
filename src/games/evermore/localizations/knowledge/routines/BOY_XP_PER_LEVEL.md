@@ -16,7 +16,9 @@ indexed by the level byte at `$0A50`; the game copies the entry for the current 
 `$7E:4F1D` when the level changes, and the XP counter is compared against that. 100 entries
 (levels 0–99); the last is `$FFFFFF`, so there is no level after 99.
 
-The dog's table follows directly (`$8C:8CFC`). The Data tab draws both (Tables › XP per level).
+The dog's table follows directly (`$8C:8CFC`). The Data tab draws both (Tables › XP per level). Open Evermore:
+`characters/experience/boy.json` and `dog.json` (`next_level_at`, by level; v0.470.0), written in place; the readers'
+operands are `$8D:B676`, `$B67E`, `$B691`, `$B699`, `$8F:8336`, `$833D`, `$851B`, `$8522`.
 
 ## Notes
 - Which level number entry 0 belongs to (the byte at `$0A50` counting from 0 or from 1) is not

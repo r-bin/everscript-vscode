@@ -9,7 +9,8 @@
 //          writes each palette as a 128×8 stripe of its 16 colours instead of JSON; --tiles json writes tiles as
 //          rows of hex digits instead of indexed PNGs (both kept in manifest.json). --kinds explodes only those kinds
 //          (the rest stays in _base/; implode and prove use the manifest's list): to prove kinds apart. --previews
-//          also draws each room as maps/rooms/<map>/preview.png (for the reader; nothing reads it back).
+//          also draws each room as maps/rooms/<map>/preview.png and each ring item's icon as
+//          menus/ring_items/<item>.png (for the reader; nothing reads them back).
 // implode: the tree → <dir>/_build/evermore.sfc (only without errors), report.md, report.json. --random shuffles
 //          where every resource goes (a seed reproduces a layout; without one, a new seed is drawn and printed) and
 //          grows the image to 4 MiB, the 4th MB free. --strict keeps every encoding as written (scripts: relative
@@ -61,7 +62,7 @@ function runExplode(args: string[], flag: (n: string) => boolean, value: (n: str
         options.sprite_palettes = { format: palettes };
     }
     if (tiles && tiles !== 'png') options.tiles = { format: tiles };
-    if (previews) options.maps = { previews: 'png' };
+    if (previews) { options.maps = { previews: 'png' }; options.ring_items = { previews: 'png' }; }
     const tree = explode(rom, { release: identifyRom(rom).variant, sha1: sha1(rom), explodedWith: TOOL_VERSION }, GAME, kindsOf(only), undefined, options);
     if (only) { const m = JSON.parse(readText(tree.get(MANIFEST)!)); m.kinds = only; tree.set(MANIFEST, json(m)); }
     // A tree is replaced whole (but its builds): a folder of a kind since renamed or merged (enemies/ into
@@ -70,7 +71,7 @@ function runExplode(args: string[], flag: (n: string) => boolean, value: (n: str
     writeTree(out, tree);
     const bytes = [...tree.values()].reduce((s, b) => s + b.length, 0);
     console.log(`Exploded ${path} → ${out}: ${tree.size} files, ${bytes} bytes.`);
-    console.log(`Next: node tools/open-evermore/open-evermore.mts implode ${relative(process.cwd(), out) || '.'} [--random]`);
+    console.log(`Next: node tools/open-evermore/open-evermore.mts implode ${out} [--random]`);
     return 0;
 }
 

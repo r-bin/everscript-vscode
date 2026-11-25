@@ -2230,25 +2230,25 @@
 #define RING_MENU_WEAPON_CURSOR_SPRITE_BANK_SIZE 1
 #define RING_MENU_WEAPON_CURSOR_SPRITE_BANK RAM8(RING_MENU_WEAPON_CURSOR_SPRITE_BANK_ADDR)
 
-/* dog_sniff_target_x ($7E1460-$7E1461, ram): src/games/evermore/localizations/data/wram-map.md */
-#define DOG_SNIFF_TARGET_X_ADDR 0x1460u
-#define DOG_SNIFF_TARGET_X_SIZE 2
-#define DOG_SNIFF_TARGET_X RAM16(DOG_SNIFF_TARGET_X_ADDR)
+/* BOY_IDLE_ANIMATION ($7E1460-$7E1461, ram): src/games/evermore/localizations/data/wram-map.md */
+#define BOY_IDLE_ANIMATION_ADDR 0x1460u
+#define BOY_IDLE_ANIMATION_SIZE 2
+#define BOY_IDLE_ANIMATION RAM16(BOY_IDLE_ANIMATION_ADDR)
 
-/* dog_sniff_target_y ($7E1462-$7E1463, ram): src/games/evermore/localizations/data/wram-map.md */
-#define DOG_SNIFF_TARGET_Y_ADDR 0x1462u
-#define DOG_SNIFF_TARGET_Y_SIZE 2
-#define DOG_SNIFF_TARGET_Y RAM16(DOG_SNIFF_TARGET_Y_ADDR)
+/* BOY_IDLE_ANIMATION_RARE ($7E1462-$7E1463, ram): src/games/evermore/localizations/data/wram-map.md */
+#define BOY_IDLE_ANIMATION_RARE_ADDR 0x1462u
+#define BOY_IDLE_ANIMATION_RARE_SIZE 2
+#define BOY_IDLE_ANIMATION_RARE RAM16(BOY_IDLE_ANIMATION_RARE_ADDR)
 
-/* DOG_FORAGE_COOLDOWN_TIMER ($7E1464-$7E1465, ram): src/games/evermore/localizations/data/wram-map.md */
-#define DOG_FORAGE_COOLDOWN_TIMER_ADDR 0x1464u
-#define DOG_FORAGE_COOLDOWN_TIMER_SIZE 2
-#define DOG_FORAGE_COOLDOWN_TIMER RAM16(DOG_FORAGE_COOLDOWN_TIMER_ADDR)
+/* BOY_IDLE_TIMER ($7E1464-$7E1465, ram): src/games/evermore/localizations/data/wram-map.md */
+#define BOY_IDLE_TIMER_ADDR 0x1464u
+#define BOY_IDLE_TIMER_SIZE 2
+#define BOY_IDLE_TIMER RAM16(BOY_IDLE_TIMER_ADDR)
 
-/* DOG_FORAGE_ALERT_ANIM_STEP ($7E1466-$7E1467, ram): src/games/evermore/localizations/data/wram-map.md */
-#define DOG_FORAGE_ALERT_ANIM_STEP_ADDR 0x1466u
-#define DOG_FORAGE_ALERT_ANIM_STEP_SIZE 2
-#define DOG_FORAGE_ALERT_ANIM_STEP RAM16(DOG_FORAGE_ALERT_ANIM_STEP_ADDR)
+/* BOY_IDLE_ROLL ($7E1466-$7E1467, ram): src/games/evermore/localizations/data/wram-map.md */
+#define BOY_IDLE_ROLL_ADDR 0x1466u
+#define BOY_IDLE_ROLL_SIZE 2
+#define BOY_IDLE_ROLL RAM16(BOY_IDLE_ROLL_ADDR)
 
 /* BAZOOKA_BASE_ATTACK_POWER ($7E1468-$7E1469, ram): src/games/evermore/localizations/data/wram-map.md */
 #define BAZOOKA_BASE_ATTACK_POWER_ADDR 0x1468u

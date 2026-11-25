@@ -70,6 +70,7 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
 - An item that is the same content in another encoding sets `same` (not "changed"); one whose bytes
   shift against the written form gives `segments`, so `prove` maps WRAM pointers stretch by stretch.
 - Placement rules (`Rule` in `codec.mts`) carry timing as well as addressing (traps below).
+- Field docs go in one `<kind>/README.md` (projectiles), never a `what` per file: `names()` skips it, `canonical` drops it.
 
 ## Proving and debugging
 

@@ -8,7 +8,7 @@ name: DOG_XP_PER_LEVEL
 title: Dog XP needed for the next level, by level
 confidence: likely
 tags: [dog, exp, progression]
-evidence: ["disasm: $8D:B686 loads the dog's level byte $0A9A, computes (level + 1) * 3 and reads $8C:8CF9,X (= $8C:8CFC + level * 3) into $7E:4FCB-4FCD", "read: 99 rising 24-bit values in the clean US ROM, 0, 35, 115, 271 … 7562384; the bytes after them belong to another table (v0.327.0)"]
+evidence: ["disasm: the level-up check $8F:851B/$8F:8522 reads $8C:8CFD,X / $8C:8CFC,X", "disasm: $8D:B686 loads the dog's level byte $0A9A, computes (level + 1) * 3 and reads $8C:8CF9,X (= $8C:8CFC + level * 3) into $7E:4FCB-4FCD", "read: 99 rising 24-bit values in the clean US ROM, 0, 35, 115, 271 … 7562384; the bytes after them belong to another table (v0.327.0)"]
 see: [routines/BOY_XP_PER_LEVEL.md]
 ---
 The dog's version of the Boy's XP table (`$8C:8BD0`), right after it: the total experience the

@@ -16,6 +16,7 @@ import type { Tree } from '../../tree.mts';
 import { CHARACTERS, STRIDE as CHAR_STRIDE, characterNames, recordsAt } from './characters.mts';
 import { nameRingItems } from './menus.mts';
 import { PALETTE_ENTRY, PALETTE_FORMAT, PALETTE_VERSION, fromPng, hexColour, paletteStripePng, readPaletteBytes } from './palettes.mts';
+import { projectileDefaultName } from './projectile-names.mts';
 import { PROJECTILE_COUNT } from './projectiles.mts';
 
 const require = createRequire(import.meta.url);
@@ -125,7 +126,7 @@ function analyzeSpritePalettes(
         const pAt = (FILE_BANK << 16) | word(rom, PROJ_TABLE + 2 * id);
         const s = slot(word(rom, pAt + 2));
         if (s !== null) {
-            const pName = countOf('projectiles') !== undefined ? name('projectiles', id) : `projectile_${String(id).padStart(2, '0')}`;
+            const pName = countOf('projectiles') !== undefined ? name('projectiles', id) : projectileDefaultName(id);
             uses[s].projs.push(pName);
         }
     }
