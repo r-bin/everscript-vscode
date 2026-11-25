@@ -43,7 +43,7 @@ This document describes how multi-phase animations (e.g. Phase A and Phase B) ar
 When a formula is cast:
 1. The formula index (`0x00`..`0x44`, step 2) indexes `ALCHEMY_ANIM_MAP` at `$C4:5DDF`.
 2. This yields an offset into the table at `$91:80A6`, pointing to the formula's data block in Bank `$91` (e.g., `$91:86F0` for Acid Rain).
-3. The block is a **data structure, not 65816 code or bytecode**.
+3. The block is not 65816 code: it is a **program for the alchemy effect VM** (word-threaded: each op word indexes the 83 handlers at `$91:8000`, run by `$91:9750` while the handler returns carry set; operands inline; `knowledge/routines/ALCHEMY_BLOCK_TABLE.md`).
 4. 32 of the 35 vanilla formula blocks hold **one to three 16-bit animation record IDs** (`$C4:xxxx` pointing into the master animation table at `$C4:3E3A`) at even offsets `+4..+28`. (Three formulas—Atlas, Corrosion, and Escape—hold none).
 
 These multiple record IDs represent the different visual phases of the spell:

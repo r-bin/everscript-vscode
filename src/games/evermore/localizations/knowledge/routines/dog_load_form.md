@@ -14,3 +14,13 @@ The Dog's counterpart of the weapon loader: each act gives the Dog a form (word 
 no form; six follow), with its own palette, animations and HUD portrait (the face beside its HP,
 drawn in the form's palette; the HUD setup `routines/hud_portraits_init.md` names the Boy's). Read by
 `sprites/dog-forms.ts`.
+
+**Other tables read by the form** (`DOG_FORM_INDEX`, 2026-11-25), each sized for vanilla's forms, so a new form
+needs each one grown: `$80:BF0E` (the Windwalker flight's Dog palette, `$80:BF01`: five words for forms 2-`$0A`),
+`$80:C707` (the flight's Dog animation, `$80:C6F9`: `$4322` wolf, `$4402` greyhound and poodle, `$4522` Podunk;
+these are the records the animations kind lists with no user, `dog/anim_4402`, `dog/anim_4522`), `$8E:B512`
+(`routines/data_8EB514.md`) and the Toaster's bonus (`$8F:866B` `cpx #$000C`). Entry `+0` is the Dog's picture
+on its behaviour menu page (`wram/DOG_SPRITE_ANIM_RECORD.md`); `+8` goes to the Dog record's `+$13` (`$20`,
+`$FA` on Act 4: role not read). Slots 9-14 go to `$1443`-`$144D`, animation records the Dog's AI starts
+(`wram/DOG_FORM_ANIM_9.md` and the four after it). The loader reads entries with 16-bit offsets in bank `$8F`
+(`lda $8F0000,x`), the pointer table with a long operand (`$8F:9477`).

@@ -1,5 +1,9 @@
 # Giving the Act 0 Dog its missing animations
 
+> **Update 2026-11-25 (Open Evermore):** blocks, metasprites, animations and `$C4` room are kinds now; what is left
+> (a `dog_forms` kind, a first in-game proof of new art, the art) and the answered questions (VRAM is an on-demand
+> cache; slots 9-14 by their readers; `$4522` is the flight sprite): [../open-evermore/extending.md](../open-evermore/extending.md) §2.
+>
 > Status: **plan; the table limits are lifted (v0.226.0).** Every number below was measured from the US
 > ROM with `dist/maps/sprites` and `dist/maps/animation-vm` (2026-10-03).
 >

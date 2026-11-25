@@ -5,19 +5,12 @@ size: 12
 kind: table
 category: 📋
 name: DOG_FORM_POINTERS
-title: Companion dog breed form attribute pointer table ($CF:945F)
+title: The Dog form pointers seen from $CF:945F (same table as dog_form_entries)
 confidence: confirmed
-tags: ["dog", "table", "companion", "breed", "stats"]
+tags: ["dog", "table", "companion"]
 evidence: ["disasm: func_CF946B ($8F:9471) stores active form request index into $7E:2363 before loading stats from tbl_dog_form_pointers ($8F:945D/$CF:945F); docs/disassembly/engine-core/rom-tables.md: struct DogBreedAttributes tbl_dog_form_pointers[4], 14 bytes per era form"]
 ---
 
-Companion dog breed form base attribute pointers in Bank $CF (`tbl_dog_form_pointers`, 6 words).
-
-Points to the 14-byte `DogBreedAttributes` attribute record for each historical era's dog form:
-- Prehistoric Wolfhound (`$9395`)
-- Antiquity Greyhound (`$93BD`)
-- Medieval Poodle (`$93E5`)
-- Omnitopia Toaster Dog (`$940D`)
-- Additional dog form variants (`$936D`, `$9435`)
-
-Unpacked into companion active fields and WRAM (`DOG_FORM_ANIM_9` / `$7E:2363`) by `func_CF946B` whenever the Dog transforms upon arriving in a new historical era.
+The same words as `routines/dog_form_entries.md` (`$8F:945D`, word 0 = no form), seen from `$CF:945F`. Each
+points at a 40-byte form entry in bank `$8F` (header and 15 animation records, `routines/dog_load_form.md`), not
+at a stat record: the earlier "14-byte DogBreedAttributes" reading was wrong.

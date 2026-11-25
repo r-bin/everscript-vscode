@@ -29,3 +29,9 @@ coordinates transitions between them when opcode `0x5D` (`effect_done`) sets ent
 - Fireball's enum value (`$8C86`) disagrees with this table (`$8CB6`); the table is what the ROM holds.
 
 Corrected v0.456.0: 53 words (the disassembly's table and the cast table `$C4:5F97` reach index 52), not 34.
+
+**The blocks are programs** (2026-11-25): each is word-threaded bytecode for the alchemy effect VM. An effect
+slot keeps its program counter at `+$14` (`alchemy_all_slots_frame_tick` `$91:98F7`: `ldx +$14`), and `$91:9750`
+runs the op at `$91:0000+X` through `routines/ptrs_918000.md` again and again while the handler returns carry set.
+Operands follow their op inline (Acid Rain: `0034 0052 0002 583E 0012 C1EB …`: op `$02` with record `$583E`).
+So "data, not code" above means not 65816; a new spell effect is a new program in bank `$91`.
