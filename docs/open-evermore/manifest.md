@@ -136,6 +136,7 @@ not from the manifest; the manifest only lets a build choose among allowed optio
 
 A manifest may tighten a rule (`"speed": "fast"` for music) but never loosen one the engine requires
 (`rule-loosened` is an error naming the rule's source).
+Where those engine rules should live (a game mapping file, not the codecs): [mapping.md](mapping.md).
 
 ### 1.5 Which ROM the tree belongs to
 

@@ -22,6 +22,7 @@ keeps that plan's reasoning (gates, codecs, placement rules, fast ROM by heat) a
 |---|---|
 | this page | the idea, the hard rule, the tree, names and ids, the gates, the method |
 | [manifest.md](manifest.md) | `manifest.json` (memory map, fast ROM, regions, placement) and `header.json` |
+| [mapping.md](mapping.md) | moving the codecs' memory-map facts (sites, pointer forms, where a kind may go) into a game mapping file; what stays in code |
 | [resources.md](resources.md) | every resource kind: folder, files, references, what implode generates, budgets |
 | [validation.md](validation.md) | what implode checks, error vs warning, the report |
 | [tool.md](tool.md) | `tools/open-evermore/`: actions, the steps of implode, codecs, the proof, tests |
