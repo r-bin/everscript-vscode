@@ -23,6 +23,7 @@ import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, NAME_RE, readText, sha1 } from '../../tree.mts';
+import { DOG_FORM_NAMES } from './dog-form-names.mts';
 import { toText } from './strings.mts';
 import type { Tree } from '../../tree.mts';
 
@@ -192,7 +193,8 @@ const COLUMNS = [
 /** Columns a box may take: 10 wide in BG3's 32, and its portrait on screen (Boy at (column - 2)·8, Dog at (column + 10)·8). */
 const COLUMN_RANGE: Record<string, [number, number]> = { boy: [2, 22], dog: [0, 21] };
 /** The Dog's forms in the order of their entries ($8F:945D; sprites/dog-forms.ts names them). */
-const DOG_FORMS = ['dog_act1', 'dog_act1_stick', 'dog_act2', 'dog_act3', 'dog_podunk', 'dog_act4'];
+/** The portrait previews by form: `dog_<form>`, the dog_forms kind's names. */
+const DOG_FORMS = DOG_FORM_NAMES.map(n => `dog_${n}`);
 const BOY_PORTRAIT = map.bus('hud.boy_portrait'), BOY_PORTRAIT_BANK = map.bus('hud.boy_portrait_bank'), PORTRAIT_PALETTE = map.offset('hud.boy_portrait_palette');
 const HUD_WHAT = 'tiles/<name>.png: the 22 tiles in BG3 tile order ($3E9 on, _enum.json), in palette box; palettes: CGRAM entries; '
     + 'box: the frame both boxes show (BG3 map words: tile, palette 0-7, h / v flip, behind: priority 0); boxes: the column each box '

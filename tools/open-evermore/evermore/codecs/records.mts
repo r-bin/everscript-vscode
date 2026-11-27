@@ -13,6 +13,8 @@
 //   ref        `scale`·id of another kind's entry (or of a fixed list `names`): `<folder>/<name>` (a list's entry bare)
 //   wram       a WRAM address: the wram kind's variable, `wram/NAME`, `wram/NAME+n` for a byte inside it
 //   routine    a 16-bit code address in `bank`: the routine's name (readers.mts `routines`)
+//   metasprite a 24-bit sprite pointer: the metasprite by reference, `metasprites/<owner>/<frame>` (implode writes
+//              where it was placed, a vanilla one stays at home)
 // A field may apply to some ids only (`ids`); the bytes of the others stay in _base/. References are typed (links.mts):
 // explode writes `<folder>/<name>`, implode reads that or the bare name.
 import * as map from '../map.mts';
@@ -22,6 +24,7 @@ import { json, NAME_RE, readText } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { link, unlink } from '../../links.mts';
 import { ANIMATIONS, animationPlacedOffset, animationRef } from './animations.mts';
+import { KIND as METASPRITES, metaspriteNameMap } from './metasprites.mts';
 import { hexText, parseHex, routines } from './readers.mts';
 import { SPRITE_PALETTES, spritePaletteAddr, spritePaletteName } from './sprite-palettes.mts';
 import { addTargetSource, TARGETS, targetLink, targetValue } from './targets.mts';
@@ -41,12 +44,13 @@ export type Form =
     | { type: 'wram' }
     | { type: 'routine'; bank: number }
     | { type: 'sprite_palette'; optional?: boolean }
-    | { type: 'animation'; optional?: boolean };
+    | { type: 'animation'; optional?: boolean }
+    | { type: 'metasprite'; optional?: boolean };
 
 export interface Field {
     /** Where it goes in the file: "name", "cost/0/count" (a number segment makes an array). */
     path: string;
-    /** File offset of id 0's field; id k's is `at + stride·k`. */
+    /** File offset of id 0's field; id k's is `at + stride·k` (with `Records.entryAt`: the offset in the entry). */
     at: number;
     stride: number;
     /** Bytes (default 2); 3: a 24-bit number (the experience tables). */
@@ -66,6 +70,10 @@ export interface Records {
     /** Reads what the names come from (the ROM's own text), before any kind explodes. */
     prepare?: (rom: Uint8Array) => void;
     fields: Field[];
+    /** Entries that are not one stride apart (the Dog forms, by a pointer table): id k's field is `entryAt(k) + at`. */
+    entryAt?: (id: number) => number;
+    /** What each field does, written once as `<kind>/README.md` (for the reader, not compared). */
+    readme?: string;
     why: string;
     /** What a record is, for the reader (not compared), per id. */
     notes?: (id: number) => Record<string, unknown> | undefined;
@@ -121,7 +129,8 @@ const PREPARE: ((rom: Uint8Array) => void)[] = [];
 export function recordsCodec(r: Records): Codec {
     if (r.prepare) PREPARE.push(r.prepare);
     const DIR = r.kind, applies = (f: Field, id: number) => id < r.count && (f.ids?.(id) ?? true);
-    const fieldAt = (f: Field, id: number) => f.at + f.stride * id;
+    const fieldAt = (f: Field, id: number) => r.entryAt ? r.entryAt(id) + f.at : f.at + f.stride * id;
+    const README = `${DIR}/README.md`;
     const refNames = (form: Extract<Form, { type: 'ref' }>, ctx?: ImplodeContext) => form.names ? new Map(form.names.map((n, k) => [n, k])) : ctx?.ids.get(form.kind!);
     const ids = (f: Field) => Array.from({ length: r.count }, (_, id) => id).filter(id => applies(f, id));
 
@@ -132,7 +141,7 @@ export function recordsCodec(r: Records): Codec {
     }
 
     /** A field's value as the file holds it → its number, or the reason it is none (a text: its name; an animation: its). */
-    function value(f: Field, v: unknown, ctx: ImplodeContext): number | { text: string } | { anim: string } | { error: string } {
+    function value(f: Field, v: unknown, ctx: ImplodeContext): number | { text: string } | { anim: string } | { meta: string } | { error: string } {
         const form = f.form, max = form.type === 'number' && form.max !== undefined ? form.max : 2 ** (8 * (f.width ?? 2)) - 1;
         switch (form.type) {
             case 'number': return Number.isInteger(v) && (v as number) >= 0 && (v as number) <= max ? v as number : { error: `a whole number 0-${max}` };
@@ -155,6 +164,13 @@ export function recordsCodec(r: Records): Codec {
                 if (anims && n !== undefined && !n.startsWith('$')) return anims.has(n) ? { anim: n } : { error: `"${v}" is no animation in ${link(ANIMATIONS, '')}` };
                 const x = parseHex(v, max, 0xC4);
                 return x ?? { error: anims ? `an animation, "${link(ANIMATIONS, '<owner>/<name>')}"${form.optional ? ' or null' : ''}` : '"$C4:xxxx"' };
+            }
+            case 'metasprite': {
+                if (form.optional && v === null) return 0;
+                const metas = ctx.names.get(METASPRITES), n = unlink(METASPRITES, v);
+                if (metas && n !== undefined && !n.startsWith('$')) return metas.has(n) ? { meta: n } : { error: `"${v}" is no metasprite in ${link(METASPRITES, '')}` };
+                const x = parseHex(v, max);
+                return x ?? { error: metas ? `a metasprite, "${link(METASPRITES, '<owner>/<frame>')}"${form.optional ? ' or null' : ''}` : '"$xxxxxx"' };
             }
             case 'text': {
                 const n = textName(ctx, v);
@@ -183,6 +199,7 @@ export function recordsCodec(r: Records): Codec {
         // The fields only (notes are for the reader); a reference typed or bare compares equal, a target by its word.
         canonical(path, bytes, ctx) {
             if (path === `${DIR}/${ENUM}`) return [path, bytes];
+            if (path === README) return null;
             const v = JSON.parse(readText(bytes)), out = {};
             for (const f of r.fields) {
                 let x = getPath(v, f.path);
@@ -193,6 +210,7 @@ export function recordsCodec(r: Records): Codec {
                 else if (t === 'wram') x = wramAt(x) ?? x;
                 else if (t === 'sprite_palette') x = unlink(SPRITE_PALETTES, x) ?? x;
                 else if (t === 'animation') x = unlink(ANIMATIONS, x) ?? x;
+                else if (t === 'metasprite') x = unlink(METASPRITES, x) ?? x;
                 else if (t === 'ref' && f.form.kind) x = unlink(f.form.kind, x) ?? x;
                 setPath(out, f.path, x);
             }
@@ -230,6 +248,12 @@ export function recordsCodec(r: Records): Codec {
                             out = ref ? link(ANIMATIONS, ref.animation) : hexText(x, 2 * width, 0xC4);
                             break;
                         }
+                        case 'metasprite': {
+                            if (form.optional && !x) { out = null; break; }
+                            const m = metaspriteNameMap(rom, name, countOf, nameAt).get(x);
+                            out = m ? link(METASPRITES, m) : hexText(x, 2 * width);
+                            break;
+                        }
                         case 'text': out = textLink(rom, TEXT_BANK | x, name, nameAt); break;
                         case 'target': out = targetLink(x); break;
                         case 'ref': {
@@ -244,13 +268,14 @@ export function recordsCodec(r: Records): Codec {
                 files.set(`${DIR}/${n}.json`, json(notes ? { ...v, ...notes } : v));
             }
             files.set(`${DIR}/${ENUM}`, enumFile({ kind: r.kind, limit: r.count, names, why: r.why }));
+            if (r.readme) files.set(README, new TextEncoder().encode(r.readme));
             return { files, pool: [], tables, homes: [] };
         },
 
         names({ tree, findings }) {
             const names = new Set<string>();
             for (const path of tree.keys()) {
-                if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}`) continue;
+                if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}` || path === README) continue;
                 const m = new RegExp(`^${DIR}/([^/]+)\\.json$`).exec(path);
                 if (m) names.add(m[1]); else findings.warning('unknown-file', path, '', `a ${r.kind} entry is <name>.json; ignored`);
             }
@@ -269,7 +294,7 @@ export function recordsCodec(r: Records): Codec {
                 for (const f of r.fields) {
                     if (!applies(f, id)) continue;
                     const x = value(f, getPath(v, f.path), ctx);
-                    if (typeof x === 'object' && 'error' in x) ctx.findings.error(['ref', 'text', 'target', 'sprite_palette', 'animation'].includes(f.form.type) ? 'unknown-reference' : 'invalid-value', path, `/${f.path}`, x.error);
+                    if (typeof x === 'object' && 'error' in x) ctx.findings.error(['ref', 'text', 'target', 'sprite_palette', 'animation', 'metasprite'].includes(f.form.type) ? 'unknown-reference' : 'invalid-value', path, `/${f.path}`, x.error);
                 }
             }
             return [];
@@ -296,6 +321,10 @@ export function recordsCodec(r: Records): Codec {
                         const off = animationPlacedOffset(ctx, placed, x.anim);
                         if (off === null) continue;
                         x = off;
+                    } else if (typeof x === 'object' && 'meta' in x) {
+                        const at = placed.get(`${METASPRITES}/${x.meta}`) ?? ctx.base.homes.get(`${METASPRITES}/${x.meta}`)?.at;
+                        if (at === undefined) { ctx.findings.error('no-room', path, `/${f.path}`, `the metasprite ${link(METASPRITES, x.meta)} was not placed`); continue; }
+                        x = (0xC00000 | at) >>> 0;
                     }
                     writes.push({ at: fieldAt(f, id), bytes: bytesOf(x as number, f.width ?? 2), file: path });
                 }

@@ -34,7 +34,7 @@ const TABLE_ASSET_LINKS: Record<string, { uri: string; label: string }> = {
     'ALCHEMY_BLOCK_TABLE': { uri: '../alchemy/index.md', label: 'soe://rom/assets/alchemy/' },
     'Master map 16x16 graphics tile pointer directory': { uri: '../tiles/index.md', label: 'soe://rom/assets/tiles/' },
     'Room pointer table': { uri: '../maps/index.md', label: 'soe://rom/assets/maps/' },
-    'Companion dog breed form attribute pointer table ($CF:945F)': { uri: '../characters/01/info.md', label: 'soe://rom/assets/characters/01/' },
+    'The Dog form pointers seen from $CF:945F (same table as dog_form_entries)': { uri: '../characters/01/info.md', label: 'soe://rom/assets/characters/01/' },
     'Dog form pointers': { uri: '../characters/01/info.md', label: 'soe://rom/assets/characters/01/' },
     'SFX translation table': { uri: '../audio/sounds/index.md', label: 'soe://rom/assets/audio/sounds/' },
     'tbl_sfx_script_translation': { uri: '../audio/sounds/index.md', label: 'soe://rom/assets/audio/sounds/' },

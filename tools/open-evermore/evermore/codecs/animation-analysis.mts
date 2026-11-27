@@ -1,6 +1,7 @@
 // Shared analysis for animations: discovers all $C4 record groups (1, 4, or 8 facings), attributes owner names,
 // computes programmatic sprite palettes and cross-references, and maps the $C4:3C92 animate() id table to targets.
 import * as map from '../map.mts';
+import { DOG_FORM_NAMES } from './dog-form-names.mts';
 import { createRequire } from 'node:module';
 import type { CountOf, ImplodeContext, NameAt, NameOf } from '../../codec.mts';
 import { NAME_RE, readText } from '../../tree.mts';
@@ -40,7 +41,6 @@ export const FACING_KEYS = {
 const WEAPON_RECORDS = map.file('equipment.weapon_records'), AMMO_RECORDS = map.file('equipment.ammo_records'), WEAPON_STRIDE = 36, WEAPON_COUNT = 12, AMMO_COUNT = 3;
 const WEAPON_SCHOOLS_TABLE = map.file('equipment.weapon_schools'), SCHOOL_NAMES = ['sword', 'axe', 'spear', 'bazooka'];
 const WEAPON_SLOTS = ['stand', 'walk', 'run', 'attack_0', 'attack_1', 'attack_2', 'attack_3', 'dodge', 'knockback'];
-const DOG_SLUGS = ['act1', 'act1_stick', 'act2', 'act3', 'act0', 'act4'];
 const PROJ_TABLE = map.file('projectiles.table'), PROJ_SCRIPT_COUNT = 16, PROJ_ALL_COUNT = 21, PROJ_FIRST = map.offset('projectiles.records'), PROJ_STRIDE = 24;
 const RING_POINTERS = map.file('ring_items.pointers'), RING_COUNT = 162;
 const WRITE_AREA: Record<number, 'save' | 'temp' | 'local'> = { 0x18: 'save', 0x1C: 'save', 0x19: 'temp', 0x1D: 'temp', 0x1A: 'local', 0x1E: 'local' };
@@ -239,7 +239,7 @@ export function analyzeAnimations(rom: Uint8Array, name: NameOf, countOf: CountO
         WEAPON_SLOTS.forEach((slot, s) => { const r = word(rom, rec + 0x08 + 2 * s); if (r) push(weaponUses, r, { name: aSlug, school: 'bazooka', slot, pal, kind: 'ammo' }); });
     }
     for (const df of readDogForms(rom) as { id: number; paletteAddr: number; anims: { animRec: number; purpose: string | null; label: string }[] }[]) {
-        const form = DOG_SLUGS[df.id] ?? `form_${df.id}`;
+        const form = (DOG_FORM_NAMES as readonly string[])[df.id] ?? `form_${df.id}`;
         for (const a of df.anims) if (a.animRec) push(dogUses, a.animRec, { form, slot: a.purpose || slug(a.label), pal: df.paletteAddr });
     }
     for (let id = 0; id < RING_COUNT; id++) {
@@ -431,7 +431,7 @@ export function analyzeAnimations(rom: Uint8Array, name: NameOf, countOf: CountO
             for (const a of anims) {
                 if (a.ei?.group === 'dog') {
                     const act = /^act(\d)_/.exec(a.ei.name);
-                    const df = act ? (readDogForms(rom) as { id: number; paletteAddr: number }[]).find(f => DOG_SLUGS[f.id]?.startsWith(`act${act[1]}`)) : undefined;
+                    const df = act ? (readDogForms(rom) as { id: number; paletteAddr: number }[]).find(f => (DOG_FORM_NAMES as readonly string[])[f.id]?.startsWith(`act${act[1]}`)) : undefined;
                     if (df?.paletteAddr) addPal(df.paletteAddr, `dog_act:${a.ei.name}`);
                 }
                 for (const ch of a.chars) {

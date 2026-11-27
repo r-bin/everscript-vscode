@@ -846,6 +846,25 @@ it reads them). Readers (`lda.l table,x`, checked at explode in place of the val
 **Proven**: G0 (vanilla sha1), seeds 1 and 2026 round-trip, an edited level lands at its byte (`$8C:8BD3`); not seen in
 game.
 
+## dog_forms — the Dog's looks per act *(built, v0.472.0)*
+
+```
+characters/dog_forms/<form>.json   menu_sprite, portrait (metasprites), palette (palettes/sprites/), unknown_08,
+                                   animations: { stand, walk, run, slot_3, knockback, attack_0-3, sniff,
+                                   sniff_look_around, steered_still, idle_wait, idle_wait_2, slot_14 } (animations/)
+characters/dog_forms/README.md     what each field does (not compared)
+```
+
+Six 40-byte entries in bank `$8F` (`act1` `$9395`, `act1_stick` `$93BD`, `act2` `$93E5`, `act3` `$940D`, `act0` `$936D`,
+`act4` `$9435`), ids in the order of the pointer table `$8F:945D` (word 0 = no form; a script asks for form n with
+2·(n+1) in `$2443`). Read in place (`records.mts` with `entryAt`: entries by the mapping file's `dog_forms.entries`, checked
+against the pointer table at explode); the table stays in `_base/`. The loader `$8F:9471` reads them with 16-bit offsets in
+`$8F`, so they cannot move. Behaviour and stats are `characters/records/dog.json`. The HUD portraits (`$CC:3C72`…) are now
+metasprites `portraits/dog_<form>` (they were in `_base/`; `act1` and `act1_stick` share one; Act 0's is also played by a
+debug script). Slot roles: [extending.md](extending.md) §2. Count fixed at 6: a 7th form needs a loader hook (§1 there).
+**Proven**: G0 (vanilla sha1), seeds 11 and 12 round-trip, `prove --random 11`; an edit by name lands (`act0` slot 14 →
+`dog/act0_bark` writes `$4526` at `$8F:9395`, entry `+$26`); not seen in game.
+
 ## items — consumables, named items *(built, v0.461.0)*
 
 ```

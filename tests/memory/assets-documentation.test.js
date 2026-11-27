@@ -206,7 +206,7 @@ test.describe('Assets Documentation & VFS Parity', () => {
         const dogPointersNode = resolveTables(['dog_form_pointers', 'info.md'], dummyRom);
         assert.ok(dogPointersNode && dogPointersNode.kind === 'file', 'dog_form_pointers info.md must be a file');
         const dogText = (await dogPointersNode.read()).toString();
-        assert.ok(dogText.includes('Companion dog breed form attribute pointer table'), 'Must document breed table');
+        assert.ok(dogText.includes('The Dog form pointers'), 'Must document the Dog form pointer table');
         assert.ok(dogText.includes('soe://rom/assets/characters/01/'), 'Must link to Dog character');
     });
 });

@@ -8,6 +8,7 @@
 //   readers    $90:CF3A (phb/phk/plb → bank $90) and $90:CFD2 (`lda #$0090` DMA source), plus ring menu $8E:AEBC
 //              (bank $D0, same HiROM bank 0x10); pinned in place until bank-$90 palette readers are hooked
 import * as map from '../map.mts';
+import { DOG_FORM_NAMES } from './dog-form-names.mts';
 import { createRequire } from 'node:module';
 import type { Codec, CountOf, Item, NameAt, NameOf } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -36,7 +37,7 @@ const BASE_FILE = (FILE_BANK << 16) | SPRITE_PALETTE_BASE;
 const ARRAY = `${DIR}/array`;
 const WEAPON_RECORDS = map.file('equipment.weapon_records'), AMMO_RECORDS = map.file('equipment.ammo_records'), WEAPON_STRIDE = 36, WEAPON_COUNT = 12, AMMO_COUNT = 3;
 const PROJ_TABLE = map.file('projectiles.table'), RING_POINTERS = map.file('ring_items.pointers'), RING_COUNT = 162, HUD_BOY_PORTRAIT = map.offset('hud.boy_portrait_palette');
-const DOG_SLUGS = ['dog_act1', 'dog_act1_stick', 'dog_act2', 'dog_act3', 'dog_act0', 'dog_act4'];
+const DOG_SLUGS = DOG_FORM_NAMES.map(n => `dog_${n}`);
 
 const word = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
 

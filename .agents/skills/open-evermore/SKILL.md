@@ -128,6 +128,8 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   in `_base/`), so anything longer grows the image to 4 MiB (the fast forms: ~10 KB).
 - `--random` starts at 4 MiB on purpose (half the items leave their bank); it is not growth.
 - A test that asserts a random layout moved a given item is a coin flip; assert what the rule guarantees.
+- **An edit only to an in-place records kind fails `implode --strict` with `g0-failed`** ("nothing changed since explode"):
+  change detection sees items, not table writes. Check such edits without `--strict` (records write the same either way).
 - Implode places nothing while encode has errors: a `no-space` case needs a test of its own, not one among encode errors.
 - **A round trip does not prove a layout**: any reading of bytes round-trips. Look at a wide and an odd item (v0.453.0
   read glyphs as ink and shadow planes; "W" showed they are two byte columns) and read the reader's loop.

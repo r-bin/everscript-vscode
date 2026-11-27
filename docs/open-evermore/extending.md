@@ -11,7 +11,7 @@ Scale: 🟩 works today by editing files · 🟨 one missing kind or hook, the s
 
 | Request | Verdict | What stands in the way |
 |---|---|---|
-| A new Dog form | 🟨 (a recolour) / 🟨 (new art) | no `dog_forms` kind; no free byte in bank `$8F` for a 7th entry; three other per-form tables |
+| A new Dog form | 🟨 (a recolour) / 🟨 (new art) | `dog_forms` built (v0.472.0) but fixed at 6; no free byte in bank `$8F` for a 7th entry; three other per-form tables |
 | Act 0 Dog's missing animations | 🟨 engineering, 🟥 art | the same `dog_forms` kind; about 85 poses still have to be drawn; new sprites are not yet proven in game (G2) |
 | Fix Laser | 🟩 (borrowed effect) / 🟨 (own look) / 🟥 ("halves HP") | the `$91` effect programs are not a kind; no op halves HP |
 | A new formula | 🟨 | formulas fixed at 35; ring items; formula WRAM packed 35 wide |
@@ -39,7 +39,7 @@ reads), so they cannot leave `$8F`. Forms differ only in their looks. Behaviour,
 
 **What is missing:**
 
-1. **A `dog_forms` kind** (already on the roadmap §7 list): `characters/dog_forms/<name>.json` with `palette`,
+1. **A `dog_forms` kind** *(built, v0.472.0: [resources.md](resources.md) §dog_forms; scripts by name still open)*: `characters/dog_forms/<name>.json` with `palette`,
    `portrait`, `menu_sprite`, the 15 slots by animation name and `unknown_08`. It is in place for the six vanilla
    forms, and scripts would write the form by name (`write_word DOG_FORM_REQUEST, characters/dog_forms/act0`), the
    way `PRIZE` takes items by name.
@@ -88,14 +88,13 @@ lost pose. It should get a name, as `anim_4402` should (the greyhound and poodle
 
 **What is left, in order:**
 
-1. The `dog_forms` kind (§1). After it, Act 0's slot 14 → `dog/act0_bark` is a one-word edit by name.
+1. ~~The `dog_forms` kind (§1)~~ built (v0.472.0): Act 0's slot 14 → `dog/act0_bark` is a one-word edit by name (tried: it lands).
 2. A first G2 proof for art: one new block, one metasprite, one animation, played in game. Nothing new of these
    three has been seen in game yet. A grown layout must also keep room in `$CA`-`$D3` for new metasprites: the
    allocator places tight rules first, but this has not been tried.
 3. Art. There is no hidden Act 0 art: about 85 poses in 16 colours, roughly 110 + 110 blocks (the plan's count).
    Drawing them is the real cost. The attack scripts' strike boxes may need shrinking for the smaller dog.
-4. Naming debt seen on the way: one form has three names (`dog_podunk` for the portrait, `dog_act0` for the palette,
-   `act0_*` for the animations), and `characters/records/dog.json` has `"name": "$7E2234"`, a raw WRAM address.
+4. Naming debt seen on the way: ~~one form has three names~~ (v0.472.0: `act0` everywhere, `dog_act0` portrait and palette), and `characters/records/dog.json` has `"name": "$7E2234"`, a raw WRAM address.
 
 ## 3. Fixing Laser
 

@@ -14,10 +14,12 @@ import { ENUM, enumFile } from '../../enum.mts';
 import { json, readText, sha1 } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
 import { ANIMATIONS, FACING_KEYS, analyzeAnimations } from './animation-analysis.mts';
+import { DOG_FORM_NAMES } from './dog-form-names.mts';
 import type { AnimationAnalysisEntry } from './animation-analysis.mts';
 
 const require = createRequire(import.meta.url);
 const { spriteAddresses, readSpriteInfo, scriptSprites } = require('../../../../dist/games/evermore/maps/sprites');
+const { readDogForms } = require('../../../../dist/games/evermore/sprites/dog-forms');
 const { busU8 } = require('../../../../dist/platform/snes/hirom');
 const { hexLower: hex } = require('../../../../dist/platform');
 
@@ -72,7 +74,7 @@ function buildAttributionMap(rom: Uint8Array, name: NameOf, countOf: CountOf, na
         }
     }
 
-    const found = new Set<number>(spriteAddresses(rom) as number[]);
+    const found = new Set<number>([...spriteAddresses(rom) as number[], ...heldSprites(rom).keys()]);
     for (const g of groups) for (const sc of g.scripts) if (sc) for (const spr of scriptSprites(rom, sc) as number[]) found.add(spr);
     const addrs = [...found].sort((a, b) => a - b);
     const owners = new Map<number, string>();
@@ -81,6 +83,15 @@ function buildAttributionMap(rom: Uint8Array, name: NameOf, countOf: CountOf, na
         owners.set(spr, !set || set.size === 0 ? 'misc' : set.size === 1 ? [...set][0] : 'shared');
     }
     return { addrs, owners, groups };
+}
+
+/** Sprites named by what holds them, not by a script: the Dog forms' HUD portraits (dog_forms.mts `portrait`;
+ *  Act 1 and Act 1 with the stick share one). Act 0's is also played by a debug script; the portrait name wins. */
+function heldSprites(rom: Uint8Array): Map<number, string> {
+    const out = new Map<number, string>();
+    for (const f of readDogForms(rom) as { id: number; portrait: number }[])
+        if (f.portrait && !out.has(f.portrait)) out.set(f.portrait, `portraits/dog_${DOG_FORM_NAMES[f.id]}`);
+    return out;
 }
 
 /**
@@ -122,8 +133,11 @@ export function metaspriteNameMap(rom: Uint8Array, name: NameOf, countOf: CountO
         }
     } else {
         const { addrs, owners, groups } = buildAttributionMap(rom, name, countOf, nameAt);
-        const shows = describeSprites(rom, groups), perOwner = new Map<string, number>(), taken = new Set<string>();
+        const shows = describeSprites(rom, groups), perOwner = new Map<string, number>(), taken = new Set<string>(), held = heldSprites(rom);
+        for (const n of held.values()) taken.add(n);
         for (const addr of addrs) {
+            const own = held.get(addr);
+            if (own) { map.set(addr >>> 0, own); continue; }
             const owner = owners.get(addr) || 'misc';
             let leaf = shows.get(addr)?.slice(0, 70);
             if (leaf && !/^[a-z]/.test(leaf)) leaf = `f_${leaf}`;

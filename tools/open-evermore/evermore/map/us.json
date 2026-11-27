@@ -63,6 +63,10 @@
       "records_mvn": "$8F:8046",
       "enemy_index_readers": ["$8C:DCA2", "$8C:DCCD", "$8C:DCE3", "$8C:DCF4"]
     },
+    "dog_forms": {
+      "pointers": "$8F:945D",
+      "entries": ["$8F:9395", "$8F:93BD", "$8F:93E5", "$8F:940D", "$8F:936D", "$8F:9435"]
+    },
     "experience": {
       "boy_table": "$8C:8BD0",
       "dog_table": "$8C:8CFC",

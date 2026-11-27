@@ -114,9 +114,8 @@ Built in v0.470.0: projectile names, weapon idle animations, ring icons as previ
 ([progress.md](progress.md) log). The rest, with what was found:
 
 - **Known tables not exploded yet** (the Data tab's list, `src/games/evermore/data-tab/model/tables.ts`, against a fresh
-  tree). Content a hack edits, in order of value: Dog growth curves (`$8C:9515`) beside `characters/experience/`; Dog
-  forms (`$8F:945D`: animations and palettes, today only names in `animation-analysis.mts`; what a 7th form needs:
-  [extending.md](extending.md) §1); the alchemy effect programs (`$91:80A6`, bytecode: §3 there); weapon skill thresholds
+  tree). Content a hack edits, in order of value: Dog growth curves (`$8C:9515`) beside `characters/experience/`; ~~Dog
+  forms~~ (built v0.472.0, `characters/dog_forms/`; a 7th form: [extending.md](extending.md) §1); the alchemy effect programs (`$91:80A6`, bytecode: §3 there); weapon skill thresholds
   (`$C4:5B4A`, a weapon school's levels); Call Bead spell powers (`$C4:5F17`) and the script cast spells
   (`$C4:5F97`); the sfx distance curve (`$8C:84D4`); the dialogue dictionaries (`$91:F32E`, `$F3EC`, `$F46C`: the
   strings encoder's, a translation would change them). Engine constants stay in `_base/` (sine `$80:88A3`, the boomerang
