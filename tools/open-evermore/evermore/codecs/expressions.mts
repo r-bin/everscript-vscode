@@ -34,6 +34,8 @@ export interface ExprNames {
     /** A named value of the cell at `addr` (absolute): what `CELL == NAME` compares with. */
     value?(addr: number, v: number): string;
     valueOf?(addr: number, name: string): number | undefined;
+    /** A cell at `addr` (absolute) written as a number (`<0x2391>`): it does not follow its variable if that moves. */
+    numbered?(addr: number): void;
 }
 
 interface Term { op: number; imm?: number; size: 0 | 1 | 2 }
@@ -243,6 +245,7 @@ export function exprBytes(text: string, names: ExprNames): number[] {
         const cell = /^<(0x[0-9a-f]+)(?:,\s*(0x[0-9a-f]+))?>$/i.exec(t);
         if (cell) {
             const addr = Number(cell[1]), a = area ?? areaOf(addr);
+            names.numbered?.(addr);
             if (cell[2] !== undefined) { if (signed || width === 'b') throw new Error('a flag has no width'); return flag(a, addr - BASE[a], Number(cell[2])); }
             return read(a, addr - BASE[a], width, signed);
         }

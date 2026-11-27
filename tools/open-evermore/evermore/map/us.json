@@ -304,13 +304,86 @@
   ],
   "memory": {
     "wram": {
-      "direct_page": { "span": ["$7E:0000", "$7E:00FF"], "reach": "direct", "why": "read with 1-byte direct-page operands (the engine runs with D = $0000; wram.md W3 suspects code with another D)" },
-      "low": { "span": ["$7E:0100", "$7E:1FFF"], "reach": "mirror", "why": "read with 16-bit absolute operands from the code banks ($80-$BF), which reach WRAM only through its low mirror $0000-$1FFF" },
-      "system": { "span": ["$7E:2000", "$7E:2257"], "reach": "bank", "why": "past the low mirror: absolute operands with the data bank $7E (pea $7E7E / plb), or long ones; the names ($2210, $2234) end it" },
-      "save": { "span": ["$7E:2258", "$7E:2833"], "reach": "bank", "why": "from the save block at $2258 to temp[]: saved blocks and the script save area (save-system.md, growable-items.md); a save from one layout does not load in another (W8)" },
-      "temp": { "span": ["$7E:2834", "$7E:28FB"], "reach": "bank", "why": "the compiler's temp[], wiped on every room load" },
-      "room": { "span": ["$7E:28FC", "$7E:FFFF"], "reach": "bank", "why": "engine and room state, buffers and tables past temp[], reached with the data bank $7E or long" },
-      "bank_7f": { "span": ["$7F:0000", "$7F:FFFF"], "reach": "long", "why": "bank $7F: long operands, DMA, or the data bank $7F" }
+      "direct_page": { "span": ["$7E:0000", "$7E:00FF"], "reach": "direct", "why": "read with 1-byte direct-page operands (the engine runs with D = $0000; wram.md W3 suspects code with another D)",
+        "parts": [
+          ["direct_page", "$7E:0000", "the direct page: the engine's scratch registers (D = 0)"]
+        ] },
+      "low": { "span": ["$7E:0100", "$7E:1FFF"], "reach": "mirror", "why": "read with 16-bit absolute operands from the code banks ($80-$BF), which reach WRAM only through its low mirror $0000-$1FFF",
+        "saved": [["$7E:0ABA", "$7E:0B1E"]],
+        "parts": [
+          ["frame", "$7E:0100", "frame counters, joypad, PPU shadows, interrupt hooks, the RNG seeds, the VRAM DMA queue"],
+          ["palettes", "$7E:01BF", "the CGRAM shadows (BG and sprite palettes), the last entity, joypad repeat"],
+          ["windows", "$7E:034B", "window descriptors and sub-grids (dialogue and menu windows)"],
+          ["hud", "$7E:051D", "the Boy's and Dog's HUD, the ring menu's target bits"],
+          ["dialogue", "$7E:05B1", "the dialogue line, tokens and stack (and the flight words among them)"],
+          ["ring", "$7E:06A3", "ring menu icons, the Boy's and Dog's rings"],
+          ["sprites", "$7E:0858", "aux animation channels, mosaic, target cursor, Boy and Dog palettes, CGRAM upload, Dog input"],
+          ["viewport", "$7E:08EC", "room metatile bits, camera limits, viewport collision rows"],
+          ["party", "$7E:0A26", "the Boy's and Dog's stats, equipment, purses, alchemy selection, weapon levels (save block $0ABA)"],
+          ["session", "$7E:0B1F", "controls, save menu, font, stamina, audio volume, shop and dialogue state"],
+          ["menus", "$7E:0BA1", "the ring shop, armour, bazooka, call and alchemy menus"],
+          ["gauges", "$7E:0D3D", "status gauges"],
+          ["cockpit", "$7E:0DDB", "Mode 7 cockpit sprites"],
+          ["dialogue_queue", "$7E:0DFB", "the dialogue queue, cutscene dialogue"],
+          ["audio", "$7E:0E44", "the APU state: music, sound effects, transfers"],
+          ["scene", "$7E:0E67", "demo abort, NMI enable, shop mode, flight, transitions, window frame"],
+          ["vm", "$7E:0E80", "script VM and animation script state, entity scheduler, attack and damage, room hooks, entity ticks, spawns"],
+          ["projectiles", "$7E:0EC8", "active projectiles"],
+          ["room", "$7E:0F36", "camera, DMA, the Boy's entity pointer, viewport, ring debug buffer, map header, room tables, minimap, grass swap"],
+          ["room_animation", "$7E:1062", "room steps, animated tiles, entity batches, terrain timers, single VRAM uploads"],
+          ["sprite_cache", "$7E:1274", "music id, sprite slots, palette slots, the sprite VRAM cache, CGRAM DMA, palette animation"],
+          ["actors", "$7E:1432", "animation frame, talk, OAM high, the Dog's sprite and form, companion, the Boy's idle, bazooka"],
+          ["mode7", "$7E:1472", "Mode 7 camera and aircraft"],
+          ["weather", "$7E:14CA", "weather particles"],
+          ["raster", "$7E:150C", "crossfade, HDMA, barrier window, alchemy palette cycles, BG seams, macro tiles"]
+        ] },
+      "system": { "span": ["$7E:2000", "$7E:2257"], "reach": "bank", "why": "past the low mirror: absolute operands with the data bank $7E (pea $7E7E / plb), or long ones; the names ($2210, $2234) end it",
+        "parts": [
+          ["audio_channels", "$7E:2000", "audio channels"],
+          ["mode7_matrix", "$7E:2050", "Mode 7 transform and perspective tables"],
+          ["weather_buffer", "$7E:2110", "the weather particle buffer"],
+          ["names", "$7E:2210", "the Boy's and Dog's names"]
+        ] },
+      "save": { "span": ["$7E:2258", "$7E:2833"], "reach": "bank", "why": "from the save block at $2258 to temp[]: saved blocks and the script save area (save-system.md, growable-items.md); a save from one layout does not load in another (W8)",
+        "saved": [["$7E:2258", "$7E:22E9"], ["$7E:22FF", "$7E:235A"], ["$7E:2361", "$7E:238C"], ["$7E:2513", "$7E:2532"]],
+        "parts": [
+          ["save_flags", "$7E:2258", "learned formulas, story flags, charms (saved $2258-$22E9), room transition state"],
+          ["save_items", "$7E:22FF", "ingredient, consumable and armour counts, ammo (saved $22FF-$235A), Dog AI"],
+          ["save_state", "$7E:2361", "the Dog's form, script state (saved $2361-$238C), camera, cutscenes, spawns"],
+          ["save_events", "$7E:2513", "event counters (saved $2513-$2532), shop and peddler state, the unused rest"]
+        ] },
+      "temp": { "span": ["$7E:2834", "$7E:28FB"], "reach": "bank", "why": "the compiler's temp[], wiped on every room load",
+        "parts": [
+          ["temp", "$7E:2834", "the compiler's temp[]"]
+        ] },
+      "room": { "span": ["$7E:28FC", "$7E:FFFF"], "reach": "bank", "why": "engine and room state, buffers and tables past temp[], reached with the data bank $7E or long",
+        "saved": [["$7E:2F52", "$7E:2FF3"]],
+        "parts": [
+          ["script_vm", "$7E:28FC", "the script VM's stack and slots"],
+          ["formulas", "$7E:2F52", "formula experience, levels and casts (save block $2F52)"],
+          ["effects", "$7E:3024", "HUD popups, alchemy effects, spell emitters, animation and projectile alchemy slots, target selection, damage popups"],
+          ["joypad_chord", "$7E:3ABE", "the joypad chord history"],
+          ["companion", "$7E:3BBF", "dialogue ring, script spell, child tasks, the Dog's AI and waypoints, boss segments"],
+          ["entities", "$7E:3DDF", "entity records, the Boy's and the Dog's among them"],
+          ["map_animation", "$7E:4FE6", "map animation, sprite allocation and drawing"],
+          ["spawns", "$7E:5DC3", "spawn records and cycles, sprite CGRAM, map tiles, sprite animation"],
+          ["projectile_pool", "$7E:6389", "the projectile pool"],
+          ["raster_buffers", "$7E:65D1", "crossfade and HDMA window tables"],
+          ["vram_cache", "$7E:6C91", "dynamic VRAM, sprite tiles, palette tables, the tier 1 and 2 tile caches"],
+          ["oam", "$7E:ABDA", "the OAM buffers"],
+          ["bank_7e_end", "$7E:AE00", "the end of bank $7E"]
+        ] },
+      "bank_7f": { "span": ["$7F:0000", "$7F:FFFF"], "reach": "long", "why": "bank $7F: long operands, DMA, or the data bank $7F",
+        "parts": [
+          ["metatile_buffer", "$7F:0000", "room metatiles"],
+          ["bg1_buffer", "$7F:8000", "the BG1 VRAM buffer"],
+          ["decompression", "$7F:A000", "the LZSS window"],
+          ["glyph_buffers", "$7F:A400", "glyph buffers"],
+          ["sound", "$7F:B000", "sound samples"],
+          ["deltas", "$7F:C300", "delta accumulators"],
+          ["shadow_tilemap", "$7F:C800", "the shadow tilemap"],
+          ["dialogue_text", "$7F:D800", "dialogue decoding and text"]
+        ] }
     }
   }
 }

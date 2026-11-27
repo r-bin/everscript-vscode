@@ -51,13 +51,18 @@ interface MapFile {
     /** Each memory's regions in order (docs/open-evermore/memory.md): where each starts and ends, how the engine reaches it. */
     memory?: Record<string, Record<string, RegionSpec>>;
 }
-/** A memory region: `span` its first and last byte, `reach` the addressing the engine uses for it (what forces its place). */
-interface RegionSpec { span: [string, string]; reach: Reach; why: string }
+/** A memory region: `span` its first and last byte, `reach` the addressing the engine uses for it (what forces its place).
+ *  `parts`: the region cut by meaning, in order, [name, vanilla start, what it holds]; each is one file of the tree, and
+ *  where a part starts follows from the order (a part that grows pushes the ones after it). `saved`: the blocks of it the
+ *  save routine copies ([first, last]): a variable inside one stays inside it, one outside stays out (W8). */
+interface RegionSpec { span: [string, string]; reach: Reach; why: string; parts?: [string, string, string][]; saved?: [string, string][] }
 /** direct: 1-byte direct-page operands; mirror: 16-bit absolute operands from banks $00-$3F/$80-$BF (WRAM's low mirror
  *  $0000-$1FFF); bank: 16-bit absolute operands with the data bank set to the region's bank, or long ones; long: long only. */
 export type Reach = 'direct' | 'mirror' | 'bank' | 'long';
-/** A region as the codecs read it: bus addresses, `to` exclusive. */
-export interface Region { name: string; from: number; to: number; reach: Reach; why: string }
+/** A region as the codecs read it: bus addresses, `to` exclusive; parts in order (one, the region itself, when it has none). */
+export interface Region { name: string; from: number; to: number; reach: Reach; why: string; parts: Part[]; saved: { from: number; to: number }[] }
+/** A part of a region: its vanilla start and what it holds. */
+export interface Part { name: string; from: number; what: string }
 
 export interface GameMap { release: string; name: string; chain: string[]; addresses: Map<string, Value>; placement: Map<string, PlacementSpec>; pastEnd: [string, number][]; memory: Map<string, Map<string, RegionSpec>> }
 
@@ -92,6 +97,8 @@ export function loadMap(release: string, dir: URL = DIR): GameMap {
                 if (!Array.isArray(spec.span) || spec.span.length !== 2) throw new Error(`map/${f.release}.json memory.${space}.${name}: "span" is [first, last]`);
                 for (const a of spec.span) parse(a, `map/${f.release}.json memory.${space}.${name}`);
                 if (!['direct', 'mirror', 'bank', 'long'].includes(spec.reach)) throw new Error(`map/${f.release}.json memory.${space}.${name}: "reach" is direct, mirror, bank or long`);
+                for (const p of spec.parts ?? []) { if (!Array.isArray(p) || p.length !== 3) throw new Error(`map/${f.release}.json memory.${space}.${name}.parts: [name, "$BB:AAAA", what]`); parse(p[1], `map/${f.release}.json memory.${space}.${name}.parts.${p[0]}`); }
+                for (const b of spec.saved ?? []) for (const a of b) parse(a, `map/${f.release}.json memory.${space}.${name}.saved`);
                 m.set(name, spec);
             }
             memory.set(space, m);
@@ -203,9 +210,27 @@ export const pastEnd = (): { start: number; end: number }[] => gameMap().pastEnd
 export function memory(space: string): Region[] {
     const m = gameMap().memory.get(space);
     if (!m) throw new Error(`open-evermore: map/${gameMap().release}.json has no memory "${space}"`);
-    const out = [...m].map(([name, s]) => ({ name, from: parse(s.span[0], name).bus, to: parse(s.span[1], name).bus + 1, reach: s.reach, why: s.why })).sort((a, b) => a.from - b.from);
+    const out: Region[] = [...m].map(([name, s]) => {
+        const from = parse(s.span[0], name).bus, to = parse(s.span[1], name).bus + 1;
+        const parts = (s.parts ?? [[name, s.span[0], s.why]]).map(([n, at, what]) => ({ name: n, from: parse(at, name).bus, what }));
+        if (parts[0].from !== from) throw new Error(`map: memory ${space}.${name}: its first part starts at its span's start`);
+        for (let k = 0; k < parts.length; k++) if (parts[k].from >= to || (k && parts[k].from <= parts[k - 1].from)) throw new Error(`map: memory ${space}.${name}: part ${parts[k].name} lies outside the span or out of order`);
+        const saved = (s.saved ?? []).map(([a, b]) => ({ from: parse(a, name).bus, to: parse(b, name).bus + 1 }));
+        for (const b of saved) if (b.from < from || b.to > to) throw new Error(`map: memory ${space}.${name}: a saved block lies outside the span`);
+        return { name, from, to, reach: s.reach, why: s.why, parts, saved };
+    }).sort((a, b) => a.from - b.from);
     for (let k = 1; k < out.length; k++) if (out[k].from !== out[k - 1].to && out[k].from >> 16 === out[k - 1].from >> 16) throw new Error(`map: memory ${space}: ${out[k - 1].name} and ${out[k].name} ${out[k].from < out[k - 1].to ? 'overlap' : 'leave a hole'}`);
+    const names = out.flatMap(r => r.parts.map(p => p.name));
+    const twice = names.find((n, k) => names.indexOf(n) !== k);
+    if (twice) throw new Error(`map: memory ${space}: part "${twice}" is named twice (each is a file)`);
     return out;
+}
+
+/** The WRAM reader census of the active release (map/<release>.wram-readers.json, written by wram-census.mts), or null:
+ *  then nothing in WRAM can move. */
+export function wramCensus(): unknown {
+    const url = new URL(`${gameMap().release}.wram-readers.json`, DIR);
+    return existsSync(url) ? JSON.parse(readFileSync(url, 'utf8')) : null;
 }
 
 /** Every address path of the active map (for the test that each is used). */

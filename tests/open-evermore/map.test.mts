@@ -48,9 +48,18 @@ test('every address a codec asks for is in us.json, and every one there is asked
 test('memory regions: in order, no hole or overlap in a bank, each with how the engine reaches it', () => {
     const wram = map.memory('wram');
     assert.deepStrictEqual(wram.map(r => r.name), ['direct_page', 'low', 'system', 'save', 'temp', 'room', 'bank_7f']);
-    assert.deepStrictEqual(wram[0], { name: 'direct_page', from: 0x7E0000, to: 0x7E0100, reach: 'direct', why: wram[0].why });
-    assert.strictEqual(wram.find(r => r.name === 'low')!.to, 0x7E2000, 'the low mirror ends at $1FFF');
-    assert.deepStrictEqual(wram.find(r => r.name === 'temp')!, { name: 'temp', from: 0x7E2834, to: 0x7E28FC, reach: 'bank', why: wram.find(r => r.name === 'temp')!.why });
+    assert.deepStrictEqual({ ...wram[0], parts: undefined }, { name: 'direct_page', from: 0x7E0000, to: 0x7E0100, reach: 'direct', why: wram[0].why, parts: undefined, saved: [] });
+    const low = wram.find(r => r.name === 'low')!;
+    assert.strictEqual(low.to, 0x7E2000, 'the low mirror ends at $1FFF');
+    assert.deepStrictEqual(low.saved, [{ from: 0x7E0ABA, to: 0x7E0B1F }], 'the party block the save routine copies');
+    const temp = wram.find(r => r.name === 'temp')!;
+    assert.deepStrictEqual({ ...temp, parts: undefined }, { name: 'temp', from: 0x7E2834, to: 0x7E28FC, reach: 'bank', why: temp.why, parts: undefined, saved: [] });
+    // Parts by meaning: in order inside their region, the first at its start, each name once (it is a file).
+    const parts = wram.flatMap(r => r.parts);
+    assert.ok(parts.length > 40, `${parts.length} parts`);
+    assert.strictEqual(new Set(parts.map(p => p.name)).size, parts.length);
+    for (const r of wram) { assert.strictEqual(r.parts[0].from, r.from, r.name); for (const p of r.parts) assert.ok(p.from >= r.from && p.from < r.to && p.what, p.name); }
+    assert.deepStrictEqual(low.parts.slice(0, 3).map(p => p.name), ['frame', 'palettes', 'windows']);
     assert.throws(() => map.memory('vram'), /has no memory "vram"/);
 });
 

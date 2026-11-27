@@ -2,7 +2,8 @@
 // extension's, one VM context each), fed the same playback, compared after every frame (docs/open-evermore/README.md
 // §5, G1).
 //   node tools/open-evermore/play.mts <original.sfc> <layout.sfc> <movie.evsmv> <moved.json> <result.json>
-// moved.json: [{ key, a, b, length }] — file offset of each moved resource in the original (a) and the layout (b).
+// moved.json: { moved: [{ key, a, b, length }] — file offset of each moved resource in the original (a) and the layout
+// (b); memory: WRAM the layout moved ([{ a, b, length, size }], WRAM offsets), compared through the move }.
 // A frame passes when WRAM is identical, or when every differing byte lies in a long pointer ($80-$BF:8000+ or
 // $C0-$FF form), or a 16-bit one whose bank is kept elsewhere, that points to the same resource and offset in both,
 // or is a lone bank byte of one moved resource: the layout moved what it points at, nothing else. Every 60 frames the screen, VRAM and the PC must be identical too.
@@ -16,7 +17,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, dirname, join } from 'node:path';
 import { createContext, runInContext } from 'node:vm';
-import type { Window } from './codec.mts';
+import type { MemoryMove, Window } from './codec.mts';
 import { windowFile } from './layout.mts';
 
 const require = createRequire(import.meta.url);
@@ -112,6 +113,20 @@ export function realDifferences(wa: Uint8Array, wb: Uint8Array, moved: Moved[], 
     return real;
 }
 
+/** Vanilla WRAM offset → the build's (identity where nothing moved; -1 for a vanilla byte the build has no copy of). */
+export function wramMap(memory: MemoryMove[]): Int32Array {
+    const where = new Int32Array(WRAM_SIZE);
+    for (let i = 0; i < WRAM_SIZE; i++) where[i] = i;
+    for (const m of memory) for (let k = 0; k < m.size; k++) where[m.a + k] = m.b >= 0 && k < m.length ? m.b + k : -1;
+    return where;
+}
+/** A playback's write to the bus, as the build has that byte: WRAM ($7E/$7F, or its low mirror) through the map. */
+function busThrough(where: Int32Array, bus: number): number {
+    const bank = bus >> 16, low = bus & 0xFFFF;
+    const o = bank === 0x7E || bank === 0x7F ? bus - 0x7E0000 : (bank < 0x40 || (bank >= 0x80 && bank < 0xC0)) && low < 0x2000 ? low : -1;
+    return o < 0 || where[o] < 0 ? bus : 0x7E0000 + where[o];
+}
+
 /** One snes9x core in its own VM context (its Module and HEAPU8 are globals of that context). */
 export function boot(): Promise<any> {
     const src = readFileSync(CORE, 'utf8');
@@ -126,7 +141,11 @@ export function boot(): Promise<any> {
 
 async function main(): Promise<void> {
     const [romA, romB, moviePath, movedPath, outPath] = process.argv.slice(2);
-    const { moved, windows }: { moved: Moved[]; windows: Window[] } = JSON.parse(readFileSync(movedPath, 'utf8'));
+    const { moved, windows, memory = [] }: { moved: Moved[]; windows: Window[]; memory?: MemoryMove[] } = JSON.parse(readFileSync(movedPath, 'utf8'));
+    // WRAM the layout moved (the wram kind): the build's byte for each vanilla byte, -1 where it has none (gone, shrunk).
+    const where = wramMap(memory);
+    const view = (wb: Uint8Array, wa: Uint8Array, out: Uint8Array) => { for (let i = 0; i < WRAM_SIZE; i++) out[i] = where[i] < 0 ? wa[i] : wb[where[i]]; };
+    const wbRaw = new Uint8Array(WRAM_SIZE);
     const machines = await Promise.all([boot(), boot()]);
     machines.forEach((c, i) => {
         const rom = readFileSync(i === 0 ? romA : romB);
@@ -149,7 +168,7 @@ async function main(): Promise<void> {
     for (let k = 0; k < movie.count && !result.difference; k++) {
         for (const ev of events.get(k) || []) {
             for (const M of [A, B]) {
-                if (ev.kind === 'W') for (let i = 0; i < ev.bytes.length; i++) M.writeMemory(ev.addr + i, ev.bytes[i]);
+                if (ev.kind === 'W') for (let i = 0; i < ev.bytes.length; i++) M.writeMemory(M === B ? busThrough(where, ev.addr + i) : ev.addr + i, ev.bytes[i]);
                 else if (ev.kind === 'R') M._softReset();
             }
             if (ev.kind === 'S' && desync < 0 && wramCrc((a: number, n: number) => A.readMemoryRange(a, n)) !== ev.crc) desync = k;
@@ -157,7 +176,8 @@ async function main(): Promise<void> {
         for (const M of [A, B]) { M._setJoypadInput(movie.pads[k]); M._mainLoop(); }
         result.frames = k + 1;
         let off: { frame: number; what: string; bytes: string[] } | null = null;
-        for (let o = 0; o < WRAM_SIZE; o += CHUNK) { wa.set(A.readMemoryRange(WRAM_BASE + o, CHUNK), o); wb.set(B.readMemoryRange(WRAM_BASE + o, CHUNK), o); }
+        for (let o = 0; o < WRAM_SIZE; o += CHUNK) { wa.set(A.readMemoryRange(WRAM_BASE + o, CHUNK), o); (memory.length ? wbRaw : wb).set(B.readMemoryRange(WRAM_BASE + o, CHUNK), o); }
+        if (memory.length) view(wbRaw, wa, wb);
         if (Buffer.compare(wa, wb) !== 0) {
             // Dead stack: below an equal stack pointer nothing is read before it is written, and an interrupt that
             // landed elsewhere during a drift leaves its pushes at another depth there.

@@ -7,10 +7,14 @@ title: Joypad 1 held buttons, minus the presses code has acknowledged
 lifetime: boot
 confidence: verified
 tags: [input, nmi]
-evidence: ["disasm: NMI $80:847A computes ~($0EC6 xor $0104) and stores it, then ANDs it with the new held word after the read (CDL export, v0.201.18)", "disasm: $80:8597 is TRB $0104 / RTL, used to consume a press", "recomp headless 2026-11-12, inn keeper in room $51: with B held after the press that opened it, the text box does not go on; pressed again (B let go for a frame between) it does"]
+evidence: ["disasm: NMI $80:847A computes ~($0EC6 xor $0104) and stores it, then ANDs it with the new held word after the read (CDL export, v0.201.18)", "disasm: $80:8597 is TRB $0104 / RTL, used to consume a press", "recomp headless 2026-11-12, inn keeper in room $51: with B held after the press that opened it, the text box does not go on; pressed again (B let go for a frame between) it does", "cdl library 2026-11-27: five word reads lda $0105 ($CC:DC18, $CC:DC56, $CF:CDBC, $CF:CEEF, $CF:CFF0) take its high byte with JOYPAD1_TRIGGERED's low byte; moved with it, the pair plays in step (docs/open-evermore/wram.md §0.2)"]
 see: [knowledge/wram/INPUT_P1_HELD_BUTTONS.md, knowledge/wram/ACTION_BUTTON.md, knowledge/wram/RUN_BUTTON.md]
 ---
 A new press sets its bit, holding keeps it, and code that has acted on the press clears it with `TRB $0104`
 (`$80:8597`); the NMI then keeps it clear until the button is released. So a held button counts once: the run step
 clears RUN_BUTTON when the stamina runs out, the dialogue's waits clear `$D0C0` (B, Y, Start, A, X) before and after
 each wait. In the title's load-game list one B press selects the slot and a second B confirms it.
+
+Five routines read the word at `$0105` (this word's high byte and `JOYPAD1_TRIGGERED`'s low byte: `$CC:DC18`, `$CC:DC56`,
+`$CF:CDBC`, `$CF:CEEF`, `$CF:CFF0`), so the two move only together. The recorder keys a word access by its first byte,
+which is why the first move of this word alone (wram-poc, 2026-11-22) left step at frame 473.

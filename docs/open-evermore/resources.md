@@ -958,17 +958,23 @@ and hardware bounding box.
 
 Not a kind of their own: each script is a facing inside an animation file (`animations/<owner>/<name>.json`, [animations.md](animations.md) §4.1), written as symbolic lines. Scripts relocate freely (below 4 MiB, a jump into another script stays in its bank); under `--strict` they keep their 256-byte page behaviour (`Rule.noPageCross` / `Rule.pageOffset`) because the VM spends 4 extra cycles when its pointer crosses a page (`$90:80F3`).
 
-## wram — WRAM variables *(built, W1, v0.459.0)*
+## wram — WRAM variables *(built, W1 v0.459.0; moving, W2 v0.475.0)*
 
-**Folder** (v0.474.0): `wram/<region>.json`, one per region of the mapping file's `memory.wram` (`direct_page`, `low`,
-`system`, `save`, `temp`, `room`, `bank_7f`), plus `_types.json` (the vanilla types, exploded) and `_enum.json` (empty,
-no ids). A region file is an ordered list of items (`name`, `type` + `count`, `size`, `cells`) and `gap`s. Each place
-follows from the order and the sizes; there are 1,216 variables, UPPER_CASE names, the ones scripts read cells by.
-[wram.md](wram.md) §0. **References**: script operands (`write_word ENEMY_SPAWNER_QUANTITY, 1`), records' `wram` fields, rings'
-`buffer` use its names; implode reads it first (`KINDS[0]`) and hands the addresses on. **Implode generates**: nothing
-yet; a variable off its vanilla place or size is an error (`wram-moved`, `wram-resized`) until W2. **Limits**: an item
-inside its region (`wram-region-full`), a cell inside its item, names unique, types known. **Codec**: `codecs/wram.mts` (names: script-model/names.ts
-`displayNames`; sizes: `localizations/wram-map.ts`). Design and steps: [wram.md](wram.md),
+**Folder** (v0.475.0): `wram/<part>.json`, one per part by meaning of the mapping file's `memory.wram` regions (56: `frame`,
+`palettes`, `session`, `mode7`, `entities`, …; each says what it holds), plus `_types.json` (the vanilla types, exploded,
+the tree's to edit: enum values and sizes) and `_enum.json` (empty, no ids). A part file is an ordered list of items
+(`name`, `type` + `count`, `size`, `cells`) and `gap`s; each place follows from where the part starts (its vanilla start,
+or after the part before it when that one grew: it spills over), the order and the sizes. 1,216 variables, UPPER_CASE
+names, the ones scripts read cells by. [wram.md](wram.md) §0. **References**: script operands (`write_word
+ENEMY_SPAWNER_QUANTITY, 1`), records' `wram` fields, rings' `buffer` use its names; implode reads it first (`KINDS[0]`)
+and hands the addresses on. **Implode generates**: every operand of the reader census (`evermore/map/<release>.wram-readers.json`,
+3,448 operands of 388 groups), from where each group landed. **Limits**: a pinned variable stays (`wram-pinned`), a group
+moves rigidly (`wram-group-split`), an item stays where its region is reached (`wram-reach`) and inside or outside the saved
+blocks (`wram-save-block`), the block routines that cover it stay the same (`wram-block-routine`), no script names a moved
+cell by number (`wram-script-number`), shrinking only past every recorded access (`wram-resized`), a bank holds its parts
+(`wram-region-full`). **Proved**: 86 variables moved in one tree (an enum resized, a part spilled, a reorder, the joypad
+pair), five playbacks in step (wram.md §0.2). **Codec**: `codecs/wram.mts` (names: script-model/names.ts `displayNames`;
+sizes: `localizations/wram-map.ts`; census: `wram-census.mts`). Design and steps: [wram.md](wram.md),
 [../todo/wram-allocation.md](../todo/wram-allocation.md).
 
 ## code

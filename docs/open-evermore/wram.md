@@ -1,87 +1,127 @@
 # Open Evermore: WRAM by name
 
-Status: **the `wram` kind (v0.459.0)**, written as region files since v0.474.0: every other kind names WRAM through it.
-Moving is the next step. **Proof of concept (v0.456.0)**: one variable moved by name, the stored playbacks in step. Tracker:
-[../todo/wram-allocation.md](../todo/wram-allocation.md) (W0-W10). Back to [README.md](README.md). Labels as there.
-The other memories (VRAM, CGRAM, OAM, ARAM, SRAM), each to be written the same way: [memory.md](memory.md).
+Status: **the `wram` kind (v0.459.0)**, one file per part of WRAM by meaning since v0.475.0, and **moving** since
+v0.475.0: a variable the reader census can rewrite moves, grows and spills, proved in lockstep with vanilla (§0.2).
+Every other kind names WRAM through it. Tracker: [../todo/wram-allocation.md](../todo/wram-allocation.md) (W0-W10).
+Back to [README.md](README.md). Labels as there. The other memories (VRAM, CGRAM, OAM, ARAM, SRAM), each to be written
+the same way: [memory.md](memory.md).
 
 The ROM kinds place resources anywhere because every reference to them is generated. WRAM is the same problem one level
 down: the files already name WRAM (`write_word ENEMY_SPAWNER_QUANTITY, 1` in scripts, a ring's `buffer`, a formula's
 `learned/flags`, a weapon's `owned/flags`), but the game reaches each variable through fixed operands. Growing a table
-whose per-id state lives in WRAM (a 36th formula, a 15th weapon) needs WRAM that is not there: the formulas' experience,
-level and cast words are 35 each, back to back; the weapon skill words run into the Dog's.
+whose per-id state lives in WRAM (a 36th formula, a 15th weapon) needs WRAM that is not there.
 
-## 0. The `wram` kind *(W1, v0.459.0; region files v0.474.0)*
+## 0. The `wram` kind *(W1, v0.459.0; parts by meaning and moving v0.475.0)*
 
-`wram/<region>.json`, one file per region, and `wram/_types.json`. There are 1,216 variables in 7 files (until
-v0.473 there was one file per variable), and `_enum.json` lists no ids. A region file is an ordered list. Each item's
-address follows from the region's start, the order and the sizes, as in a C struct (shortened from `room.json`):
+`wram/<part>.json`, one file per part (56: `frame`, `palettes`, `windows`, `party`, `session`, `mode7`, `entities`, …; no part shares a name with another kind's file, `metatiles.json` or `font.json`: tests and tools find those by name),
+and `wram/_types.json`. A part file is an ordered list; each item's address follows from where the part starts, the
+order and the sizes, as in a C struct (shortened; the last items are from other parts, to show each form):
 
 ```json
-{ "format": "open-evermore/memory", "version": 1, "space": "wram", "region": "room",
+{ "format": "open-evermore/memory", "version": 1, "space": "wram", "region": "low", "part": "session",
+  "what": "controls, save menu, font, stamina, audio volume, shop and dialogue state",
   "items": [
-    { "name": "ANIM_ALCHEMY_SLOTS_BASE", "type": "AnimAlchemySlot", "count": 8 },
-    { "name": "PROJ_ALCHEMY_SLOTS_BASE", "type": "ProjAlchemySlot", "count": 8 },
-    { "name": "PROJ_ALCHEMY_ALIGN_PAD", "type": "u8", "count": 2 },
+    { "name": "HUD_DIRTY_UPDATE_FLAGS", "type": "u16" },
+    { "name": "CHOICE_PROMPT_STATE", "type": "ChoiceBoxState" },
+    { "name": "ACTIVE_PLAYER_CHAR_ALIGN_PAD", "type": "u8", "count": 2 },
+    { "name": "JOYPAD1_HELD", "type": "JoypadButtons", "cells": [{ "name": "INPUT_P1", "offset": 0 }] },
     { "gap": 6 },
-    { "name": "JOYPAD_CHORD_HISTORY", "type": "u16", "count": 128, "cells": [{ "name": "ATTACK_SLOT_128", "offset": 0 }] },
     { "name": "DOG_READ" }
   ] }
 ```
 
 - **`type` and `count`** give the size: the type's size × count. Types are `u8`/`i8`/`u16`/`i16`/`u24`/`u32`, or a
-  struct, typedef or sized enum of `_types.json`. `_types.json` is the vanilla `localizations/data/types.json`,
-  exploded; edit or extend it there. `size` beside a type only where the WRAM map's size is not the type's.
-- **`cells`** are names inside an item: a struct's field, an array's cell, a second name on the same byte. Each has an
-  `offset` and maybe a `size`, and moves with its item.
-- **An item with no type or size** is a cell whose width each access decides. It takes no room; the `gap` after it does.
-- **`gap`** is bytes nothing is named for.
-- **The regions come from the mapping file** (`memory.wram` in `evermore/map/<release>.json`, [mapping.md](mapping.md)):
-  each region's span, and how the engine reaches it. That is what forces a variable into its region:
+  struct, typedef or enum of `_types.json`. `size` beside a type only where the WRAM map's size is not the type's.
+- **`cells`** are names inside an item (a field, an array's cell, a second name on a byte): an `offset`, maybe a `size`.
+- **An item with no type or size** is a cell whose width each access decides; it takes no room.
+- **`gap`** is bytes nothing is named for. What lies after a part's last item, up to where the next part starts, is free
+  and not written.
+- **`_types.json`** is the vanilla `localizations/data/types.json`, exploded, and the tree's to change: an enum's values
+  renamed or added, its `size` changed (every item of that type is resized with it), a struct's size. Implode checks each
+  enum (values fit its size, each name once). The ROM holds no type: the round trip carries the tree's.
+- **Regions and parts come from the mapping file** (`memory.wram` in `evermore/map/<release>.json`, [mapping.md](mapping.md)).
+  A region is where the engine's reach changes, and that is what forces a variable's place:
 
-  | Region | Span | Reach |
-  |---|---|---|
-  | `direct_page` | `$0000`-`$00FF` | 1-byte direct-page operands (D = 0) |
-  | `low` | `$0100`-`$1FFF` | 16-bit absolute operands from banks `$80`-`$BF` (WRAM's low mirror) |
-  | `system` | `$2000`-`$2257` | data bank `$7E`, or long |
-  | `save` | `$2258`-`$2833` | data bank `$7E` (the save blocks and the script save area) |
-  | `temp` | `$2834`-`$28FB` | data bank `$7E`; temp[] (`TEMP_COMPILER_ARENA`, 200 bytes) |
-  | `room` | `$28FC`-`$FFFF` | data bank `$7E`, or long |
-  | `bank_7f` | `$7F:0000`-`$FFFF` | long |
+  | Region | Span | Reach | Parts |
+  |---|---|---|---|
+  | `direct_page` | `$0000`-`$00FF` | 1-byte direct-page operands (D = 0) | 1 |
+  | `low` | `$0100`-`$1FFF` | 16-bit absolute operands from banks `$80`-`$BF` (WRAM's low mirror); saved block `$0ABA`-`$0B1E` | 25 |
+  | `system` | `$2000`-`$2257` | data bank `$7E`, or long | 4 |
+  | `save` | `$2258`-`$2833` | data bank `$7E`; saved blocks `$2258`, `$22FF`, `$2361`, `$2513` | 4 |
+  | `temp` | `$2834`-`$28FB` | data bank `$7E`; temp[] (`TEMP_COMPILER_ARENA`, 200 bytes) | 1 |
+  | `room` | `$28FC`-`$FFFF` | data bank `$7E`, or long; saved block `$2F52`-`$2FF3` | 13 |
+  | `bank_7f` | `$7F:0000`-`$FFFF` | long, or the data bank `$7F` | 8 |
 
-  A region holds no address of its own, so a language release with other bases only changes its mapping file.
+  A part has a vanilla start in the mapping file and a line saying what it holds. A cut never splits an item: an item
+  belongs to the part where it starts, and the next part starts after it.
 
 Implode reads the kind first (`KINDS[0]`) and hands its addresses to the later kinds: script operands
-(`write_word ENEMY_SPAWNER_QUANTITY, 1`), records' `wram` fields (`LEVEL_LOW_CURE`) and rings' buffers. A name no
-region has is an error where it is used. A rename (in its region file and at its uses) builds the vanilla sha1, and the
-round trip keeps the new name (the kind's `symbols` give each name's address).
+(`write_word ENEMY_SPAWNER_QUANTITY, 1`; a cell's named values are looked up at its vanilla place), records' `wram`
+fields (`LEVEL_LOW_CURE`) and rings' buffers. A name no part has is an error where it is used. A rename (in its part file
+and at its uses) builds the vanilla sha1.
 
-**Moving and resizing are refused** until implode rewrites the code that reaches a variable (W2):
+### 0.1 Spilling
 
-- `wram-resized`: a variable at its vanilla address with another size.
-- `wram-moved`: the variables that left their place, one finding per region, the first three by name.
-- `wram-region-full`: an item that ends past its region.
+A part starts at its vanilla start or, when the part before it grew past that, right after it: it spills over and pushes
+the parts after it, across region cuts too, as long as each pushed item stays where the engine reaches its home region
+(`wram-reach`: low WRAM ends at `$1FFF`, a `bank` region's items stay in their bank) and each item stays inside or outside the
+saved blocks as vanilla had it (`wram-save-block`, until W8). A gap, a part's free end or a removed pad nothing reads ends
+the push. Past the end of a bank: `wram-region-full`.
 
-The owner's two checks show what the format lets a user say, and what is still missing (2026-11-27,
-`wram.test.mts`):
+### 0.2 Moving and resizing *(W2, v0.475.0)*
 
-- **temp[] is bigger than it needs to be.** `"count": 100` and a `{ "gap": 100 }` say it in two lines. Implode refuses
-  it as resized: the compiler's temp[] size is not generated yet.
-- **A 9th projectile alchemy slot** (the game crashes with 9 at once: 8 from the player, 1 from a boss). `"count": 9`
-  on `PROJ_ALCHEMY_SLOTS_BASE` shifts the 109 variables after it by 118 bytes, and the last ones would leave bank
-  `$7E`. Implode names the resize, the moves and the overflow. What growth needs (three loop-end immediates, an
-  unrolled clear, two target words to move) is written in `knowledge/wram/PROJ_ALCHEMY_SLOTS_BASE.md`. It is tracked
-  as W10.
+A variable moves when implode can rewrite every operand that reaches it. The **reader census**
+(`evermore/map/<release>.wram-readers.json`, written by `node tools/open-evermore/wram-census.mts` from the vanilla CDL
+library) lists, per vanilla place, the instructions that reach it: ROM addresses and offsets, no ROM bytes, so it is
+checked in and implode needs no library. Per vanilla variable it is one of:
+
+- **movable** (388 groups, 3,448 operands): every reader is an absolute or long operand whose base lies inside, touching
+  nothing outside. Variables that one instruction reaches together are one **group** (an indexed read past an array's end,
+  a word across two variables) and move rigidly (`wram-group-split`). `wram-census.mts --part <p>` lists a part's states.
+- **pinned** (348): a pointer, DMA, the direct page, a field read on a pointer in X/Y (`lda $0002,y`), indirect modes, a
+  wide indexed reach. Moving it is `wram-pinned` with the first blocker; growing it in place is allowed, shrinking not.
+- **never reached** in the recording: moves freely (info `wram-unreached`), and may be removed.
+
+Explode declares every census operand as generated table space (blanked in `_base/`); implode writes each from where its
+group landed (vanilla's when nothing moved, so G0 holds), and the round trip reads each place back from those operands.
+A long operand into the low mirror keeps its bank byte. Resizing: a group of one variable grows freely (the code reads
+only its old bytes); it shrinks only where no recorded access reaches past the new end. A script cell written as a
+number (`<0x2391>`, `[91 23]`) does not follow a move: implode refuses that move (`wram-script-number`). Event scripts do
+not pin anything otherwise: their WRAM operands are save- and temp-area cells by name, and what the engine touches while
+a script instruction runs is code, in the census already. A block routine (capped at 128 addresses) that covers the old
+place but not the new, or the other way round, refuses the move (`wram-block-routine`).
+
+**The proof.** `prove --stable` builds vanilla (`vanillaMemory`: the tree's names at vanilla's places) and the tree's
+layout with every ROM resource at home, plays the playbacks in lockstep and compares WRAM through the move every frame
+(`play.mts`: vanilla's byte at `a` against the build's at `b`; the playbacks' own writes are mapped too). 2026-11-27, one
+tree with: `ChoiceBoxState` resized 2 → 4 bytes and given a value (absorbed by a shorter pad 22 bytes on), `TERRAIN_COUNTDOWNS`
+80 → 82 (spilling through `sprite_cache` and `actors`, absorbed by `mode7`'s removed pad), two `mode7` variables swapped,
+and the joypad pair moved in front of the frame counters: 86 variables moved, 848 bytes compared.
+
+| Playback | Frames | Result |
+|---|---|---|
+| intro 2m20, attract loop | 8,414 + 6,224 | in step, no drift |
+| field play (owner's recordings of 2026-10-10, 15:40 and 23:09) | 41,345 + 52,345 | in step, no drift |
+| control: the same build with the 445 rewritten operand bytes put back | | leaves step at frame 3 |
+
+With `--random` too (seed 1, intro and attract) the build plays in step; seed 2 on the 23:09 recording leaves step at
+frame 831 with or without WRAM moves (a direct-page ROM pointer prove does not translate: ROM layout, not WRAM).
+
+**Not proved.** The census is what the recording reached: an operand in code the play never ran is not rewritten, and an
+immediate that holds a WRAM address (a DMA source, `lda #$0F5A`) is not seen. The proof covers the five playbacks;
+anything else (shops, the save menu, every boss) is not checked. The 9th projectile alchemy slot (W10) is still refused:
+the effect slots are pinned (pointers).
+
+The owner's two checks of v0.474 (a smaller temp[], `count: 9` on `PROJ_ALCHEMY_SLOTS_BASE`) are refused by name still:
+temp[] is pinned (the compiler writes its size), and the alchemy slots are reached through pointers. What growth there needs
+is in `knowledge/wram/PROJ_ALCHEMY_SLOTS_BASE.md` (W10).
 
 **Names.** One per address, the ones scripts already read cells by (script-model/names.ts `displayNames`: names.json,
 then the compiler's MEMORY enum, then the WRAM map), plus the WRAM map's `$7F` entries; sizes from the WRAM map
 (`localizations/data/wram-map.md`) for a variable that starts where its entry starts; a variable inside a sized one is
 `in` it. Where a script names an array's or struct's first cell otherwise, the whole keeps the WRAM map's name and the
-cell is `in` it at offset 0 (`LEVEL_HIGH_ACID_RAIN` in `FORMULA_COMBAT_POWER_ARRAY`, with the other 34 formulas' cells);
-two names that differ only in case are one (`PALETTE_BG_4`). A name the sources give two addresses is left out (both stay `$7E:xxxx`). The scripts' files did not change; the
-records' WRAM fields read better (Cure's cells were `FORMULA_XP_ACID_RAIN+12`, now `LEVEL_LOW_CURE`): before, the tools
-read the knowledge `wram` space, whose `$7E:xxxx` addresses do not parse (254 of 1,560 entries seen; tracker, knowledge to fix).
-The sources still differ at 251 addresses; making the WRAM map the one source is W1b (tracker, current state).
+cell is `in` it at offset 0 (`LEVEL_HIGH_ACID_RAIN` in `FORMULA_COMBAT_POWER_ARRAY`). A name the sources give two addresses
+is left out (both stay `$7E:xxxx`). The sources still differ at 251 addresses; making the WRAM map the one source is W1b.
 
 ## 1. Until WRAM can be allocated: `temp[]` as a placeholder
 
@@ -91,7 +131,7 @@ named in the kind's file (`"experience": "temp[90]"`), taken from the top down: 
 room's own scripts keep theirs. The price, said in the file: `temp[]` is wiped on every room load and not saved, so the state
 lasts one room. Good enough to try a new formula or weapon; not for a release. The real fix is §3.
 
-## 2. The proof of concept: `tools/open-evermore/wram-poc.mts`
+## 2. The proof of concept: `tools/open-evermore/wram-poc.mts` *(superseded by §0.2; its rules live on in `wram-census.mts`)*
 
 ```
 node tools/open-evermore/wram-poc.mts --scan                       every WRAM entry the recorded play reached, by blockers
@@ -120,7 +160,7 @@ through the move (vanilla's old place = the build's new place, and back) and so 
 |---|---|---|---|
 | `RNG_SEED_0` (`$0133`, 8 B) | 27 instructions | intro 2m20 (8,414 frames), attract loop (6,224) | **in step**, every frame |
 | `CONTROL_CONFIGURATION` (`$0B21`, 2 B) | 5 | intro 2m20 | in step (its screen never runs: proves only boot) |
-| `JOYPAD1_HELD` (`$0104`, 2 B) | 73 | intro 2m20 | **leaves step at frame 473** (`$0004` differs): a reader the CDL does not pin down (a capped PC or a direct-page access with D ≠ 0); open |
+| `JOYPAD1_HELD` (`$0104`, 2 B) | 73 | intro 2m20 | **leaves step at frame 473**. Cause (v0.475.0): the library keys a word access by its first byte, so a word read at `$0103`/`$0105` that also touches `$0104` was never counted. The census counts both bytes; `JOYPAD1_HELD` and `JOYPAD1_TRIGGERED` are one group and move in step (§0.2) |
 
 `--scan`: of 191 entries the play reached, 13 have no blocker; most have one to a few (arrays reached through another
 base, pointers, scripts). The 42 capped PCs (generic copy and pointer routines) cover nearly every variable.

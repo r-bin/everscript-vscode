@@ -4,33 +4,31 @@ Every WRAM address by name, placed by implode like a ROM resource, so tables can
 alchemy effects at once) and structs can move (the Boy's record, the pointer to it). Design, the `wram` kind and the proof
 of concept: [../open-evermore/wram.md](../open-evermore/wram.md). This page is the tracker: one row per step, small steps.
 
-## Current state (v0.474.0, 2026-11-27)
+## Current state (v0.475.0, 2026-11-27)
 
-- **Region files** (v0.474.0, the owner's design of 2026-11-27): the `wram` kind writes 7 region files from the mapping
-  file's `memory.wram` spans (ordered items with `type` and `count` from the exploded vanilla types `_types.json`, `cells`,
-  `gap`) instead of 1,216 files. The same variables at the same addresses; a resize or move is refused by name
-  (`wram-resized`, `wram-moved`, `wram-region-full`). The owner's two checks: a smaller temp[] and a 9th projectile
-  alchemy slot are each one edit, refused until W2 (W10 below).
-- **The `wram` kind exists** (`tools/open-evermore/evermore/codecs/wram.mts`, folder `wram/`): 1,216 variables, 67 of them
-  `in` another. Implode reads it first; scripts, equipment and alchemy records and rings take every WRAM name and address
-  from it. A rename builds the vanilla ROM; a move is an error (`wram-moved`). Nothing is generated into the ROM yet.
-- **Where its names come from**: per address, names.json → the compiler's MEMORY enum → the WRAM map
-  (`localizations/data/wram-map.md`, 1,148 entries); sizes and nesting from the WRAM map. Against the WRAM map: 885 addresses
-  have the same name, **251 a different one** (`INPUT_P1` / `JOYPAD1_HELD`), **59 script-named cells lie inside a map entry**
-  with no name of their own (the formulas' levels in `FORMULA_COMBAT_POWER_ARRAY`), 1 map entry has no script name.
-- **The WRAM map's save area is right again** (v0.459.1): `$2309`-`$231C` were one cell off (below). Open Evermore's files
-  did not change: names.json's names already won there.
-- **Moving**: only the proof of concept (`wram-poc.mts`, W0) has moved a variable; the kind cannot yet (W2).
-- **Growing** (more formulas, weapons, alchemy effect slots): not started (W5, W10).
+- **Moving works** (v0.475.0, owner's ask: "explode the whole WRAM by meaning, region spilling, adjusted and resized enums,
+  verify the game still runs when memory moves"): `wram/` is 56 part files by meaning (`frame`, `session`, `mode7`, …), cut
+  in the mapping file's `memory.wram` regions with their saved blocks. A variable the reader census can rewrite moves and
+  grows; a part that grows spills into the next ones; `_types.json` enums are edited and resized in the tree. Implode writes
+  every census operand (3,448, 388 groups) and refuses the rest by name (`wram-pinned`, `wram-group-split`, `wram-reach`,
+  `wram-save-block`, `wram-block-routine`, `wram-script-number`). Proof: 86 variables moved, five playbacks (two field
+  sessions, 94k frames) in lockstep with vanilla, WRAM compared through the move ([../open-evermore/wram.md](../open-evermore/wram.md) §0.2).
+- **The census** (`tools/open-evermore/wram-census.mts` → `evermore/map/us.wram-readers.json`, checked in): 736 groups the
+  recording reached, 388 movable, 348 pinned (285 of them a field read on a pointer in X/Y, 28 DMA, 25 indirect modes).
+  It sees only what the recording ran; immediates that hold a WRAM address (DMA sources) are not seen.
+- **Names** (unchanged): per address, names.json → the compiler's MEMORY enum → the WRAM map; **251 differ** from the map
+  (W1b).
+- **Growing tables** (more formulas, weapons, alchemy effect slots): not started (W5, W10); their WRAM is pinned.
 
 | # | Step | State |
 |---|---|---|
 | W0 | Proof of concept: one variable moved by name, playbacks in step (`tools/open-evermore/wram-poc.mts`) | ✅ `RNG_SEED_0`, intro 2m20 and attract loop (v0.456.0) |
 | W1 | The `wram` kind: one file per named variable (`at`, or `in` + `offset`; `size`), read first by implode; scripts, records and rings take every WRAM name and address from it; a rename is free, a move is an error | ✅ v0.459.0: 1,216 variables (67 `in` another); G0, random 1/2 round trips, a rename builds the vanilla sha1 (`wram.test.mts`) |
 | W1b | The WRAM map as the one source: the 251 differing names settled into it (or kept as the map's), the 59 inner cells as fields of their arrays and structs; `wram.mts` then generates from the map alone and drops names.json and MEMORY as name sources | 🔴 proposed (owner, 2026-11-23: "generate the wram/ folder from the wram map") |
-| W2 | Move a variable whose every reader implode can rewrite: code operands (the PoC's rule) and script operands (save/temp area offsets, already names). Implode needs the reader sites without the user's CDL library: explode records them (generated, in `_base/`, by routine name + offset). First: `RNG_SEED_0` (the PoC's), then a script-only save cell | 🔴 |
-| W3 | `JOYPAD1_HELD` leaves step at frame 473: find the reader the CDL does not pin down (capped PC or direct page) | 🟡 |
-| W4 | Blocker rules: arrays as one item with their base; pointer and direct-page readers back to the immediate that makes the pointer; capped block copies (source, length); DMA sources | 🔴 |
+| W2 | Move a variable whose every reader implode can rewrite: code operands from a checked-in census (`wram-census.mts`), scripts by name; resize, spill, reorder in the part files | ✅ v0.475.0: 388 groups movable, 86 variables moved in one tree, five playbacks in step (wram.md §0.2). Open: census only of what the recording reached; W2b below |
+| W3 | `JOYPAD1_HELD` leaves step at frame 473: find the reader the CDL does not pin down | ✅ v0.475.0: word reads `lda $0105` (five routines) take its high byte; the library keys a word by its first byte. The census counts both bytes; the pair moves in step |
+| W4 | Blocker rules: arrays as one item with their base; pointer and direct-page readers back to the immediate that makes the pointer; capped block copies (source, length); DMA sources | 🟡 v0.475.0: groups (one instruction reaching several variables moves them rigidly; an indexed reach up to 1 KiB); capped routines must cover old and new place alike. Open: pointers (285 pinned by `lda $0002,y` field reads), DMA (28), immediates |
+| W2b | Scripts: a script cell written as a number pins (`wram-script-number`); flags and named values are known by vanilla address (values translated, flags not): a moved save-area variable needs flags by place too (W7, W8) | 🔴 |
 | W5 | Structs and arrays as one variable each, their fields `in` them: the Boy's and Dog's records (`$4E89`, `$4F37`) and the pointer to the Boy's (`$0F3E`); the 8 alchemy effect slots (`$7E:3364`, 64 B each) | 🔴 |
 | W6 | Implode generates every data word that holds a WRAM address (formulas' `learned/flags`, weapons' `owned/flags`, ring `buffer`s: names already) | 🔴 |
 | W7 | Flags (the save area's named bits, scripts' `flag` names) as part of the `wram` kind | 🔴 |
@@ -45,7 +43,7 @@ Strategy: [../open-evermore/memory.md](../open-evermore/memory.md). Order: WRAM,
 | # | Step | State |
 |---|---|---|
 | M0 | Measure what vanilla writes in VRAM, CGRAM, OAM, ARAM (intro + attract playbacks) | ✅ memory.md §2 (2026-11-27; probe: per 1 KiB / 32 B block, used and churn) |
-| M1 | 🟡 v0.474.0 for WRAM's exploded tree: 7 region files, vanilla bases in the mapping file (`memory.wram`). Still open: the knowledge side below, and the other memories. One map per memory, not one file per entry: thin `knowledge/wram/*.md` (1,344 of 1,560) folded into their map rows, repeated slots (`ENTITY_SLOT_<n>_*` 110, `WINDOW_<n>_*` 232, `cgram_queue_slot_<n>` 32) as types + one array row; the `wram` kind writes ~30 region files (ordered items, `gap`, `pin`, `count`) instead of 1,216; vanilla bases per release in `evermore/map/<release>.json`. Needs W1b first; `check-maps.mts`, `knowledge.ts`, `generate-rom-map.mts` and `soe://ram/` must read rows and array fields | 🔴 proposed |
+| M1 | 🟡 v0.475.0 for WRAM's exploded tree: 56 part files by meaning (v0.474.0: 7 region files), vanilla bases in the mapping file (`memory.wram`). Still open: the knowledge side below, and the other memories. One map per memory, not one file per entry: thin `knowledge/wram/*.md` (1,344 of 1,560) folded into their map rows, repeated slots (`ENTITY_SLOT_<n>_*` 110, `WINDOW_<n>_*` 232, `cgram_queue_slot_<n>` 32) as types + one array row; the `wram` kind writes ~30 region files (ordered items, `gap`, `pin`, `count`) instead of 1,216; vanilla bases per release in `evermore/map/<release>.json`. Needs W1b first; `check-maps.mts`, `knowledge.ts`, `generate-rom-map.mts` and `soe://ram/` must read rows and array fields | 🔴 proposed |
 | M2 | The probe per screen mode (field, ring menu, dialogue, shop, Mode 7 flight, title) with the PPU base registers read from the core, not the WRAM shadows; settle memory.md §3's contradictions | 🔴 |
 | M3 | `sram-map.md` and `sram.json`: header, 4 slots of `$331`, checksum; generated from the save blocks once W8 lands | 🔴 |
 | M4 | `aram-map.md` and `aram.json`: the driver's constants (DIR `$1F`, ESA `$D4`, EDL, table bases) found in the SPC700 code; package destinations generated by implode; a shorter echo as the first proof (more sample space, music still plays) | 🔴 |

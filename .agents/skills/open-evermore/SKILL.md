@@ -46,11 +46,15 @@ before touching its codec. This skill is how to work on it and what bit us.
   top down, named in its file; say that they are wiped on every room load and not saved. Real allocation is the tracker
   `docs/todo/wram-allocation.md` (W0-W10, `docs/open-evermore/wram.md`).
 - **Every memory goes the WRAM way** (owner, 2026-11-27: all dynamic): VRAM, CGRAM, ARAM, SRAM as one map per memory and
-  a few region files, never one file per entry (`docs/open-evermore/memory.md`, tracker M0-M6). WRAM's exist (v0.474.0):
-  `wram/<region>.json` ordered items (`type` + `count` from the exploded vanilla `_types.json`, `cells`, `gap`), the spans
-  and each region's `reach` (direct page, low mirror, data bank, long) in the mapping file's `memory.wram`, never in the
-  tree. A region cut must not split a WRAM map entry (the map's `areas` do). A VRAM address in a map is a word address;
-  `memory-probe.mts` reports bytes.
+  a few files by meaning, never one file per entry (`docs/open-evermore/memory.md`, tracker M0-M6). WRAM's (v0.475.0):
+  `wram/<part>.json`, 56 parts by meaning, ordered items (`type` + `count` from `_types.json`, `cells`, `gap`); regions
+  (reach), parts (vanilla start, what) and saved blocks in the mapping file's `memory.wram`, never in the tree. A part
+  name is a file name: never another kind's (`metatiles.json`, `font.json`: tests find those by suffix). A VRAM address in
+  a map is a word address; `memory-probe.mts` reports bytes.
+- **WRAM moves only through the census** (`evermore/map/us.wram-readers.json`, regenerate with
+  `node tools/open-evermore/wram-census.mts` after the CDL library grew; `--part <p>` lists a part's states). Implode writes
+  every census operand (table space), so a moved variable is proved with `prove --stable` (ROM at home, WRAM compared through
+  the move), not `--random` alone: a random ROM layout has drifts and failures of its own (seed 2 on a field recording).
 - **temp[] cells read as `temp[n]`**: `TEMP_COMPILER_ARENA` is a variable (`wramAddress`), but `wramName` never returns a
   temp-area name, or ~40 scripts would print the block's name for `temp[0]`.
 - **WRAM names come from the `wram` kind** (`codecs/wram.mts`, `KINDS[0]`): `wramAddress`/`wramName`/`wramHolding`, never
@@ -101,6 +105,11 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   differs, per window; the same scenes come back.
 
 ## Traps
+
+- **WRAM census traps** (v0.475.0): the library keys a word access by its first byte (count both, or `lda $0105` hides
+  `JOYPAD1_HELD`); a 16-bit operand names bank `$7F` when the bytes it touched are there (DB `$7F`); `sta $420B` is credited
+  with its DMA's WRAM bytes; `script-xrefs.bin` is everything the engine touched during a script instruction (millions),
+  not script operands; capped and pointer PCs join half of WRAM into one group if let.
 
 - **One release per process**: the codecs read the map when they load. Call `selectRelease` before importing
   `evermore/kinds.mts` (the CLI imports it dynamically); a second release after that throws. `map.test.mts` fails on an

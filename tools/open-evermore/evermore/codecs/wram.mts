@@ -1,101 +1,63 @@
-// The `wram` kind (docs/open-evermore/wram.md §0, memory.md §4.2): every named WRAM variable, written as a few region
-// files, wram/<region>.json, each an ordered list of items from the region's start. The other kinds name WRAM through it:
-// a script's cell (`write_word ENEMY_SPAWNER_QUANTITY, 1`), a record's `wram` field, a ring's buffer. Implode reads the
-// files first and hands their addresses to those kinds, so a variable's place is written once, here.
+// The `wram` kind (docs/open-evermore/wram.md §0, memory.md §4.2): every named WRAM variable, written as one file per part of
+// WRAM by meaning, wram/<part>.json (the frame state, the palettes, the windows, the party, the entities, …), each an
+// ordered list of items. The other kinds name WRAM through it: a script's cell (`write_word ENEMY_SPAWNER_QUANTITY, 1`), a
+// record's `wram` field, a ring's buffer. Implode reads the files first and hands their addresses to those kinds.
 //
-// The regions and their spans come from the mapping file (`memory.wram` in evermore/map/<release>.json): where each starts
-// and ends, and how the engine reaches it (direct page, the low mirror, the data bank $7E, long), which is what forces a
-// variable into a region. A region file holds no address: each item's place follows from the order and the sizes.
+// Where things are (the mapping file's `memory.wram`, evermore/map/<release>.json): the regions, cut where the engine's
+// reach changes (direct page, the low mirror, the data bank $7E, long), each cut by meaning into parts, and the blocks the
+// save routine copies. A file holds no address: an item's place follows from the order and the sizes, and a part starts at
+// its vanilla start or, when the part before it grew past that, right after it (it spills over and pushes the parts after
+// it). Every item must stay where the engine reaches it from its home region (`reach`), and inside or outside the saved
+// blocks as vanilla had it (W8).
 //
 // An item:
 //   { "name": "PROJ_ALCHEMY_SLOTS_BASE", "type": "ProjAlchemySlot", "count": 8 }   size = type's size × count
 //   { "name": "LEVEL_TABLE", "type": "u16", "count": 35, "cells": [{ "name": "LEVEL_ACID_RAIN", "offset": 0, "size": 2 }] }
 //   { "name": "DOG_READ" }        a cell of unknown size (as wide as each access): it takes no room, the gap after it does
-//   { "gap": 6 }                  bytes no variable is named for
+//   { "gap": 6 }                  bytes no variable is named for; what follows a part's last item up to the next part is
+//                                 free and not written
 //   "size" beside a type: the bytes when they are not the type's (an unknown type, a map entry that says otherwise)
-// The types are wram/_types.json, exploded from the vanilla types (localizations/data/types.json): structs with their
-// size, enums, typedefs; an item may use any of them or u8/i8/u16/i16/u24/u32.
+// The types are wram/_types.json, exploded from the vanilla types (localizations/data/types.json): structs, enums (with
+// their values and size), typedefs. They are the tree's to change: an enum's values renamed or added, its `size` changed
+// (every item of that type is resized with it). The ROM holds no type, so the round trip carries the tree's.
 //
-// Moving or resizing is refused (`wram-moved`, `wram-resized`) until implode rewrites the code that reaches a variable
-// (docs/todo/wram-allocation.md W2); a region that overflows its span is `wram-region-full`.
+// Moving (docs/todo/wram-allocation.md W2): a variable moves when the reader census (evermore/map/<release>.wram-readers.json,
+// tools/open-evermore/wram-census.mts) says implode can rewrite every operand that reaches it. Implode writes those
+// operands from the new place (generated, in the table space explode recorded), and the round trip reads each place back
+// from them. Variables one instruction reaches together are a group that moves rigidly. A pinned variable (a pointer, DMA,
+// the direct page, a field read through X/Y) stays, and says why when the tree moves it (`wram-pinned`). A variable no
+// recorded play reached moves freely (said as info). Growing is free where the following items can move (or a gap or the
+// part's free end takes it); shrinking only where no recorded access reaches past the new end.
 //
 // The names are the ones the Scripts tab reads cells by (script-model/names.ts displayNames: names.json, then the
 // compiler's MEMORY enum, then the knowledge WRAM map), plus the WRAM map's $7F entries; sizes and types are the WRAM map's
 // (localizations/data/wram-map.md) for a variable that starts where its entry does. One name per address; a name the
 // sources give two addresses is left out (both cells stay `$7E:xxxx`), as the scripts' operands already do.
-import { createRequire } from 'node:module';
-import type { Codec, ImplodeContext } from '../../codec.mts';
+import type { Codec, ImplodeContext, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
 import { json, readText } from '../../tree.mts';
 import type { Tree } from '../../tree.mts';
-import { hexText } from './readers.mts';
 import * as map from '../map.mts';
+import { census, check, fromRom, groupStart, siteSpans } from './wram-moves.mts';
+import type { Group, Moved } from './wram-moves.mts';
+import { NAME, TEMP_END, TEMP_START, VANILLA_TYPES, WRAM_START, at16, checkEnums, knownType, partAt, partsOf, placeKey, sizeOfType, splitType, vanillaWram } from './wram-vars.mts';
+import type { Cell, Entry, Types, Variable } from './wram-vars.mts';
 
-const require = createRequire(import.meta.url);
-const { displayNames } = require('../../../../dist/games/evermore/script-model/names');
-const { getAllWramEntries } = require('../../../../dist/games/evermore/localizations/wram-map');
-const VANILLA_TYPES = require('../../../../src/games/evermore/localizations/data/types.json');
+export { vanillaWram } from './wram-vars.mts';
+export type { Variable } from './wram-vars.mts';
 
 export const KIND = 'wram';
 const DIR = KIND, FORMAT = 'open-evermore/memory', TYPES_FORMAT = 'open-evermore/memory-types', VERSION = 1, TYPES = '_types.json';
-const NAME = /^[A-Za-z_][A-Za-z0-9_]{0,79}$/;
-const WRAM_START = 0x7E0000, TEMP_START = 0x7E2834, TEMP_END = 0x7E28FC;
+/** The symbol that tells a round trip's explode that it reads back a tree implode just read (Codec.symbols → nameAt). */
+const TREE_MARK = 0x7FFFFFFF, TREE_NAME = '__tree__';
 
-/** One variable: `at` a bus address ($7E:0000-$7F:FFFF). */
-export interface Variable { name: string; at: number; size: number | null; in?: string; offset?: number; type?: string }
-
-let vanillaCache: Variable[] | null = null;
-/** Every named variable of the vanilla game, by address. */
-export function vanillaWram(): Variable[] {
-    if (vanillaCache) return vanillaCache;
-    const d = displayNames(() => 0);
-    const entries: { busAddr: number; name: string; size: number; type: string }[] = getAllWramEntries();
-    const entryAt = new Map(entries.map(e => [e.busAddr, e]));
-    // An array or a struct keeps its own name when a script names its first cell otherwise (the formulas' levels:
-    // LEVEL_HIGH_ACID_RAIN is the first of 35); a scalar's two names are one variable, the script's name.
-    const whole = (e: { type: string } | undefined) => !!e && !/^`?(u8|u16|u24|u32|i8|i16|entity)`?$/.test(e.type ?? '');
-    const cells: { name: string; at: number; size: number | null; type?: string }[] = [];
-    for (let a = 0; a < 0x10000; a++) {
-        const n: string = d.memory(a), at = WRAM_START | a, e = entryAt.get(at);
-        if (!n) continue;
-        if (e && e.name.toUpperCase() !== n.toUpperCase() && whole(e)) cells.push({ name: e.name, at, size: e.size, type: e.type }, { name: n, at, size: null });
-        else cells.push({ name: n, at, size: e?.size ?? null, type: e?.type });
-    }
-    for (const e of entries) if (e.busAddr >= 0x7F0000 && e.name) cells.push({ name: e.name, at: e.busAddr, size: e.size, type: e.type });
-    // temp[] (scripts write `temp[n]`, so displayNames names none of its cells): the WRAM map's one entry for it.
-    for (const e of entries) if (e.busAddr >= TEMP_START && e.busAddr < TEMP_END && e.name) cells.push({ name: e.name, at: e.busAddr, size: e.size, type: e.type });
-    const uses = new Map<string, number>();
-    for (const c of cells) uses.set(c.name, (uses.get(c.name) ?? 0) + 1);
-    // By address, the whole before its first cell.
-    const list = cells.filter(c => uses.get(c.name) === 1 && NAME.test(c.name)).sort((a, b) => a.at - b.at || (b.size ?? 0) - (a.size ?? 0));
-    // A variable that starts inside a sized one is in it.
-    const out: Variable[] = [], open: Variable[] = [];
-    for (const c of list) {
-        while (open.length && open[open.length - 1].at + open[open.length - 1].size! <= c.at) open.pop();
-        const parent = open[open.length - 1];
-        let size: number | null = c.size;
-        if (parent && size !== null && c.at + size > parent.at + parent.size!) size = null;
-        const type = c.type?.replace(/`/g, '') || undefined;
-        const v: Variable = parent ? { name: c.name, at: c.at, size, in: parent.name, offset: c.at - parent.at } : { name: c.name, at: c.at, size, ...(type && size !== null ? { type } : {}) };
-        out.push(v);
-        if (size !== null && size > 1) open.push(v);
-    }
-    const lower = new Map<string, string>();
-    for (const v of out) {
-        const other = lower.get(v.name.toLowerCase());
-        if (other) throw new Error(`wram: "${v.name}" and "${other}" differ only in case; their files would be one on a case-insensitive disk`);
-        lower.set(v.name.toLowerCase(), v.name);
-    }
-    return vanillaCache = out;
-}
-
-// ── the layout the other kinds read: the tree's when implode read the w// ── the layout the other kinds read: the tree's when implode read the wram kind, else vanilla's ──
+// ── the layout the other kinds read: the tree's when implode read the wram kind, else vanilla's ──
 interface Layout { at: Map<string, number>; name: Map<number, string>; list: Variable[] }
 // An address in temp[] reads as `temp[n]` everywhere (scripts), never by the name of the block that holds it.
 const inTemp = (at: number) => at >= TEMP_START && at < TEMP_END;
 const layoutOf = (list: Variable[]): Layout => ({ at: new Map(list.map(v => [v.name, v.at])), name: new Map(list.filter(v => !inTemp(v.at)).map(v => [v.at, v.name])), list });
 let current: Layout | null = null;
-const layout = () => current ?? (current = layoutOf(vanillaWram()));
+const layout = () => current ?? (current = layoutOf(vanillaWram().map(v => ({ ...v, home: v }))));
 
 /** The bus address of a WRAM variable by name. */
 export const wramAddress = (name: string): number | undefined => layout().at.get(name);
@@ -109,65 +71,50 @@ export function wramHolding(at: number): { name: string; offset: number } | null
     for (const v of layout().list) if (v.size !== null && v.at <= at && at < v.at + v.size && (!best || v.size < best.size!)) best = v;
     return best ? { name: best.name, offset: at - best.at } : null;
 }
-
-/** A variable's place as one number, for the round trip's `nameAt`: an array and its first cell share an address. */
-const placeKey = (v: Variable): number => v.at * 0x10000 + (v.size ?? 0);
-const at16 = (at: number) => hexText(at & 0xFFFF, 4, at >> 16);
-
-// ── types: the sizes an item's type gives ──
-interface Types { typedefs: Record<string, { type: string }>; enums: Record<string, { size?: number }>; structs: Record<string, { size: number }> }
-const PRIMITIVE: Record<string, number> = { u8: 1, i8: 1, u16: 2, i16: 2, u24: 3, u32: 4, i32: 4 };
-/** "u8[0xC8]" → { type: "u8", count: 200 }; "ProjAlchemySlot[8]"; "u16". */
-function splitType(t: string): { type: string; count: number } | null {
-    const m = /^([A-Za-z_][A-Za-z0-9_]*)(?:\[(0x[0-9A-Fa-f]+|\d+)\])?$/.exec(t);
-    return m ? { type: m[1], count: m[2] === undefined ? 1 : Number(m[2]) } : null;
+/** The vanilla address of the byte at bus address `at` in the current layout (what knowledge keyed by address knows it
+ *  by: a cell's named values), or undefined when no vanilla variable holds it. */
+export function wramVanilla(at: number): number | undefined {
+    for (const v of layout().list) if (!v.in && v.home && v.size !== null && v.at <= at && at < v.at + v.size) return at - v.at < (v.home.size ?? 0) ? v.home.at + at - v.at : undefined;
+    return undefined;
 }
-/** The bytes of one element of a type, or null when the types do not say. */
-function sizeOfType(type: string, types: Types, seen = new Set<string>()): number | null {
-    if (PRIMITIVE[type]) return PRIMITIVE[type];
-    if (seen.has(type)) return null;
-    seen.add(type);
-    if (types.structs?.[type]) return Number.isInteger(types.structs[type].size) ? types.structs[type].size : null;
-    if (types.typedefs?.[type]) return sizeOfType(types.typedefs[type].type, types, seen);
-    if (types.enums?.[type]) return Number.isInteger(types.enums[type].size) ? types.enums[type].size! : null;
-    return null;
-}
-const knownType = (type: string, types: Types) => !!(PRIMITIVE[type] || types.structs?.[type] || types.typedefs?.[type] || types.enums?.[type]);
 
-// ── the region files ──
-interface Cell { name: string; offset: number; size?: number }
-type Entry = { gap: number } | { name: string; type?: string; count?: number; size?: number; cells?: Cell[] };
+// Script cells written as numbers (`<0x2391>`, `[91 23]`) do not follow a move: noted while scripts encode, checked in tables.
+const numbered = new Set<number>();
+/** A script names WRAM bus address `at` by number. */
+export const noteNumberedCell = (at: number): void => { numbered.add(at); };
 
-/** The vanilla variables as region files: each item in order, gaps where nothing is named. Throws rather than lose one. */
-function regionFiles(list: Variable[]): Map<string, Entry[]> {
-    const regions = map.memory('wram'), out = new Map<string, Entry[]>(regions.map(r => [r.name, []]));
-    const byName = new Map(list.map(v => [v.name, v]));
-    const tops = list.filter(v => !v.in);
+
+function partFiles(list: Variable[]): Map<string, Entry[]> {
+    const parts = partsOf(), out = new Map<string, Entry[]>(parts.map(p => [p.name, []]));
     const cellsOf = new Map<string, Cell[]>();
     const addCell = (parent: string, c: Cell) => { const l = cellsOf.get(parent) ?? []; l.push(c); cellsOf.set(parent, l); };
     for (const v of list) if (v.in) addCell(v.in, { name: v.name, offset: v.offset!, ...(v.size !== null ? { size: v.size } : {}) });
-    const placed: { region: string; v: Variable }[] = [];
-    let cursor = -1, last: Variable | null = null, region: map.Region | null = null;
+    const tops = list.filter(v => !v.in).sort((a, b) => a.at - b.at || (b.size ?? 0) - (a.size ?? 0));
+    const placed: { part: string; v: Variable; gap: number }[] = [];
+    let cursor = -1, last: Variable | null = null, part: string | null = null;
     for (const v of tops) {
-        const r = regions.find(x => x.from <= v.at && v.at < x.to);
-        if (!r) throw new Error(`wram: ${v.name} at ${at16(v.at)} lies in no region of map memory.wram`);
-        if (r !== region) { region = r; cursor = r.from; last = null; }
+        const p = partAt(v.at);
+        if (!p) throw new Error(`wram: ${v.name} at ${at16(v.at)} lies in no part of map memory.wram`);
+        if (p.name !== part) {
+            // A part starts at its vanilla start, or after the part before it in the same bank when that one ran on.
+            const prevEnd = last && last.at >> 16 === p.from >> 16 ? last.at + (last.size ?? 0) : p.from;
+            cursor = Math.max(p.from, prevEnd); part = p.name;
+            if (v.at >= cursor) last = null;
+        }
         if (v.at < cursor) {
             // a second name inside the item before it (DOG_READ on DOG_FORM_INDEX): one of its cells
-            if (!last || v.at + (v.size ?? 1) > last.at + (last.size ?? 1)) throw new Error(`wram: ${v.name} at ${at16(v.at)} overlaps ${last?.name ?? 'the region start'}`);
+            if (!last || v.at + (v.size ?? 1) > last.at + (last.size ?? 1)) throw new Error(`wram: ${v.name} at ${at16(v.at)} overlaps ${last?.name ?? 'the part start'}`);
             addCell(last.name, { name: v.name, offset: v.at - last.at, ...(v.size !== null ? { size: v.size } : {}) });
-            byName.set(v.name, { ...v, in: last.name, offset: v.at - last.at });
             continue;
         }
-        if (v.at + (v.size ?? 0) > r.to) throw new Error(`wram: ${v.name} (${at16(v.at)}, ${v.size} bytes) runs past region ${r.name}`);
-        placed.push({ region: r.name, v });
+        if (v.at + (v.size ?? 0) > ((v.at >> 16) + 1) << 16) throw new Error(`wram: ${v.name} (${at16(v.at)}, ${v.size} bytes) runs past its bank`);
+        placed.push({ part: p.name, v, gap: v.at - cursor });
         cursor = v.at + (v.size ?? 0);
         last = v;
     }
     const types = VANILLA_TYPES as Types;
-    const ends = new Map<string, number>(regions.map(r => [r.name, r.from]));
-    for (const { region: rn, v } of placed) {
-        const items = out.get(rn)!, gap = v.at - ends.get(rn)!;
+    for (const { part: pn, v, gap } of placed) {
+        const items = out.get(pn)!;
         if (gap > 0) items.push({ gap });
         const e: Entry = { name: v.name };
         const t = v.type ? splitType(v.type) : null;
@@ -180,137 +127,184 @@ function regionFiles(list: Variable[]): Map<string, Entry[]> {
         const cells = cellsOf.get(v.name);
         if (cells) e.cells = cells.sort((a, b) => a.offset - b.offset);
         items.push(e);
-        ends.set(rn, v.at + (v.size ?? 0));
     }
     return out;
 }
 
-const regionFile = (region: string, items: Entry[]): Uint8Array => json({ format: FORMAT, version: VERSION, space: KIND, region, items });
-const typesFile = (): Uint8Array => {
-    const t = VANILLA_TYPES as any;
-    return json({ format: TYPES_FORMAT, version: VERSION, typedefs: t.typedefs ?? {}, enums: t.enums ?? {}, structs: t.structs ?? {} });
+const partFile = (part: string, items: Entry[]): Uint8Array => {
+    const p = partsOf().find(x => x.name === part)!;
+    return json({ format: FORMAT, version: VERSION, space: KIND, region: p.region.name, part, what: p.what, items });
 };
+const typesFile = (t: any = VANILLA_TYPES): Uint8Array => json({ format: TYPES_FORMAT, version: VERSION, typedefs: t.typedefs ?? {}, enums: t.enums ?? {}, structs: t.structs ?? {} });
 
-/** The tree's variables: each region file read in order, each item placed (findings for whatever is wrong). */
-function read(ctx: ImplodeContext, names: Set<string>): Variable[] {
+/** The tree as read: its variables placed (findings for whatever is wrong), its files and types as written. */
+interface Read { list: Variable[]; files: Map<string, unknown>; types: unknown }
+
+/** The tree's variables: each part file read in order, each item placed. */
+function read(ctx: ImplodeContext, names: Set<string>): Read {
     const { tree, findings } = ctx;
-    let types: Types = VANILLA_TYPES as Types;
+    let types: Types = VANILLA_TYPES as Types, typesRaw: unknown = null;
     const tpath = `${DIR}/${TYPES}`;
     if (tree.has(tpath)) {
         try {
             const t = JSON.parse(readText(tree.get(tpath)!));
             if (t?.format !== TYPES_FORMAT || t?.version !== VERSION) findings.error('schema', tpath, '/format', `"${TYPES_FORMAT}", version ${VERSION}`);
-            else types = t;
+            else { types = t; typesRaw = t; checkEnums(types, tpath, ctx); }
         } catch (e) { findings.error('parse-error', tpath, '', (e as Error).message); }
     }
-    const out: Variable[] = [], seen = new Set<string>();
+    const out: Variable[] = [], seen = new Set<string>(), files = new Map<string, unknown>();
     const named = (n: unknown, file: string, where: string): n is string => {
         if (typeof n !== 'string' || !NAME.test(n)) { findings.error('bad-name', file, where, `"${n}": letters, digits and _, at most 80`); return false; }
         if (seen.has(n)) { findings.error('duplicate-name', file, where, `"${n}" is named twice`); return false; }
         seen.add(n);
         return true;
     };
+    let cursor = 0;
     for (const r of map.memory('wram')) {
-        const file = `${DIR}/${r.name}.json`;
-        if (!names.has(r.name)) { findings.error('missing-file', file, '', `region ${r.name} (${at16(r.from)}-${at16(r.to - 1)}) has no file`); continue; }
-        let f: any;
-        try { f = JSON.parse(readText(tree.get(file)!)); }
-        catch (e) { findings.error('parse-error', file, '', (e as Error).message); continue; }
-        if (f?.format !== FORMAT || f?.version !== VERSION || f?.space !== KIND || !Array.isArray(f?.items)) { findings.error('schema', file, '/format', `"${FORMAT}", version ${VERSION}, space "${KIND}", items [...]`); continue; }
-        let cursor = r.from;
-        f.items.forEach((it: any, k: number) => {
-            const where = `/items/${k}`;
-            if (it && typeof it === 'object' && 'gap' in it) {
-                if (!Number.isInteger(it.gap) || it.gap <= 0) findings.error('schema', file, where + '/gap', 'bytes, a whole number above 0');
-                else cursor += it.gap;
-                return;
-            }
-            if (!it || typeof it !== 'object' || !named(it.name, file, where + '/name')) return;
-            let size: number | null = null;
-            if (it.type !== undefined && (typeof it.type !== 'string' || !knownType(it.type, types))) { findings.error('unknown-type', file, where + '/type', `"${it.type}" is no type of ${tpath} nor u8/i8/u16/i16/u24/u32`); return; }
-            if (it.count !== undefined && !(Number.isInteger(it.count) && it.count > 0)) { findings.error('schema', file, where + '/count', 'a whole number above 0'); return; }
-            if (it.size !== undefined) {
-                if (!(Number.isInteger(it.size) && it.size > 0)) { findings.error('schema', file, where + '/size', 'bytes, a whole number above 0'); return; }
-                size = it.size;
-            } else if (it.type !== undefined) {
-                const one = sizeOfType(it.type, types);
-                if (one === null) { findings.error('schema', file, where + '/size', `type ${it.type} has no size: give "size"`); return; }
-                size = one * (it.count ?? 1);
-            } else if (it.count !== undefined) { findings.error('schema', file, where + '/count', 'a count needs a type'); return; }
-            const v: Variable = { name: it.name, at: cursor, size, ...(it.type ? { type: it.count && it.count !== 1 ? `${it.type}[${it.count}]` : it.type } : {}) };
-            if (cursor + (size ?? 0) > r.to) findings.error('wram-region-full', file, where, `${it.name} ends at ${at16(cursor + (size ?? 0) - 1)}, past region ${r.name}'s ${at16(r.to - 1)} (${r.why})`);
-            out.push(v);
-            for (const [j, c] of (Array.isArray(it.cells) ? it.cells : []).entries()) {
-                const cw = `${where}/cells/${j}`;
-                if (!c || !named(c.name, file, cw + '/name')) continue;
-                if (c.size !== undefined && !(Number.isInteger(c.size) && c.size > 0)) { findings.error('schema', file, cw + '/size', 'bytes, a whole number above 0'); continue; }
-                if (!Number.isInteger(c.offset) || c.offset < 0 || c.offset + (c.size ?? 1) > Math.max(size ?? 1, 1)) { findings.error('schema', file, cw + '/offset', `bytes into ${it.name}, inside its ${size ?? '?'} bytes`); continue; }
-                out.push({ name: c.name, at: cursor + c.offset, size: c.size ?? null, in: it.name, offset: c.offset });
-            }
-            cursor += size ?? 0;
-        });
+        if (r.from >> 16 !== cursor >> 16) cursor = r.from;
+        for (const p of r.parts) {
+            const file = `${DIR}/${p.name}.json`;
+            cursor = Math.max(cursor, p.from);
+            if (!names.has(p.name)) { findings.error('missing-file', file, '', `part ${p.name} (${p.what}) has no file`); continue; }
+            let f: any;
+            try { f = JSON.parse(readText(tree.get(file)!)); }
+            catch (e) { findings.error('parse-error', file, '', (e as Error).message); continue; }
+            if (f?.format !== FORMAT || f?.version !== VERSION || f?.space !== KIND || !Array.isArray(f?.items)) { findings.error('schema', file, '/format', `"${FORMAT}", version ${VERSION}, space "${KIND}", items [...]`); continue; }
+            files.set(file, f);
+            f.items.forEach((it: any, k: number) => {
+                const where = `/items/${k}`;
+                if (it && typeof it === 'object' && 'gap' in it) {
+                    if (!Number.isInteger(it.gap) || it.gap <= 0) findings.error('schema', file, where + '/gap', 'bytes, a whole number above 0');
+                    else cursor += it.gap;
+                    return;
+                }
+                if (!it || typeof it !== 'object' || !named(it.name, file, where + '/name')) return;
+                let size: number | null = null;
+                if (it.type !== undefined && (typeof it.type !== 'string' || !knownType(it.type, types))) { findings.error('unknown-type', file, where + '/type', `"${it.type}" is no type of ${tpath} nor u8/i8/u16/i16/u24/u32`); return; }
+                if (it.count !== undefined && !(Number.isInteger(it.count) && it.count > 0)) { findings.error('schema', file, where + '/count', 'a whole number above 0'); return; }
+                if (it.size !== undefined) {
+                    if (!(Number.isInteger(it.size) && it.size > 0)) { findings.error('schema', file, where + '/size', 'bytes, a whole number above 0'); return; }
+                    size = it.size;
+                } else if (it.type !== undefined) {
+                    const one = sizeOfType(it.type, types);
+                    if (one === null) { findings.error('schema', file, where + '/size', `type ${it.type} has no size: give "size"`); return; }
+                    size = one * (it.count ?? 1);
+                } else if (it.count !== undefined) { findings.error('schema', file, where + '/count', 'a count needs a type'); return; }
+                const bankEnd = ((cursor >> 16) + 1) << 16;
+                if (cursor + (size ?? 0) > bankEnd) findings.error('wram-region-full', file, where, `${it.name} ends at ${at16(cursor + (size ?? 0) - 1)}, past bank $${(cursor >> 16).toString(16).toUpperCase()}: the parts before it hold more than the bank`);
+                const v: Variable = { name: it.name, at: cursor, size, part: p.name, ...(it.type ? { type: it.count && it.count !== 1 ? `${it.type}[${it.count}]` : it.type } : {}) };
+                out.push(v);
+                for (const [j, c] of (Array.isArray(it.cells) ? it.cells : []).entries()) {
+                    const cw = `${where}/cells/${j}`;
+                    if (!c || !named(c.name, file, cw + '/name')) continue;
+                    if (c.size !== undefined && !(Number.isInteger(c.size) && c.size > 0)) { findings.error('schema', file, cw + '/size', 'bytes, a whole number above 0'); continue; }
+                    if (!Number.isInteger(c.offset) || c.offset < 0 || c.offset + (c.size ?? 1) > Math.max(size ?? 1, 1)) { findings.error('schema', file, cw + '/offset', `bytes into ${it.name}, inside its ${size ?? '?'} bytes`); continue; }
+                    out.push({ name: c.name, at: cursor + c.offset, size: c.size ?? null, in: it.name, offset: c.offset, part: p.name });
+                }
+                cursor += size ?? 0;
+            });
+        }
     }
-    return out.sort((a, b) => a.at - b.at || (b.size ?? 0) - (a.size ?? 0));
+    return { list: out.sort((a, b) => a.at - b.at || (b.size ?? 0) - (a.size ?? 0)), files, types: typesRaw };
 }
+
+/** Ties each tree variable to the vanilla one it is: by name, else by place (a rename in place). */
+function identify(list: Variable[]): void {
+    const vanilla = vanillaWram(), byName = new Map(vanilla.map(v => [v.name, v])), claimed = new Set<Variable>();
+    for (const v of list) { const h = byName.get(v.name); if (h) { v.home = h; claimed.add(h); } }
+    const byPlace = new Map(vanilla.filter(v => !claimed.has(v)).map(v => [`${v.in ? 'c' : 't'}${placeKey(v)}`, v]));
+    for (const v of list) if (!v.home) { const h = byPlace.get(`${v.in ? 'c' : 't'}${placeKey(v)}`); if (h && !claimed.has(h)) { v.home = h; claimed.add(h); } }
+}
+
+let lastRead: Read | null = null, lastMoves: Moved[] = [];
 
 export const wramCodec: Codec = {
     kind: KIND, version: VERSION, path: DIR, listedIdsOnly: true, nameRe: NAME,
 
     defaultName: id => `wram_${id.toString(16)}`,
 
-    explode(_rom, _name, _options, _count, nameAt) {
-        // WRAM does not move yet, so a round trip finds each variable where vanilla has it; nameAt keeps the tree's name.
-        const list = vanillaWram().map(v => ({ ...v, name: nameAt(KIND, placeKey(v)) ?? v.name }));
-        const renamed = new Map(vanillaWram().map((v, k) => [v.name, list[k].name]));
-        for (const v of list) if (v.in) v.in = renamed.get(v.in) ?? v.in;
-        current = layoutOf(list);
+    explode(rom, _name, _options, _count, nameAt) {
+        // Each movable group's place is in the ROM: the operands implode wrote (vanilla's on a vanilla ROM).
+        const vanilla = vanillaWram(), deltas = new Map<Group, number>();
+        if (rom.length) for (const g of census().groups) {
+            const at = groupStart(rom, g);
+            if (at === null) throw new Error(`wram: the operands that reach ${at16(g.from)}-${at16(g.to - 1)} disagree on where it is (another release, or code changed there)`);
+            if (at !== g.from) deltas.set(g, at - g.from);
+        }
+        const deltaOf = (v: Variable) => { for (const [g, d] of deltas) if (v.at >= g.from && v.at < g.to) return d; return 0; };
         const files: Tree = new Map();
-        for (const [region, items] of regionFiles(list)) files.set(`${DIR}/${region}.json`, regionFile(region, items));
-        files.set(`${DIR}/${TYPES}`, typesFile());
+        // A round trip of a tree implode just read: the ROM holds no type, size or gap, only the places of what moves.
+        // The tree's files come back when every place the ROM gives is the tree's; else the ROM's places are written.
+        const tree = nameAt(KIND, TREE_MARK) === TREE_NAME ? lastRead : null;
+        if (tree && lastMoves.every(m => !m.now || !census().groups.some(g => m.home.at >= g.from && m.home.at < g.to) || m.now.at - m.home.at === deltaOf(m.home))) {
+            for (const [path, f] of tree.files) files.set(path, json(f));
+            files.set(`${DIR}/${TYPES}`, typesFile(tree.types ?? VANILLA_TYPES));
+            current = layoutOf(tree.list);
+        } else {
+            const list = fromRom(vanilla, deltas).map(v => ({ ...v, name: nameAt(KIND, placeKey(v)) ?? v.name }));
+            const renamed = new Map(list.map(v => [v.home!.name, v.name]));
+            for (const v of list) if (v.in) v.in = renamed.get(v.in) ?? v.in;
+            current = layoutOf(list);
+            for (const [part, items] of partFiles(list)) files.set(`${DIR}/${part}.json`, partFile(part, items));
+            files.set(`${DIR}/${TYPES}`, typesFile(tree?.types ?? VANILLA_TYPES));
+        }
         files.set(`${DIR}/${ENUM}`, enumFile({ kind: KIND, limit: 0, names: [], why: 'a WRAM variable has no id: everything reaches it by name' }));
-        return { files, pool: [], tables: [], homes: [] };
+        return { files, pool: [], tables: siteSpans(), homes: [] };
     },
 
-    /** The region files present (wram/<region>.json). */
+    /** The part files present (wram/<part>.json). */
     names({ tree, findings }) {
-        const names = new Set<string>(), regions = new Set(map.memory('wram').map(r => r.name));
+        const names = new Set<string>(), parts = new Set(partsOf().map(p => p.name));
         for (const path of tree.keys()) {
             if (!path.startsWith(DIR + '/') || path === `${DIR}/${ENUM}` || path === `${DIR}/${TYPES}`) continue;
             const m = /^wram\/([^/]+)\.json$/.exec(path);
-            if (!m || !regions.has(m[1])) { findings.warning('unknown-file', path, '', `the WRAM regions are ${[...regions].join(', ')} (map memory.wram), each <region>.json; ignored`); continue; }
+            if (!m || !parts.has(m[1])) { findings.warning('unknown-file', path, '', `the WRAM parts are ${[...parts].join(', ')} (map memory.wram), each <part>.json; ignored`); continue; }
             names.add(m[1]);
         }
         return names;
     },
 
-    // Reads the variables for the kinds after it; writes nothing (code still reaches each variable at its vanilla place).
+    // Reads the variables for the kinds after it; the operands that reach what moved are written in `tables`.
     encode(ctx, names) {
-        const list = read(ctx, names);
-        // Renaming is free; a place is held as often as vanilla holds it (once). A variable on a vanilla place with another
-        // size is resized; one on no vanilla place moved. Moves are told per region, the first few by name.
-        const home = new Map<string, number>(), vanilla = new Map(vanillaWram().map(v => [v.name, v]));
-        for (const v of vanillaWram()) home.set(`${v.at}:${v.size}`, (home.get(`${v.at}:${v.size}`) ?? 0) + 1);
-        const moved = new Map<string, Variable[]>();
-        const regions = map.memory('wram'), regionOf = (at: number) => regions.find(r => r.from <= at && at < r.to)?.name ?? KIND;
-        for (const v of list) {
-            const place = `${v.at}:${v.size}`, left = home.get(place) ?? 0;
-            home.set(place, left - 1);
-            if (left > 0) continue;
-            const was = vanilla.get(v.name);
-            if (was && was.at === v.at) { ctx.findings.error('wram-resized', `${DIR}/${regionOf(v.at)}.json`, '', `${v.name} at ${at16(v.at)} is ${v.size ?? '?'} bytes, vanilla's ${was.size ?? '?'}: WRAM does not resize yet (docs/todo/wram-allocation.md W2)`); continue; }
-            const r = regionOf(v.at), l = moved.get(r) ?? [];
-            l.push(v);
-            moved.set(r, l);
-        }
-        for (const [r, l] of moved) {
-            const first = l.slice(0, 3).map(v => `${v.name} → ${at16(v.at)}`).join(', ');
-            ctx.findings.error('wram-moved', `${DIR}/${r}.json`, '', `${l.length} variable${l.length === 1 ? '' : 's'} left ${l.length === 1 ? 'its' : 'their'} vanilla place (${first}${l.length > 3 ? ', …' : ''}): WRAM does not move yet (docs/todo/wram-allocation.md W2)`);
-        }
-        current = layoutOf(list);
+        numbered.clear();
+        const r = read(ctx, names);
+        identify(r.list);
+        lastMoves = check(ctx, r.list);
+        lastRead = r;
+        // prove's original: the tree's names at vanilla's places (the playbacks were recorded on it).
+        if (ctx.vanillaMemory) {
+            const fresh = r.list.filter(v => !v.home);
+            if (fresh.length) ctx.findings.error('wram-prove', `${DIR}/`, '', `prove compares a moved WRAM with vanilla's: ${fresh[0].name} is new`);
+            current = layoutOf(r.list.map(v => v.home ? { ...v, at: v.home.at, size: v.home.size } : v));
+            lastMoves = lastMoves.map(m => ({ home: m.home, now: m.now ? { ...m.now, at: m.home.at, size: m.home.size } : null }));
+        } else current = layoutOf(r.list);
         return [];
     },
 
-    symbols: () => new Map(layout().list.map(v => [`${KIND}/${v.name}`, placeKey(v)])),
+    symbols: () => new Map([...layout().list.map(v => [`${KIND}/${v.name}`, placeKey(v)] as [string, number]), [`${KIND}/${TREE_NAME}`, TREE_MARK]]),
 
-    tables: () => [],
+    /** Every operand of the census, from where its group is now (vanilla's when nothing moved). */
+    tables(ctx) {
+        const out: Write[] = [];
+        const moved = new Map(lastMoves.filter(m => m.now).map(m => [m.home, m.now!.at - m.home.at]));
+        const tops = vanillaWram().filter(v => !v.in);
+        for (const g of census().groups) {
+            const first = tops.find(v => v.at >= g.from && v.at < g.to);
+            const delta = first ? moved.get(first) ?? 0 : 0;
+            if (delta) for (const a of numbered) if (a >= g.from && a < g.to) ctx.findings.error('wram-script-number', `${DIR}/${partAt(g.from)?.name ?? KIND}.json`, '', `${first!.name} moved, but a script names ${at16(a)} by number: write it by name`);
+            for (const s of g.sites) {
+                const v = g.from + delta + s.offset;
+                const bank = s.bank === undefined ? null : s.bank === 0x7E || s.bank === 0x7F ? v >> 16 : s.bank;
+                const bytes = s.length === 3 ? [v & 0xFF, (v >> 8) & 0xFF, bank!] : [v & 0xFF, (v >> 8) & 0xFF];
+                out.push({ at: s.file + 1, bytes: new Uint8Array(bytes), file: `${DIR}/${partAt(g.from)?.name ?? KIND}.json` });
+            }
+        }
+        return out;
+    },
+
+    changed: () => lastMoves.some(m => !m.now || m.now.at !== m.home.at || m.now.size !== m.home.size),
+
+    /** WRAM as the build has it against vanilla, for the proof: each vanilla variable's bytes and where they went. */
+    memoryMoves: () => lastMoves.filter(m => m.home.size).map(m => ({ a: m.home.at - WRAM_START, b: m.now ? m.now.at - WRAM_START : -1, length: m.now ? Math.min(m.home.size!, m.now.size ?? 0) : 0, size: m.home.size! }))
+        .filter(m => m.b !== m.a || m.length !== m.size),
 };

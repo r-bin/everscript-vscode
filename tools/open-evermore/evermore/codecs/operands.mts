@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import { cellText, cellValue, constBytes, exprBytes, exprText, shortConst } from './expressions.mts';
 import type { Area, ExprNames } from './expressions.mts';
 import { ANIMATION_SLOTS } from './characters.mts';
-import { vanillaWram, wramAddress, wramName } from './wram.mts';
+import { noteNumberedCell, vanillaWram, wramAddress, wramName, wramVanilla } from './wram.mts';
 
 const require = createRequire(import.meta.url);
 const PARAMETERS: Record<string, any> = require('../../../../src/games/evermore/script-vm/parameters.json');
@@ -90,7 +90,7 @@ export function exprNames(refs: Refs, entities: string): ExprNames {
     return {
         value: (a, v) => valueNameIn(a, v, refs) ?? '', valueOf: (a, n) => valueIn(a, n, refs),
         entity: op => refs.name(entities, op), entityOf: n => refs.id(entities, n),
-        memory: cellName, memoryOf: cellAt,
+        memory: cellName, memoryOf: cellAt, numbered: a => noteNumberedCell(0x7E0000 | a),
         flag: (a, m) => w.flag.get(`${a}:${m}`) ?? '', flagOf: n => w.flagOf.get(n),
         field: o => w.field.get(o) ?? '', fieldOf: n => w.fieldOf.get(n),
     };
@@ -110,8 +110,10 @@ function rewardOf(text: string, refs: Refs): number | undefined {
     const hits = REWARD_KINDS.flatMap(([base, kind, vanilla]) => { const id = refs.id(kind, text); return id !== undefined && id >= vanilla ? [base + id] : []; });
     return hits.length === 1 ? hits[0] : undefined;
 }
-const valueNameIn = (a: number, v: number, refs: Refs) => cellValues(a).name.get(v) ?? (a === PRIZE ? rewardName(v, refs) : undefined);
-const valueIn = (a: number, n: string, refs: Refs) => cellValues(a).value.get(n) ?? (a === PRIZE ? rewardOf(n, refs) : undefined);
+/** A cell's named values are known by its vanilla place: where the wram kind moved it, back there first. */
+const home = (a: number): number => { const v = wramVanilla(0x7E0000 | a); return v === undefined ? a : v & 0xFFFF; };
+const valueNameIn = (a: number, v: number, refs: Refs) => { const h = home(a); return cellValues(h).name.get(v) ?? (h === PRIZE ? rewardName(v, refs) : undefined); };
+const valueIn = (a: number, n: string, refs: Refs) => { const h = home(a); return cellValues(h).value.get(n) ?? (h === PRIZE ? rewardOf(n, refs) : undefined); };
 
 // ── enum constants: one name per value, kept only where the name reads back to it ──
 const enums = new Map<string, { name: Map<number, string>; value: Map<string, number> } | null>();
@@ -220,9 +222,11 @@ export function splitTop(s: string): string[] {
 /** The bytes of one operand's text, for operand token `token`; throws an Error saying what is wrong. */
 export function operandBytes(token: string, text: string, p: Param | undefined, refs: Refs, names: ExprNames): number[] {
     const raw = /^\[([0-9a-fA-F]{2}(?:\s+[0-9a-fA-F]{2})*)?\]$/.exec(text);
-    if (raw) return (raw[1] ?? '').split(/\s+/).filter(Boolean).map(b => parseInt(b, 16));
+    const cellArea = wramOf(p), numberedCell = (v: number) => { if (cellArea && cellArea.area !== 'local') names.numbered?.((cellArea.area === 'save' ? 0x2258 : 0x2834) + (cellArea.flag ? v >> 3 : v)); };
+    if (raw) { const bytes = (raw[1] ?? '').split(/\s+/).filter(Boolean).map(b => parseInt(b, 16)); if (bytes.length) numberedCell(bytes[0] | ((bytes[1] ?? 0) << 8)); return bytes; }
     if (token === 'u8' || token === 'u16' || token === 'skip') {
         const size = token === 'u16' ? 2 : 1, max = size === 2 ? 0xFFFF : 0xFF, w = wramOf(p);
+        if (NUMBER.test(text)) numberedCell(Number(text));
         const v = NUMBER.test(text) ? Number(text) : w ? cellValue(text, w.area, w.flag, names) : valueOf(text, p, refs);
         if (v === undefined) throw new Error(`"${text}" names nothing ${p?.type ?? ''} ${p?.enum ?? ''} takes; or a number 0-${max}, [bytes]`.replace(/\s+/g, ' '));
         if (v < 0 || v > max) throw new Error(`${text} does not fit ${size === 2 ? 'a word' : 'a byte'}`);

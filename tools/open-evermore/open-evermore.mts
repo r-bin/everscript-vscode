@@ -3,7 +3,7 @@
 //   node tools/open-evermore/open-evermore.mts explode [rom] [--out out/open-evermore] [--force] [--palettes json|png]
 //                                                       [--tiles png|json] [--kinds a,b] [--previews]
 //   node tools/open-evermore/open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]
-//   node tools/open-evermore/open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]
+//   node tools/open-evermore/open-evermore.mts prove <dir> [--random [seed] | --stable] [--promoted] [--movies <file|dir>…]
 //   node tools/open-evermore/open-evermore.mts locate <rom> [--out out/open-evermore-map]
 // explode: the ROM (argument, else the base ROM of the ROM library) → the tree. The tree is ROM-derived: inside the
 //          repository only under the git-ignored out/; --force replaces a tree (edits there are lost). --palettes png
@@ -19,6 +19,7 @@
 // prove:   build the original (stable) and a random layout from the tree, play the stored playbacks on both, compare
 //          every frame (G1). Minutes; on demand. Writes <dir>/_build/prove-<seed>/REPORT.md. The layout is built
 //          --strict (lockstep needs vanilla's cycle counts); --promoted builds it as implode does without --strict.
+//          --stable: every ROM resource at home, so only the tree's memory changes (moved WRAM) are proved.
 // locate:  draft the mapping file of another release (evermore/map-locate.mts): every address of map/us.json found
 //          again in <rom> by the US ROM's bytes (the base ROM of the ROM library) → <out>/<release>.draft.json, to
 //          check against that release's code before it goes to evermore/map/<release>.json.
@@ -47,7 +48,7 @@ async function load(release: string | null | undefined): Promise<Kinds> {
 /** The release a tree was exploded from (manifest.json `base.release`). */
 const treeRelease = (tree: Map<string, Uint8Array>): string | undefined => { try { return JSON.parse(readText(tree.get(MANIFEST)!)).base?.release; } catch { return undefined; } };
 
-const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed]] [--promoted] [--movies <file|dir>…]\n       open-evermore.mts locate <rom> [--out <dir>]';
+const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed] | --stable] [--promoted] [--movies <file|dir>…]\n       open-evermore.mts locate <rom> [--out <dir>]';
 
 async function runExplode(args: string[], flag: (n: string) => boolean, value: (n: string) => string | null): Promise<number> {
     const force = flag('--force'), previews = flag('--previews');
@@ -127,15 +128,16 @@ function runLocate(args: string[], value: (n: string) => string | null): number 
 }
 
 async function runProve(args: string[], flag: (n: string) => boolean): Promise<number> {
-    const strict = !flag('--promoted');
-    const seed = takeSeed(args) ?? Math.floor(Math.random() * 0xFFFFFFFF);
+    const strict = !flag('--promoted'), stable = flag('--stable');
+    // --stable: the layout keeps every ROM resource at home; only what the tree changed in memory (WRAM) differs.
+    const seed = stable ? null : takeSeed(args) ?? Math.floor(Math.random() * 0xFFFFFFFF);
     const m = args.indexOf('--movies');
     const movies = m < 0 ? undefined : args.splice(m).slice(1);
     if (!args[0]) { console.error(USAGE); return 2; }
     const dir = resolve(args[0]);
     const tree = readTree(dir);
     const { PAST_END, POINTER_WINDOWS } = await load(treeRelease(tree));
-    const result = await prove(tree, GAME, treeKinds(tree), seed, join(dir, BUILD_DIR, `prove-${seed}`), movies, PAST_END, POINTER_WINDOWS, strict);
+    const result = await prove(tree, GAME, treeKinds(tree), seed, join(dir, BUILD_DIR, `prove-${seed ?? 'stable'}`), movies, PAST_END, POINTER_WINDOWS, strict);
     if (!result.ok && result.lines.length === 1) console.error(result.lines[0]);
     return result.ok ? 0 : 1;
 }

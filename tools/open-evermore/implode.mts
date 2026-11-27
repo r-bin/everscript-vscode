@@ -46,6 +46,8 @@ export interface Options {
     pastEnd?: PastEnd[];
     /** Every encoding as written (ImplodeContext.strict). */
     strict?: boolean;
+    /** Memory at vanilla's places (ImplodeContext.vanillaMemory): prove's original. */
+    vanillaMemory?: boolean;
 }
 
 /** The plans to try, smallest first: hirom grows to 4 MiB, then to exhirom (manifest `grow`, default on). */
@@ -92,7 +94,7 @@ export function implode(onDisk: Tree, game: string, kinds: Codec[], opts: Option
     const ctx = {
         tree, manifest, size, base, findings, ids: new Map<string, Map<string, number>>(), marks: new Map<string, Set<string>>(),
         pointer: (at: number) => chosen!.pointer(at), names: new Map<string, Set<string>>(), symbols: new Map<string, number>(),
-        random: seed !== null, strict: !!opts.strict,
+        random: seed !== null, strict: !!opts.strict, vanillaMemory: !!opts.vanillaMemory,
     };
     const items: Item[] = [];
     const stats: KindStats[] = [];
@@ -124,7 +126,7 @@ export function implode(onDisk: Tree, game: string, kinds: Codec[], opts: Option
     const keys = new Set(items.map(i => i.key));
     const removed = [...base.homes.keys()].filter(key => !keys.has(key));
     const reordered = [...base.enumSha1].filter(([path, hash]) => { const now = tree.get(path); return !now || sha1(now) !== hash; }).length;
-    const changed = stats.some(s => s.changed > 0) || removed.length > 0 || reordered > 0;
+    const changed = stats.some(s => s.changed > 0) || removed.length > 0 || reordered > 0 || kinds.some(k => k.changed?.());
     if (findings.failed) return done(null, stats);
 
     // Stage 5: placement. Free space: the pool the kinds gave up, manifest regions marked free, and what the layout

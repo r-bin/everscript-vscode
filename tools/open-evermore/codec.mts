@@ -115,7 +115,13 @@ export interface ImplodeContext {
     random: boolean;
     /** Keep every encoding as written (`--strict`): a kind may not choose a longer form so an item can go anywhere. */
     strict: boolean;
+    /** Memory (WRAM) at vanilla's places, whatever the tree moved: prove's original, on which the playbacks were recorded. */
+    vanillaMemory?: boolean;
 }
+
+/** A stretch of memory (WRAM offsets) the build holds elsewhere than vanilla: vanilla's `size` bytes at `a`, the first
+ *  `length` of them at `b` in the build (-1: gone). For the proof, which compares WRAM through it. */
+export interface MemoryMove { a: number; b: number; length: number; size: number }
 
 /** Records that `key` (`<kind>/<name>`) is required to be `what`. */
 export function mark(ctx: ImplodeContext, key: string, what: string): void {
@@ -167,4 +173,8 @@ export interface Codec {
     /** The generated tables, given each name's id (ctx.ids) and where every item landed (file offsets by key): in the
      *  table space explode recorded, or in a `generated` or `patched` item of this build. */
     tables(ctx: ImplodeContext, placed: Map<string, number>): Write[];
+    /** The tree changed what this kind generates although no item changed (WRAM moved): G0 is not checked then. */
+    changed?(): boolean;
+    /** Memory the last build moved against vanilla (the wram kind), for prove. */
+    memoryMoves?(): MemoryMove[];
 }

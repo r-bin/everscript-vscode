@@ -47,13 +47,21 @@ eight and the 4 MiB bound in seven. Each is now one entry.
 }
 ```
 
-### 2.0 Memory regions *(v0.474.0)*
+### 2.0 Memory regions *(v0.474.0; parts and saved blocks v0.475.0)*
 
 `"memory": { "wram": { "<region>": { "span": ["$7E:0000", "$7E:00FF"], "reach": "direct", "why": "…" } } }`: each memory's
 regions in address order, no hole or overlap inside a bank. `reach` says how the engine addresses the region (`direct`:
 1-byte direct page; `mirror`: 16-bit absolute from the code banks, so only `$0000`-`$1FFF`; `bank`: 16-bit absolute with
 the data bank set; `long`). It is what forces a variable into its region. Read with `map.memory('wram')`. The `wram`
-kind's region files carry no addresses ([wram.md](wram.md) §0).
+kind's files carry no addresses ([wram.md](wram.md) §0).
+
+A region may list `parts` (v0.475.0), `[name, vanilla start, what it holds]` in order, the first at the region's start:
+each is one file of the tree (`wram/<name>.json`), so names are unique across regions and never another kind's file name
+(`metatiles.json`, `font.json`). `saved` lists the blocks of the region the save routine copies (`[first, last]`).
+
+Beside the mapping file, `<release>.wram-readers.json` is the WRAM reader census (`tools/open-evermore/wram-census.mts`, from
+the vanilla CDL library; `map.wramCensus()`): per vanilla place the operands that reach it (movable), or why not
+(pinned). ROM addresses and offsets only, generated, checked in. A release without one moves nothing.
 
 ### 2.1 Addresses
 
