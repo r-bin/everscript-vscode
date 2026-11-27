@@ -26,21 +26,21 @@ Scale: 🟩 works today by editing files · 🟨 one missing kind or hook, the s
 | `+0` | the Dog's picture on its behaviour menu page (24-bit sprite; 0 for Act 0) | a metasprite, but the entry is in `_base/` |
 | `+3` | the HUD portrait (24-bit sprite, `$CC:3C72`…) | preview only (`graphics/hud/portraits/`) |
 | `+6` | palette (bank `$90`) | `palettes/sprites/dog_act0` … `dog_act4` (named, the entry in `_base/`) |
-| `+8` | a word for Dog record `+$13` (`$20`, Act 4 `$FA`) | role not read |
+| `+8` | the attack reach for Dog record `+$13` (`$20`, Act 4 `$FA`: the companion AI attacks within it) | `aggro_range` |
 | `+$0A`-`+$26` | 15 animation slots: stand, walk, run, 3, knockback, attack 0-3, then 9-14 for the Dog's AI | `animations/dog/*` exist; the slots that pick them are in `_base/` |
 
 The form number is `2·(n+1)`. A room's script writes it to `$2443`. The `wram` kind calls that word
 `ROOM_METATILE_DESCRIPTOR_PTR`, an old wrong name; its entry's title says what it is. The loader `$8F:946B`/`$9471`
 copies it to `DOG_FORM_INDEX` (`$2363`), which is saved. The pointer table `$8F:945D` (word 0 means no form) is read
 with a long operand, so it can move. The entries are read with 16-bit offsets in bank `$8F` (`lda $8F0000,x`, 20
-reads), so they cannot leave `$8F`. Forms differ only in their looks. Behaviour, stats and AI belong to the one
+reads), so they cannot leave `$8F`. Forms differ in their looks and their attack reach (`+8`). Behaviour, the other stats and AI belong to the one
 `characters/records/dog.json`. The one exception is the Toaster's +80/+250 bonus, which is code (`$8F:866B`
 `cpx #$000C`).
 
 **What is missing:**
 
 1. **A `dog_forms` kind** *(built, v0.472.0: [resources.md](resources.md) §dog_forms; scripts by name still open)*: `characters/dog_forms/<name>.json` with `palette`,
-   `portrait`, `menu_sprite`, the 15 slots by animation name and `unknown_08`. It is in place for the six vanilla
+   `portrait`, `menu_sprite`, the 15 slots by animation name and `aggro_range`. It is in place for the six vanilla
    forms, and scripts would write the form by name (`write_word DOG_FORM_REQUEST, characters/dog_forms/act0`), the
    way `PRIZE` takes items by name.
 2. **Room for a 7th entry.** Bank `$8F` is code and has no proven free byte. Moving the 14-byte pointer table out

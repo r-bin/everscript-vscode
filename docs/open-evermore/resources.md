@@ -849,7 +849,7 @@ game.
 ## dog_forms — the Dog's looks per act *(built, v0.472.0)*
 
 ```
-characters/dog_forms/<form>.json   menu_sprite, portrait (metasprites), palette (palettes/sprites/), unknown_08,
+characters/dog_forms/<form>.json   menu_sprite, portrait (metasprites), palette (palettes/sprites/), aggro_range,
                                    animations: { stand, walk, run, slot_3, knockback, attack_0-3, sniff,
                                    sniff_look_around, steered_still, idle_wait, idle_wait_2, slot_14 } (animations/)
 characters/dog_forms/README.md     what each field does (not compared)

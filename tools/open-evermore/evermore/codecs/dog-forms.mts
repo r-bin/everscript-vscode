@@ -7,7 +7,8 @@
 //   +0   the Dog's picture on its behaviour menu page, a 24-bit metasprite (0 for Act 0) → $143E
 //   +3   the HUD portrait, a 24-bit metasprite ($CC:3Cxx) → $4FA5
 //   +6   the palette (bank $90) → the Dog record's +$09
-//   +8   a word → the Dog record's +$13 ($20; Act 4 $FA); its role is not read yet
+//   +8   the attack reach in pixels → the Dog record's +$13 (`aggro_range`): $20, Act 4 (shots) $FA. The companion
+//        AI attacks when its target is lined up within it ($8F:D9D1, called from $8F:D0B0)
 //   +$0A 15 animation records (bank $C4): stand, walk, run, slot 3, knockback, attack 0-3 into the record
 //        (+$32 +$34 +$36 +$48 +$40 +$38..+$3E), then slots 9-14 into $1443-$144D for the Dog's AI
 //
@@ -31,21 +32,22 @@ const fields: Field[] = [
     { path: 'menu_sprite', at: 0, stride: 0, width: 3, form: { type: 'metasprite', optional: true } },
     { path: 'portrait', at: 3, stride: 0, width: 3, form: { type: 'metasprite' } },
     { path: 'palette', at: 6, stride: 0, form: { type: 'sprite_palette' } },
-    { path: 'unknown_08', at: 8, stride: 0, form: { type: 'number' } },
+    { path: 'aggro_range', at: 8, stride: 0, form: { type: 'number' } },
     ...SLOTS.map((s, k): Field => ({ path: `animations/${s}`, at: 0x0A + 2 * k, stride: 0, form: { type: 'animation' } })),
 ];
 
 const README = `# Dog forms
 
 The Dog's looks, one file per form (\`$8F:945D\` order: a script asks for form n by writing 2·(n+1) to \`$2443\`).
-Stats, behaviour and AI are the Dog's one record (\`characters/records/dog.json\`); only the Toaster's bonus is code.
+Stats, behaviour and AI are the Dog's one record (\`characters/records/dog.json\`), except the attack reach, which each
+form sets (\`aggro_range\`); the Toaster's +80/+250 bonus is code.
 
 | Field | What the game does with it |
 |---|---|
 | \`menu_sprite\` | the Dog's picture on its behaviour menu page (\`$143E\`); null: none (Act 0) |
 | \`portrait\` | the HUD portrait beside the Dog's box (\`$4FA5\`) |
 | \`palette\` | the 16 colours every pose of the form draws with (the Dog record's \`+$09\`) |
-| \`unknown_08\` | copied to the Dog record's \`+$13\`; 32, Act 4 250; role not read |
+| \`aggro_range\` | the attack reach in pixels, written over the Dog record's \`aggro_range\` (\`+$13\`) when the form loads: the companion AI attacks its target once it is lined up within this distance on one axis (and within half the target's radius + 5 across it). 32 for the biting forms, 250 for Act 4, whose attacks fire shots. The Boy's weapons set the same field for the Boy (\`range\`) |
 | \`animations/stand\`, \`walk\`, \`run\` | standing, walking, running |
 | \`animations/slot_3\` | Dog record \`+$48\`; reader not traced |
 | \`animations/knockback\` | being hit |

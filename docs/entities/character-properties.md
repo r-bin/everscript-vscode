@@ -146,7 +146,10 @@ in_reach = abs(dz) < 0x140 && abs(dx) < rec->aggro_range &&
 ```
 
 Engaging uses a square. The attack waits until the target is in a plus-shaped region along an axis.
-For the Boy, the weapon loader writes the weapon's reach (`C4` entry `+$06`) here (`$8F:81E0`).
+For the Boy, the weapon loader writes the weapon's reach (`C4` entry `+$06`) here (`$8F:81E0`); for the Dog, the
+form loader writes the form's (entry `+8`: 32, Act 4 250, `$8F:9471`). The party reads it only while the AI drives
+it: the companion step (`$8F:D05E` Boy, `$8F:D0B0` Dog) calls the reach test `$8F:D9D1`. Only four instructions
+read `+$13` (`$8F:D6B3`, `$D72D` engage; `$DA25`, `$DA37` reach), so the controlled character ignores it.
 Tab: px. ✔
 
 ### +$15 aggro chance
