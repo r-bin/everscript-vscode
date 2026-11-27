@@ -26,6 +26,9 @@ higan (2020 nightly) is superseded by ares; bsnes is ares' lineage and unused.
 4. After the first few hundred frames, compare at game events (`$7E0100`, room change, fight end),
    never at equal frame numbers.
 5. Never edit or rebuild the snes9x core to make it agree with something (owner's rule).
+6. Anything visual is judged in MesenCE: our core drew no party in Brian's room where MesenCE did. `--testRunner` Lua:
+   `emu.setInput` in an `inputPolled` callback, `emu.takeScreenshot()` printed as hex (file IO is off), `emu.stop(0)`
+   ([debugging-a-rom.md](../../../docs/reverse-engineering/debugging-a-rom.md) §3).
 
 ## Traps
 - MesenCE `--testRunner` exited with 255 although the script called `emu.exit(0)`: read the

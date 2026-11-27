@@ -59,13 +59,11 @@ node $T implode out/open-evermore                # → out/open-evermore/_build/
 
 ## Testing an edit in game
 
-Regression: a replay (01, the demo). A feature (a Dog form, an enemy): Brian's room, all in the tree, never an
-everscript IPS (it assumes vanilla's layout). The opening's enter script (room `podunk_opening_over_the_machine`) becomes
-`load_map 23, 40, podunk_test_room_brians_room`; Brian's `scripts.json` `enter` names a new `enter.txt`:
-`set_flag <0x2261, 0x01>, 0` and `0x02` (the party available), your lines (`write_word CHANGE_DOGGO, 14`),
-`call @gothica_ivor_tower_east_room_and_kitchen/door_01_sub_2` (`$22EA` bit `$80` + layers), `unfreeze_boy_and_dog`,
-`fade_in`, `end`. Look in **MesenCE** (`Mesen --testRunner x.lua rom`, `emu.takeScreenshot()`): our snes9x core draws no
-party in Brian's room (vanilla too).
+Regression: a replay (01, the demo). A feature (a Dog form, an enemy): a scene built in the tree, never an everscript
+IPS (it assumes vanilla's layout): the opening's enter script `load_map`s Brian's room (empty) or a real room, which gets
+an enter script for the test. Look in **MesenCE**: our snes9x core draws no party in Brian's room (vanilla too). Compare
+with the same scene on the vanilla value before calling anything broken. Recipes, the Lua script, crash bisecting:
+[debugging-a-rom.md](../../../docs/reverse-engineering/debugging-a-rom.md).
 
 ## Reading a failure
 
