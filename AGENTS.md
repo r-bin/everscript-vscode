@@ -98,7 +98,7 @@ Canonical files: `.agents/skills/<name>/SKILL.md` (Claude Code reads them throug
 
 - **Process & Architecture:** `release-ritual`, `architecture`, `game-knowledge`, `supported-games`,
   `games-and-roms`, `feature-validation`, `test-discipline`, `vfs-and-knowledge`, `wiki-entries`
-- **Evermore data:** `open-evermore`, `map-format`, `memory-map`, `map-construction`, `map-entities`,
+- **Evermore data:** `open-evermore`, `open-evermore-modding`, `map-format`, `memory-map`, `map-construction`, `map-entities`,
   `animation-script`, `alchemy-spell-mechanics`, `secret-of-evermore-engine`, `simulation`
 - **Editor and UI:** `map-editor-rules`, `rooms-tab`, `memory-radar`, `webview-dom-safety`, `grammar-rules`,
   `debugger-protocol`
@@ -106,6 +106,6 @@ Canonical files: `.agents/skills/<name>/SKILL.md` (Claude Code reads them throug
   `sample-playbacks`, `ghidra-analysis`, `snes-asm-asar-patching`, `recomp`, `reference-emulators`
 
 Personas (`.agents/agents/`, `.claude/agents` for Claude Code): `everscript-plugin-builder`,
-`mechanics-modeler`, `re-curator`, `wram-curator`, `decomp-curator`, `project-auditor`, `emulator-debugger`, `context-compressor`
+`mechanics-modeler`, `re-curator`, `wram-curator`, `decomp-curator`, `project-auditor`, `emulator-debugger`, `open-evermore-modder`, `context-compressor`
 (merges and archives docs and AI files losslessly; archive: `docs/archive/README.md`).
 

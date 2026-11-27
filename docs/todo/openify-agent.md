@@ -98,7 +98,7 @@ becomes its map ([mapping.md](../open-evermore/mapping.md) §6). Codecs stay one
 
 | Step | What | Done when |
 |---|---|---|
-| **O0** | Make the CLI game-neutral: `--game` or the descriptor picks `<game>/kinds.mts` and `<game>/map.mts`; rename the format id | Evermore still G0/G1/G2-green; no `evermore` import outside `evermore/` (a check in `check:*`) |
+| **O0** | Make the CLI game-neutral: `--game` or the descriptor picks `<game>/kinds.mts` and `<game>/map.mts`; rename the format id. Worked out as steps A0–A7 in [game-agnostic-open-rom.md](game-agnostic-open-rom.md) | Evermore still G0/G1/G2-green; no `evermore` import outside `evermore/` (a check in `check:*`) |
 | **O1** | Scaffold a second game by hand (Mana: it already has a descriptor, an interpreter, docs) | L0 byte-identical; the empty tree implodes |
 | **O2** | One Mana kind by hand, to find where the contract leaks Evermore assumptions (bank windows, `PAST_END`, script groups) | that kind at L4, or the leaks listed |
 | **O3** | Write the `openify` skill and persona from what O1–O2 cost, not before | the skill fits `check:ai-context` |
