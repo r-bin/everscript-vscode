@@ -64,8 +64,8 @@ form sets (\`aggro_range\`); the Toaster's +80/+250 bonus is code.
 | \`animations/slot_3\` | Dog record \`+$48\`; reader not traced |
 | \`animations/knockback\` | being hit |
 | \`animations/attack_0\`…\`attack_3\` | the attack by charge level |
-| \`animations/sniff\` | sniffing (\`$1443\`), when the Dog's \`+$64\` byte is clear |
-| \`animations/sniff_look_around\` | sniffing when \`+$64\` is set, and the idle look-around (\`$1445\`) |
+| \`animations/sniff\` | sniffing (\`$1443\`, the player holds R), when the Dog's \`+$64\` byte is clear: an in-place animation with a nose-down pose (vanilla moves no step) |
+| \`animations/sniff_look_around\` | sniffing when \`+$64\` is set, and the idle look-around (\`$1445\`): a walking animation (\`mode walk\`, steps), or the Dog stays put |
 | \`animations/steered_still\` | standing while the player steers the Dog with no direction held (\`$1447\`) |
 | \`animations/idle_wait\`, \`idle_wait_2\` | the idle cycle after 60-315 frames (\`$1449\`, \`$144B\`) |
 | \`animations/slot_14\` | \`$144D\`: no code reads it |
