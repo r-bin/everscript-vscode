@@ -3,7 +3,8 @@
 Back to [README.md](README.md). Status: **C0 built (v0.477.0, 2026-11-28)**: every routine the vanilla game was
 recorded running is a file, `code/<routine>.asm` (1,448 of them, plus the folder's README), at its vanilla address. Implode assembles them
 itself; G0 and the random round trips hold (§2.1). Moving a routine and adding a new one are steps C1-C4 (§5).
-Until 2026-11-27 code was not exploded at all; §1-§4 say why and what stood in the way.
+Until 2026-11-27 code was not exploded at all; §1-§4 say why and what stood in the way. The tracker with the
+current state and the open steps: [../todo/open-evermore-code.md](../todo/open-evermore-code.md).
 Labels: *(repo)* = exists today; *(measured)* = counted on 2026-11-27, method given; *(proposal)*; *(owner's call)*;
 *(to verify)*. The short spec of the kind is [resources.md](resources.md) §code. This page gives the state, the
 reasons and the steps.
@@ -73,6 +74,10 @@ How it cuts and writes:
   instructions change length still round-trips. Explode decodes the edited bytes in other words, and what does not
   decode is `db`.
 - 35 branches go to a place no line starts (never-run code, data after a routine) and stay `db` with a comment.
+
+**Asar agrees** (2026-11-28, by hand): Asar 1.90pre, given `hirom` plus one `org` and `incsrc` per file, assembles the
+1,448 files onto an image with the code bytes blanked and gives the vanilla sha1 (all 117,208 bytes written back,
+no undefined label). Making that a tool is C0a in the tracker.
 
 Measured on 2026-11-28: explode +0.6 s (1,448 routines and the README, 5.9 MB, 57,892 lines); `_base/` keeps 116,680 bytes no kind
 owns (3.7 %), down from 240,970.
