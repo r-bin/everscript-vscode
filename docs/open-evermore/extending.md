@@ -126,7 +126,7 @@ room taken from `$91`, or the dispatcher patched to read a long pointer (one sit
 
 **What level C needs:** a new handler (65816) and a slot in the op table. The block table follows the op table at
 `$91:80A6`, so the op table has to move. Its one reader is `jsr ($8000,x)` in `$91:9750`, and a moved table must
-stay in bank `$91` for `jsr (abs,x)`. Without code as a kind (S9), this is a generated patch like the item hooks.
+stay in bank `$91` for `jsr (abs,x)`. Until new routines can be placed (code C1, [code.md](code.md)), this is a generated patch like the item hooks.
 Damage that depends on the target's HP has no op today.
 
 The name and description are texts (`strings/menu/laser`). Each can be as long as vanilla's; a longer one needs
@@ -162,7 +162,7 @@ Built in v0.461.0 ([resources.md](resources.md) §items). The rest of the work i
 - **Key items** (named items, to 40): a flag in a saved spare bit, given by scripts and listed in the Pouch. Works.
   More than 20 held at once is not handled (T2).
 - **Charms that do something**: a charm's effect is code reading its bit (Moxa Stick `$91:9DC0`, Armor Polish in
-  `$8F:8398`), so a new charm is a key item until code is a kind.
+  `$8F:8398`), so a new charm is a key item until new routines can be placed (code C1).
 - **Weapons and armour**: weapons are fixed at 14. Armour is fixed at 40, because the slot of each id range is code
   (`$8E:9DAE`). Both are records in place ([resources.md](resources.md) §equipment).
 
@@ -177,7 +177,7 @@ Built in v0.461.0 ([resources.md](resources.md) §items). The rest of the work i
 5. **Fixed banks with no free byte** (`$8F`, `$91`, `$C4`, `$8E`, `$CA`-`$D3`). The repo's answer is a generated
    `jsl` hook that reads a generated long table. It is used for ingredients and consumables and would serve Dog
    forms and effect programs too.
-6. **Code as a resource** (S9): needed for anything that *behaves* differently, such as a new op ("halves HP"), a
+6. **New code** (code C1; the routines are files since C0): needed for anything that *behaves* differently, such as a new op ("halves HP"), a
    charm's effect or a form's ability.
 
 ## 7. Knowledge corrected on the way

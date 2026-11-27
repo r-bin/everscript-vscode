@@ -139,6 +139,10 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   only the save area.
   A `JSR (table,x)` whose table cannot leave its bank (items ring, v0.461.0): a `jsl` hook in the call's 4 bytes that turns
   the long return into a short one and `rtl`s into the handler in that bank (`consumable-hooks.mts`).
+- **The code kind is last and takes only what no kind took** (v0.477.0, `docs/open-evermore/code.md`): explode passes it
+  the other kinds' spans (`others`), and their bytes inside a routine are holes, so a kind that starts patching code
+  needs no change in `code.mts`. Its instructions come from the census `us.code.json` (`code-census.mts`; regenerate
+  after the CDL library grows); a routine compares by the bytes it assembles to, never by text.
 - **Script lines are operands, not bytes** (`op a, b, c`): `operands.mts` per token and parameter type, expressions
   in `expressions.mts`. Explode keeps a readable operand only if it reads back to the same bytes, else `[hex]`; the
   round trip compares bytes. `<`/`>` are operators except in `<0x…>` cells (`splitTop`).

@@ -59,6 +59,8 @@ Planned: `rename` (a resource and every reference to it, logged in the manifest)
 | `evermore/codecs/scripts.mts` | the scripts kind ([resources.md](resources.md) §scripts): one `.txt` per script, groups, the pointer table, the boot pointer; `scriptLayout` names every script (the maps kind names enter scripts with it) |
 | `evermore/codecs/script-lines.mts` | a script file's lines: `scriptText` writes one from the ROM, `parse` reads one, `assemble` builds a group (labels, relative calls, ids; a longer form where a shorter one does not reach, `segments` for the proof) |
 | `evermore/codecs/handler-tables.mts` | jump tables by routine name: `attack_procs` (`$8F:B6AE`), `behaviours` (`$8F:CBE0`) |
+| `evermore/codecs/code.mts`, `code-text.mts` | the code kind ([code.md](code.md)): routines from the census, one Asar file each, assembled in place by `src/platform/snes/asm65816.ts`; holes for other kinds' bytes; compared by bytes in the round trip |
+| `code-census.mts` | the code census: CDL library → `evermore/map/<release>.code.json` (instruction runs with widths, entries), checked in |
 | `evermore/codecs/tiles.mts` | the tiles kind: indexed PNG or pixel rows, the `$EE0000` table, kept bytes for the six bit-6 tiles |
 
 ## 3. Implode, step by step

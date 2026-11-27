@@ -476,7 +476,7 @@ skip 7                                   7 bytes no command reaches: not this sc
 Names are the Scripts tab's (`script-vm/spec.ts`); a name two opcodes share takes the byte (`write_byte_14`); the 27
 without a handler are `unused_<xx>` (STP). Handlers are written by the name of their knowledge entry; every one of
 the 195 has one (2026-11-21: the STP bytes got entries, `script_op_<xx>_stop`, `script_op_unused_stop`); a name
-stands for its address in `$8C` while code is not a kind, `$8C:xxxx` is still read. Parameters, types, units:
+stands for its address in `$8C` while code stays at its vanilla address (code kind C0), `$8C:xxxx` is still read. Parameters, types, units:
 `script-vm/parameters.json`; **every parameter is named** (2026-11-21: `color_filter` red, green, blue, mix,
 colour, first, count from `$8C:E4B1`; `mode7_scene` from, to, heading; `projectile` speed).
 
@@ -991,18 +991,23 @@ sizes: `localizations/wram-map.ts`; census: `wram-census.mts`). Design and steps
 
 ## code
 
-**Folder.** `code/<routine>.asm`, one routine per file, named like `soe://rom/code/<routine>/` *(repo)*.
-Subfolders by subsystem are allowed (`code/nmi/nmi_handler.asm`); the name is the file name, not the path, so it
-stays unique.
+**Folder.** `code/<routine>.asm`, one routine per file, named like `soe://rom/code/<routine>/` *(repo, v0.477.0)*.
+Subfolders are allowed (`code/nmi/nmi_handler.asm`); the name is the file name, not the path, so it stays unique.
 
-- **References.** By label: other routines, data labels of every kind (`map_pyramid_outside`), id symbols
-  (`!music_<name>`, [README.md](README.md) §4). Used by `header.json` (vectors) and by other code.
-- **Implode generates**: `_build/main.asm` (an `incsrc` per file, an `org` per placed routine), then runs Asar.
-  This is the first kind that needs Asar; before it, implode writes bytes itself ([tool.md](tool.md) §3).
-- **Limits.** Assembles; every label resolves; size equals the vanilla routine while it is pinned.
-- **Codec.** The byte-exact Asar export *(repo: `src/platform/cdl/asar-export.ts`)*, cut per routine;
-  symbols as [../split-and-link/symbolic-export.md](../split-and-link/symbolic-export.md) M0–M9 provide them.
-  A routine with a raw operand left is pinned. Knowledge entries become comments.
+- **What a file holds.** The routine in the Asar syntax of the CDL export (`platform/cdl/disasm.ts`): its name as the
+  first label, `loc_<address>` at every jump and branch target, `func_<address>` for an unnamed call target, data
+  between its instructions as `db`, `skip n` where another kind owns the bytes, and comments naming the kind that
+  rewrites an operand or the resource a long operand points into.
+- **References.** By label, the FastROM address the code runs at (`$800000` + file offset). Another file's labels, and
+  any `loc_`/`func_` name (its value is in its name). Data labels of other kinds are step C0b ([code.md](code.md) §5).
+- **Implode generates** nothing: it assembles each file with `src/platform/snes/asm65816.ts` at its vanilla address. No
+  external tool is needed, and the files still assemble with Asar.
+- **Limits.** Assembles (`asm`, by line); size equals the vanilla routine (`code-size`); no new routine (`code-new`)
+  and no `org` (`code-org`) until C1; a `skip` only over another kind's bytes (`code-skip`).
+- **Codec.** `evermore/codecs/code.mts` + `code-text.mts`, last in `KINDS` (explode gets the other kinds' spans). The
+  instructions and widths come from the census `evermore/map/us.code.json` (`tools/open-evermore/code-census.mts`, from
+  the CDL library), so a routine the CDL never saw stays in `_base/`. A routine compares by its bytes in the round
+  trip.
 - **Reconstructed C** is not in the tree: `reconstructed-c/` documents the ROM and is not built into it here
   (the C-to-ROM build is its own project, AGENTS.md §0.11).
-- **State and steps**: [code.md](code.md) (why it is not exploded yet, the export labelled by explode, C0-C6).
+- **State and steps**: [code.md](code.md) (what C0 built, the hazards of moving code, C0b-C6).

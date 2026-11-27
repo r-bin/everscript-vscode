@@ -8,7 +8,8 @@ Kind: **platform** — knows SNES hardware and our machinery, no game (docs/arch
   vectors); the one header reader (the CDL ROM map uses it too).
 - `roms/identify.ts`: game + variant from header and SHA-1; derived ROMs through the game's marker.
 - `snes/opcodes-65816.ts`: the 65816 opcode matrix (mnemonic, mode, length, flow); `tools/gen-cdl-optable.js`
-  generates the core's C table from it.
+  generates the core's C table from it. `snes/asm65816.ts`: the assembler for the Asar syntax `cdl/disasm.ts` prints
+  (Open Evermore's code kind).
 - `cdl/`: the CDL engine (library, xrefs, disassembly, Asar / Mesen / recomp exports) — JS until cleanup
   5.5; a game's seeds come in as `gameRegions`, the VS Code side is `src/core/emulator/cdl/host.ts`.
 - `tas/`: movie format and verification (`movie.ts`, `verify.ts`); `zip.ts`.

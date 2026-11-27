@@ -151,9 +151,10 @@ export interface Codec {
      * (the tree's own enums on a round trip, else each kind's defaultName). `count(kind)`: how many ids the tree's
      * enum of a kind holds, on a round trip (a table that can grow does not tell its length); undefined otherwise.
      * `nameAt(kind, at)`: on a round trip, the name the tree gave the resource that implode put at file offset `at`
-     * (resources no enum orders, such as scripts reached only from other scripts).
+     * (resources no enum orders, such as scripts reached only from other scripts). `others`: what the kinds before
+     * this one took (the code kind keeps their bytes out of its routines).
      */
-    explode(rom: Uint8Array, name: NameOf, options: Record<string, string>, count: CountOf, nameAt: NameAt): Exploded;
+    explode(rom: Uint8Array, name: NameOf, options: Record<string, string>, count: CountOf, nameAt: NameAt, others?: { kind: string; out: Exploded }[]): Exploded;
     /**
      * What of a file the round trip compares, as [path, bytes], when not all of it is the resource: a tile's indices
      * whether PNG or JSON (a PNG's palette only shows it), a JSON file without what explode derives (which maps use a

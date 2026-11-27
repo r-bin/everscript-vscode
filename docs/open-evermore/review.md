@@ -69,7 +69,7 @@ Today you can only **repurpose** an existing consumable (rename it within its va
 1. `menus/ring_items/` is pinned in-place at 162 entries (`$8E:8000`–`$8E:8653`).
 2. `menus/item_actions/` is a fixed 9-entry jump table at `$8E:A873` with code immediately after.
 3. The inventory-to-ring mapping table (`$C4:5AAE`) and WRAM item-count slots are still in `_base/`.
-4. Writing a 400 HP heal handler requires 65C816 code, and `code/` (S9) is not exploded yet.
+4. Writing a 400 HP heal handler requires 65C816 code, and `code/` (S9, C0 since v0.477.0) keeps every routine at its vanilla size: a new handler needs C1.
 
 #### Example 2: *"Fix Laser and make it available"* → 🟨 Half-works today
 - **Works now:** Laser already has a slot in `alchemy/formulas/laser.json` (id 20). You can raise `power` from `0`, set `cost`, `target`, and point `block` to any of the 53 existing spell effect blocks, then grant Laser from any room script (`scripts/`).

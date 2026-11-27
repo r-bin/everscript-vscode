@@ -29,6 +29,7 @@ import { ITEM_KINDS } from './codecs/items.mts';
 import { wramCodec } from './codecs/wram.mts';
 import { textsCodec } from './codecs/texts.mts';
 import { targetsCodec } from './codecs/targets.mts';
+import { codeCodec } from './codecs/code.mts';
 import { setFolders } from '../links.mts';
 
 export { GAME } from './map.mts';
@@ -46,6 +47,8 @@ export const POINTER_WINDOWS = [SCRIPT_WINDOW];
 // wram first: every later kind names WRAM through it.
 // spritePalettesCodec and metaspritesCodec provide names/ids to animationsCodec and record codecs; animationsCodec must run before characters/projectiles/menus/equipment.
 export const KINDS: Codec[] = [wramCodec, mapsCodec, palettesCodec, spritePalettesCodec, collisionsCodec, tilesCodec, stringsCodec, textsCodec, targetsCodec, scriptsCodec, opcodesCodec, entitiesCodec,
-    animationsCodec, animationModesCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, experienceCodec, spriteBlocks16Codec, spriteBlocks8Codec, metaspritesCodec, dogFormsCodec, musicCodec, soundsCodec, fontsCodec, hudCodec, ...MENU_KINDS, ...EQUIPMENT_KINDS, ...ALCHEMY_KINDS, ...ITEM_KINDS];
+    animationsCodec, animationModesCodec, attackProcsCodec, behavioursCodec, projectilesCodec, charactersCodec, experienceCodec, spriteBlocks16Codec, spriteBlocks8Codec, metaspritesCodec, dogFormsCodec, musicCodec, soundsCodec, fontsCodec, hudCodec, ...MENU_KINDS, ...EQUIPMENT_KINDS, ...ALCHEMY_KINDS, ...ITEM_KINDS,
+    // code last: its routines keep out every byte the other kinds took (docs/open-evermore/code.md).
+    codeCodec];
 // References are written as `<folder>/<name>` (links.mts): every kind's folder, once.
 setFolders(KINDS);

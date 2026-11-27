@@ -492,6 +492,35 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(swapped.findings.list.filter(f => f.severity === 'error'), []);
     console.log('  ✓ music: 71 packages, their data as .bin; an edited package rebuilds; unknown data or a bad sound is an error');
 
+    // Code (docs/open-evermore/code.md C0): every recorded routine is a file by name, at its vanilla address. A same-size
+    // edit lands; an edit whose instructions change length round-trips (a routine compares by its bytes); a longer
+    // routine, a new one and an unknown label are errors.
+    const codeFiles = [...tree.keys()].filter(p => p.startsWith('code/') && p.endsWith('.asm'));
+    assert.ok(codeFiles.length > 1400 && tree.has('code/reset_handler.asm') && tree.has('code/nmi_handler.asm'), `${codeFiles.length} routines`);
+    const editText = (t: typeof tree, p: string, fn: (s: string) => string) => t.set(p, new Uint8Array(Buffer.from(fn(Buffer.from(t.get(p)!).toString()))));
+    const reset = (s: string) => s.replace('    lda.b #$8F\n', '    lda.b #$80\n').replace('loc_808034:\n    lda.w #$0000\n', 'loc_808034:\n    nop\n    nop\n    nop\n');
+    const ce = new Map(tree);
+    editText(ce, 'code/reset_handler.asm', reset);
+    const cb = implode(ce, GAME, KINDS, { strict: true });
+    assert.deepStrictEqual(cb.findings.list.filter(f => f.severity !== 'info'), []);
+    const diff = [...cb.image!.keys()].filter(i => cb.image![i] !== rom[i]);
+    assert.deepStrictEqual(diff.filter(i => i < 0xFFDC || i > 0xFFDF), [0x8021, 0x8034, 0x8035, 0x8036], 'only the edited bytes (and the checksum)');
+    assert.deepStrictEqual(rules(t => editText(t, 'code/reset_handler.asm', s => s + '    nop\n'), true), ['code-size code/reset_handler.asm#']);
+    assert.deepStrictEqual(rules(t => t.set('code/my_new.asm', new Uint8Array(Buffer.from('my_new:\n    rtl\n'))), true), ['code-new code/my_new.asm#']);
+    assert.deepStrictEqual(rules(t => editText(t, 'code/reset_handler.asm', s => s.replace('    sta.w $2100\n', '    sta.w no_such_label\n')), true), ['asm code/reset_handler.asm#line 5']);
+    // Same bytes in other words: a routine in a subfolder, a label of the modder's own used from another routine, an
+    // edited README: the vanilla ROM, and the round trip holds.
+    const cw = new Map(tree);
+    cw.set('code/system/reset_handler.asm', cw.get('code/reset_handler.asm')!);
+    cw.delete('code/reset_handler.asm');
+    editText(cw, 'code/system/reset_handler.asm', s => s.replace('loc_808034:', 'after_stack:'));
+    editText(cw, 'code/fatal_reset_recovery_handler.asm', s => s.replaceAll('loc_808034', 'after_stack'));
+    editText(cw, 'code/README.md', s => s + '\nMy notes.\n');
+    const sw = implode(cw, GAME, KINDS, { strict: true });
+    assert.deepStrictEqual(sw.findings.list.filter(f => f.severity !== 'info'), []);
+    assert.strictEqual(sw.sha1, sha1(rom));
+    console.log(`  ✓ code: ${codeFiles.length} routines as Asar files; a same-size edit lands, instructions of another length round-trip; a longer or new routine and an unknown label are errors`);
+
     for (const layout of ['exhirom', 'sa1']) {
         const t = new Map(tree);
         editJson(t, 'manifest.json', m => { m.memoryMap.layout = layout; m.memoryMap.size = '8MiB'; });

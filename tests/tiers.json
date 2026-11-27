@@ -27,6 +27,7 @@
   "tests/terra/terra-maps-model.test.mts",
   "tests/imports/redraw.test.mts",
   "tests/imports/status.test.mts",
+  "tests/open-evermore/asm65816.test.mts",
   "tests/open-evermore/enum-layout.test.mts",
   "tests/open-evermore/formats.test.mts",
   "tests/open-evermore/implode.test.mts",

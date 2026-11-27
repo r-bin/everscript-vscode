@@ -1,9 +1,9 @@
-# Open Evermore: code (S9), why it is not exploded and how it gets there
+# Open Evermore: code (S9), every routine a file, and how it starts to move
 
-Back to [README.md](README.md). Status: **not exploded (2026-11-27)**. Every 65C816 routine is still in
-`_base/unexploded.bin` at its vanilla address. Only the names exist: `soe://rom/code/<routine>/` serves each known
-routine by name, and the kinds that point at code (opcodes, behaviours, attack procs, ring actions …) name their
-handlers. That is the single 🟩 in [progress.md](progress.md) S9.
+Back to [README.md](README.md). Status: **C0 built (v0.477.0, 2026-11-28)**: every routine the vanilla game was
+recorded running is a file, `code/<routine>.asm` (1,448 of them, plus the folder's README), at its vanilla address. Implode assembles them
+itself; G0 and the random round trips hold (§2.1). Moving a routine and adding a new one are steps C1-C4 (§5).
+Until 2026-11-27 code was not exploded at all; §1-§4 say why and what stood in the way.
 Labels: *(repo)* = exists today; *(measured)* = counted on 2026-11-27, method given; *(proposal)*; *(owner's call)*;
 *(to verify)*. The short spec of the kind is [resources.md](resources.md) §code. This page gives the state, the
 reasons and the steps.
@@ -12,8 +12,10 @@ reasons and the steps.
 
 ## 1. Short answer
 
-We never exploded code because it breaks the hard rule (README.md §1): *an exploded resource is reached only
-through what implode generates*. Code is reached in eight ways that implode cannot regenerate yet. They are bank-local
+Code waited until 2026-11-28 because *moving* it breaks the hard rule (README.md §1): *an exploded resource is
+reached only through what implode generates*. C0 explodes it anyway as a **pinned kind**, the one exception that
+README.md §1 states: every routine stays at home at its vanilla size, so whatever reaches it by a fixed address
+still lands. Code is reached in eight ways that implode cannot regenerate yet. They are bank-local
 `jsr`/`jmp`, `(abs,x)` jump tables, `pea` return addresses, `phk : plb` data banks, fall-through, mid-routine
 entries, vectors, and pointers to code that live in WRAM (§4). The engine is also cycle-sensitive (§4 h), so a routine
 that moves and gains cycles leaves lockstep. Every other kind was chosen first because its readers were few and known.
@@ -43,6 +45,38 @@ Code by bank (unowned / recorded code): `$80` 32,176 / 19,737 · `$8C` 30,970 / 
 recorded code. The CDL is a lower bound: code that never ran is not marked. Examples are the 80 named entries the CDL
 never saw and banks `$93`/`$96`/`$9A`.
 
+### 2.1 What C0 built *(repo, v0.477.0)*
+
+| Piece | What |
+|---|---|
+| `tools/open-evermore/code-census.mts` → `evermore/map/us.code.json` | the census: 49,848 instructions in 562 runs, each with its widths (one digit per instruction), and 987 entries (recorded call targets), from the vanilla CDL library. Offsets and widths only, checked in, so explode needs no CDL library (the pattern of `us.wram-readers.json`). Regenerate after the library grows |
+| `src/platform/snes/asm65816.ts` | an assembler for the export's Asar syntax: labels, every addressing mode with `.b`/`.w`/`.l`, `db`/`dw`/`dl`, `skip`, expressions. All 1,024 opcode × width forms the printer writes assemble back to their bytes (`tests/open-evermore/asm65816.test.mts`), and so do all 49,848 instructions of the census. Implode needs no Asar, and the files still assemble with Asar |
+| `evermore/codecs/code.mts`, `code-text.mts` | the kind, last in `KINDS` |
+
+How it cuts and writes:
+
+- **A routine starts** at every knowledge code entry on an instruction head (named as `soe://rom/code/` names it),
+  every recorded call target (`func_<address>`), and every head no routine reaches yet (`loc_<address>`). It runs to
+  its last instruction before the next start, with the data between its instructions. The data after it stays in
+  `_base/`.
+- **Labels** hold the FastROM address the code runs at. All recorded code is in the upper halves of banks `$00` and
+  `$0C-$11` *(measured)*, so a label is `$800000` + the file offset. Every jump, branch and long target that starts a
+  line gets `loc_<address>`. An operand that reads through the `$C0+` mirror is `label+$400000`.
+- **Other kinds' bytes** inside a routine are holes of its item, written by their kind. There are 3,715 operands
+  (`; operand written by wram`) and 10 files with `skip n` (an instruction an item hook replaces, a table read in
+  place). A long operand into another kind's resource is named in a comment (`; → strings/…`). That is a first part of
+  §3.1; the labels themselves are open.
+- **Pinned**: each item's rule is its home (`above` = `below` − length), and a size other than vanilla's is
+  `code-size`. A new file is `code-new` (C1), a `skip` no other kind covers is `code-skip`, and an assembly error is
+  `asm` with the line.
+- **The round trip compares a routine by its bytes**, holes left out (`canonical` assembles it), so an edit whose
+  instructions change length still round-trips. Explode decodes the edited bytes in other words, and what does not
+  decode is `db`.
+- 35 branches go to a place no line starts (never-run code, data after a routine) and stay `db` with a comment.
+
+Measured on 2026-11-28: explode +0.6 s (1,448 routines and the README, 5.9 MB, 57,892 lines); `_base/` keeps 116,680 bytes no kind
+owns (3.7 %), down from 240,970.
+
 ## 3. What we already have
 
 | Piece | Where | State |
@@ -51,7 +85,7 @@ never saw and banks `$93`/`$96`/`$9A`.
 | Name ↔ address in the codecs | `tools/open-evermore/evermore/codecs/readers.mts` `routines(bank)` | *(repo)* a name stands for a fixed 16-bit address in one bank |
 | Per-routine views | `soe://rom/code/<routine>/` (info, `.asm`, `.c`, pseudo-C) | *(repo)* read views, not guaranteed to reassemble *(to verify)* |
 | **Byte-exact disassembly** | `src/platform/cdl/asar-export.ts` → `out/recomp/asar/` (48 bank files, 987 functions, `build.sh`) | *(repo)* `build/out.sfc` has the vanilla sha1 (2026-11-22): **G0 for the whole ROM as asm** |
-| Assembler | Asar 1.90pre, outside the repo (`tools/recomp/build.js` finds it: `--asar`, `ASAR`, PATH, `../asar`) | *(repo)* not bundled, no wasm |
+| Assembler | `src/platform/snes/asm65816.ts` for implode (since C0); Asar 1.90pre outside the repo for the export's `build.sh` (`tools/recomp/build.js` finds it: `--asar`, `ASAR`, PATH, `../asar`) | *(repo)* ours is built in; Asar is not bundled |
 | Code that implode writes today | `codecs/consumable-hooks.mts`, `codecs/ingredient-hooks.mts` | *(repo)* hand-assembled byte arrays, placed as `grown_tables`, tested on `cpu65816.ts` |
 | Operands patched inside `_base/` code | dog forms, ingredient readers, `$8C:CCF5`/`$8C:CD35`, 218 mapping-file sites, WRAM census | *(repo)* a code kind must take each over as a typed operand |
 | C | `reconstructed-c/`, C to ROM (Calypsi, banks `$F8-$FB`) | *(repo)* documentation. Its calls cost 7-60× the asm and WRAM drifts, so it is never a source of the tree (AGENTS.md §0.11) |
@@ -120,7 +154,8 @@ Each step ends at the usual gates (README.md §7): G0 stable, `--random` round t
 
 | Step | What | Gate | Needs |
 |---|---|---|---|
-| **C0** | **Explode code pinned, labelled by explode** (§3.1). `code/<routine>.asm` is the Asar export cut per routine, with explode's names as its symbols. Each file carries its vanilla `org` as a placement rule (`bankOffset` + bank). Implode generates `_build/main.asm` + `symbols.asm` and runs Asar. No routine moves, but every data kind it reads may move | G0 (vanilla sha1); `--random` moves the other kinds and Asar rewrites the operands; `prove` | Asar in implode (owner's call 1); the cut (owner's call 3); `asar-export.ts` reads an explode index; the codecs' operand patches retired one by one |
+| **C0** ✅ v0.477.0 | **Explode code pinned** (§2.1): `code/<routine>.asm` per routine, in the export's Asar syntax, named by the knowledge base, labelled at every target; implode assembles it (`asm65816.ts`) at its vanilla address. No routine moves; the data kinds it reads still move through their own operand patches (holes) | G0 vanilla sha1; `--random` seeds 1, 2026 round-trip; a same-size edit lands and an edit of other instruction lengths round-trips (`g0.test.mts`) | done |
+| C0b | **Data by label** (§3.1): operands into another kind's resource written as its label, `symbols` from placement, and the codecs' operand patches retired one by one (the WRAM operands from the `wram` kind's names) | G0; `--random` | the label of a resource (`<kind>/<name>` → an Asar name); per-kind operand lists |
 | C1 | **New routines by name**: `code/<name>.asm` without `org` is placed by `placement.mts` in the 4th MB. Handler tables, `header.json` and other code name it, and a bank-local table gets a generated `jml` stub in its bank. The item and ingredient hooks move from TS byte arrays into this form | G0 with no new file; G2 with one new opcode or charm effect played | a "same bank as" rule or a stub per bank; 16 free bytes in `$8C` (`$8C:D880-$D88F`, [../todo/custom-opcodes.md](../todo/custom-opcodes.md)) |
 | C2 | Symbols M0, M1, M4: game regions, local labels for the 227 `seg_+off` branches, DB-relative operands | the export still G0, and a padding test per bank (M8) | `asar-export.ts` |
 | C3 | **Move `jsl`-only leaves**: an `rtl` routine with no `jsr.w` caller, no `phk : plb`, no `pea`/`per` and no mid entry. It moves inside FastROM (`$80-$BF` upper half, `$C0-$FF`) | `--random` + `prove --strict` | an xref count: which routines qualify (85 pure leaves among 291 bindable routines in replay 01) |
@@ -139,19 +174,20 @@ stub is a `--promoted`-class change, like absolute script calls: it plays the sa
 
 ## 6. Decisions for the owner
 
-1. **Asar in implode.** Bundle it (a binary, or a wasm build of the LGPL library) or require `ASAR` the way
-   `tools/recomp` does. Without it, C1 hooks stay hand-assembled.
+1. ~~**Asar in implode.**~~ Settled by C0: implode assembles with its own `asm65816.ts` (the printer's syntax, checked
+   against all 49,848 instructions), and the files still assemble with Asar.
 2. **Who places code.** Open Evermore's allocator writes an `org` per routine (as resources.md says), or Asar's
    `freecode`. Only one allocator can own the free space, so the proposal is ours.
-3. **The cut.** One file per knowledge entry (1,553, some overlapping, ~483 of them mid-entries, and the summed sizes
-   133,751 B exceed the 119,478 B recorded) or one per CDL function (987)? A fall-through chain must be one file
-   either way.
+3. ~~**The cut.**~~ C0 took both: a file at every knowledge entry on an instruction head and at every recorded call
+   target, plus one at each head neither reaches (1,448 files). A mid-routine entry with a name is its own file, which
+   falls through into the next; that is fine while routines stay home, and a move (C3, C4) must take such chains as one.
 4. **One owner for the 4th MB.** The hotkey hack uses `$F80000`, and C to ROM claims `$F8-$FB`. Everscript patches
    overlap at `$FE5000` and `$FE6000`, and MSU-1 also uses `$FE6000`. A code kind ends this only if those patches
    come in as tree files.
-5. **Start with C1 before C0?** [review.md](review.md) §5 proposes a light hook mechanism first: new routines by name,
-   with vanilla pinned. That gives modders new behaviour (an op that halves HP, a charm's effect, a Dog form's
-   ability) without exploding the 119 KB.
+5. ~~**Start with C1 before C0?**~~ C0 came first (the owner's ask, 2026-11-28: the whole code, file for file). C1 is
+   next: the light hook mechanism [review.md](review.md) §5 proposes (new routines by name, vanilla pinned) now
+   builds on the files, and gives modders new behaviour (an op that halves HP, a charm's effect, a Dog form's
+   ability).
 
 ## 7. Open questions *(to verify)*
 
