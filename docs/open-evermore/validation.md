@@ -70,7 +70,7 @@ General rules; each kind adds its own in [resources.md](resources.md).
 
 Built so far *(S3)*: `unknown-reference`, `missing-file`, `parse-error`, `schema`, `bad-name`, `duplicate-name`, `locked-name-missing`,
 `id-gap`, `id-over-limit`, `invalid-value`, `over-budget`, `base-changed`, `size-mismatch`, `no-space`,
-`unsupported-layout`, `outside-image`, `wrong-region`, `region-gap`, `region-overlap`, `header-mismatch`,
+`unsupported-layout`, `outside-image`, `wrong-region`, `region-gap`, `region-overlap`, `rule-loosened`, `header-mismatch`,
 `g0-failed`, `round-trip`, `unknown-file`, `unlocked-id`, `unreferenced` (tiles), `changed`, `random`, `grown`,
 `reencoded`, `repacked`. The round trip compares each file's canonical form: without what a kind derives or caches (a
 family's `maps`, a block's `packed`) and without the file format (a tile as PNG or JSON). The rest come with the kinds that

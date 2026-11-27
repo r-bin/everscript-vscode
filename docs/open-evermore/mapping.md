@@ -2,7 +2,7 @@
 
 Status: **built (2026-11-25, v0.471.0)** for the US release: `tools/open-evermore/evermore/map/us.json`, read
 through `evermore/map.mts`; drafts for the PAL releases through `locate` (§6). Not yet: reading the manifest's
-`placement` (§3). Back to [README.md](README.md). Labels as there. Related: [manifest.md](manifest.md) §1.3–§1.4,
+§3's `regions`. Back to [README.md](README.md). Labels as there. Related: [manifest.md](manifest.md) §1.3–§1.4,
 [roadmap.md](roadmap.md) (names, not addresses), [../evermore-releases.md](../evermore-releases.md).
 
 **Question (owner, 2026-11-25).** Explode and implode held a lot of knowledge about the memory map: where each table
@@ -96,14 +96,16 @@ against the literals they replaced, `extends`, and the one-release rule.
 
 ---
 
-## 3. What goes in `manifest.json` *(proposal)*
+## 3. What goes in `manifest.json`
 
-The manifest holds what the user may decide (manifest.md §1.3–§1.4). Today explode writes one `rom` region and an
-empty `placement`; implode reads only `free` regions (implode.mts stage 5).
+The manifest holds what the user may decide (manifest.md §1.3–§1.4). Explode writes one `rom` region and an empty
+`placement`.
 
-- **`regions`:** explode writes `free` and `reserved` (the everscript hacks at `$F0`, `$FC–$FF`, table-hack.md §1).
-- **`placement`:** per kind, settings that only tighten the map's rule (`rule-loosened` names the map entry):
-  `banks` (inside the map's), `half`, `speed`, `prefer`. Example: dialogue kept in `$C0–$C3`.
+- **`regions`** *(proposal)*: explode writes `free` and `reserved` (the everscript hacks at `$F0`, `$FC–$FF`, table-hack.md §1).
+- **`placement`** *(repo, v0.473.0, manifest.md §1.4)*: per kind, `banks` and `half`, which only narrow the map's rule
+  (`rule-loosened` otherwise); `speed` and `prefer` planned. Measured 2026-11-27 on a fresh US tree:
+  `strings` `$C0-$C3` builds the vanilla sha1 (`--strict`); `strings` `$F0-$FF` with `--random 7` puts all 3,002 strings
+  in the 4th MB and round-trips; `texts` `$C5` and `strings` `half: upper` are `rule-loosened`.
 - **Strings and menu texts.** The map says strings go in a lower half of the first 4 MB, never across a bank, and
   menu texts in bank `$C4`. A manifest may say `"strings": { "banks": "$C0-$C3" }`, never `"texts": { "banks":
   "$C5" }`. Texts outside `$C4` need a codec that rewrites the bank immediates of their readers: those readers then
@@ -163,4 +165,4 @@ Measured 2026-11-25 on the five PAL ROMs (218 addresses, 4 of them banks):
 - *Decided (2026-11-25):* one file per release, `extends` for what is shared; release ids are the variant ids.
 - *Open:* publish the addresses in `soe://` (which bytes implode rewrites) for the ROM tab and the AI?
 - *Open:* list the `pinned` items (readers not rewritten yet) in the map as known gaps?
-- *Next:* §3 (the manifest's `placement` and `regions`).
+- *Next:* §3's `regions` (the hacks' reserved space); `speed` and `prefer`; a PAL draft proven by exploding its ROM.

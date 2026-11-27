@@ -112,31 +112,34 @@ may use it.
 
 ### 1.4 Placement
 
-Which kind may go where. The facts behind each rule come from code and docs
-([../table-hack.md](../table-hack.md) §1, [../split-and-link/extending.md](../split-and-link/extending.md) §4–§5),
-not from the manifest; the manifest only lets a build choose among allowed options.
+*(built 2026-11-27, v0.473.0: `banks` and `half`; `speed` and `prefer` planned.)* Which kind may go where, inside
+what the engine allows. The engine's rules are the game mapping file's (`evermore/map/<release>.json` `placement`,
+[mapping.md](mapping.md) §2.2); each item arrives with its rule, and the manifest only narrows it
+(`tools/open-evermore/placement.mts`).
 
 ```jsonc
 "placement": {
-  "default":   { "speed": "fast" },
-  "maps":      { "half": "upper", "noCrossBank": true, "maxSize": "32KiB" },
-  "strings":   { "half": "lower" },
-  "scripts":   { "half": "upper", "noCrossBank": true },
-  "animations":{ "bank": "$C4" },
-  "music":     { "speed": "any" }          // packages are copied to audio RAM once per load: slow ROM is fine
+  "strings": { "banks": "$F0-$FF" },     // dialogue only in the 4th MB
+  "maps":    { "banks": "$C0-$CF" }
 }
 ```
 
-| Field | Values |
-|---|---|
-| `speed` | `fast` (only the fast space of §1.2), `any`, or `heat` (decided per resource by the measured heat classes of [extending.md](../split-and-link/extending.md) §4.2) |
-| `half` | `lower` / `upper` / `any`: the 32 KiB half of a bank |
-| `noCrossBank`, `maxSize` | the engine reads it with 16-bit pointers inside one bank, or into a buffer of that size |
-| `bank` | bound to one bank (the engine keeps the bank fixed) |
+| Field | Values | Built |
+|---|---|---|
+| `banks` | `"$C0"` or `"$C0-$C3"` (HiROM `$C0–$FF`, or the same banks as `$80–$BF`): the banks a kind's resources must lie in; a window (scripts) is cut to them | yes |
+| `half` | `"upper"` / `"lower"`: the 32 KiB half of a bank | yes |
+| `speed` | `fast` (only the fast space of §1.2), `any`, or `heat` ([extending.md](../split-and-link/extending.md) §4.2) | planned |
+| `prefer` | where the allocator tries first, without excluding the rest | planned |
 
-A manifest may tighten a rule (`"speed": "fast"` for music) but never loosen one the engine requires
-(`rule-loosened` is an error naming the rule's source).
-The engine's rules live in the game mapping file (`evermore/map/<release>.json` `placement`, [mapping.md](mapping.md)); the manifest only tightens them.
+- A key is a kind (`strings`, `texts`, `maps`, …); an unknown kind, field or value is a `schema` error.
+- A setting outside the engine's rule is `rule-loosened` (an error naming the first resource, how many more, and what
+  the map allows): `"texts": { "banks": "$C5" }` (texts are read in bank `$C4`), `"strings": { "half": "upper" }`.
+- Generated tables are never narrowed: they follow the code that reads them. A resource pinned at its home (its
+  reader not rewritten yet) is narrowed too, so a setting that excludes its home is `rule-loosened`.
+- A setting that leaves too little room is `no-space`, as any other full space: vanilla fills `$C0–$C3` with strings
+  exactly, so `"strings": { "banks": "$C0-$C3" }` builds stable (the vanilla sha1) but not `--random` (a shuffle leaves gaps
+  at the bank ends).
+- `manifest.json` is not compared by the round trip (explode writes the default), so a build with settings round-trips.
 
 ### 1.5 Which ROM the tree belongs to
 

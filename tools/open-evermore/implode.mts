@@ -10,6 +10,7 @@ import { Findings } from './findings.mts';
 import { FILE as MANIFEST, busOf, checkHeader, checkManifest, checkRegions, fileOf, formatAddr, parseAddr } from './manifest.mts';
 import type { Layout, Manifest } from './manifest.mts';
 import { allocate, piecesOf } from './layout.mts';
+import { applyPlacement, readPlacement } from './placement.mts';
 import { plan } from './layouts.mts';
 import type { PastEnd, Plan } from './layouts.mts';
 import { diffTrees, json, readText, sha1 } from './tree.mts';
@@ -106,9 +107,12 @@ export function implode(onDisk: Tree, game: string, kinds: Codec[], opts: Option
         const ids = codec.resolveIds ? codec.resolveIds(ctx, names) : resolveEnum(path, tree.get(path), names, findings, codec.listedIdsOnly, codec.nameRe);
         if (ids) ctx.ids.set(codec.kind, ids);
     }
+    // The manifest's placement narrows each kind's rules (placement.mts).
+    const settings = readPlacement(manifest.placement, kinds.map(k => k.kind), findings);
     // In the order of `kinds`: a kind that marks another's resources (ctx.marks) encodes before it.
     for (const codec of kinds) {
         const list = codec.encode(ctx, present.get(codec.kind)!);
+        applyPlacement(codec.kind, list, settings, findings);
         items.push(...list);
         const changed = list.filter(i => isChanged(i)).length;
         stats.push({ kind: codec.kind, items: list.length, bytes: list.reduce((s, i) => s + i.bytes.length, 0), changed, moved: 0 });

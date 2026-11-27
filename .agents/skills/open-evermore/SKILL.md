@@ -29,6 +29,7 @@ before touching its codec. This skill is how to work on it and what bit us.
 - **ROM addresses live in the mapping file**, `evermore/map/<release>.json` (`docs/open-evermore/mapping.md`):
   a codec reads them by name (`map.file('strings.singles')`, `map.readers(…)`, `map.rule(kind)`), never a hex literal
   of its own; the instruction shape it expects stays in the codec. A language release is its own file (`extends`).
+  The user's `manifest.json` `placement` (`banks`, `half`) only narrows those rules (`placement.mts`).
 - **One tool, no npm commands**; `<kind>/_enum.json` is the one ordered file of a kind.
 - **Untangled by default, vanilla with `--strict`.** Without `--strict` every relative call into another
   script is written absolute (it ends in `0x29`'s code anyway), so no script must lie near another; jumps
