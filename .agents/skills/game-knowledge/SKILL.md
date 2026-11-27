@@ -25,6 +25,7 @@ sentence beats nothing. No permission needed — this is part of every task.
 | You learned about | Write to |
 |---|---|
 | a WRAM address, struct, flag byte or region | `src/games/evermore/localizations/knowledge/wram/<NAME>.md` (and map entry in `data/wram-map.md` or `wram-map-7f.md`) |
+| a VRAM, CGRAM, OAM, ARAM or SRAM region (no map of its own yet) | `docs/open-evermore/memory.md` §2 (measured) or §3 (to check), with the screen mode; VRAM as word addresses |
 | an asm routine, script, script function, table or data block in the ROM | `src/games/evermore/localizations/knowledge/routines/<NAME>.md` (and map entry in `data/rom-map.md`) |
 | an asm comment on one instruction | `src/games/evermore/localizations/data/asm-comments.json` (key: US file offset) — never in docs; served in `soe://rom/code/<name>/<name>.asm` |
 | a routine's C | `reconstructed-c/<bank>/`, the US address in the comment right above the function (`code-vfs` skill) |

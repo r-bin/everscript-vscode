@@ -3,6 +3,8 @@
 Status: **the `wram` kind (v0.459.0)**: every named variable a file, every other kind names WRAM through it; moving
 is the next step. **Proof of concept (v0.456.0)**: one variable moved by name, the stored playbacks in step. Tracker:
 [../todo/wram-allocation.md](../todo/wram-allocation.md) (W0-W10). Back to [README.md](README.md). Labels as there.
+The other memories (VRAM, CGRAM, OAM, ARAM, SRAM) and the planned replacement of one file per variable by region files
+(§0's format): [memory.md](memory.md).
 
 The ROM kinds place resources anywhere because every reference to them is generated. WRAM is the same problem one level
 down: the files already name WRAM (`write_word ENEMY_SPAWNER_QUANTITY, 1` in scripts, a ring's `buffer`, a formula's

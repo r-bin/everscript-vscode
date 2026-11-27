@@ -45,6 +45,9 @@ before touching its codec. This skill is how to work on it and what bit us.
   experience, a 15th weapon's skill word) gives the new ids `temp[]` cells (`COMPILER_TEMP` `$2834`-`$28FB`), from the
   top down, named in its file; say that they are wiped on every room load and not saved. Real allocation is the tracker
   `docs/todo/wram-allocation.md` (W0-W10, `docs/open-evermore/wram.md`).
+- **Every memory goes the WRAM way** (owner, 2026-11-27: all dynamic): VRAM, CGRAM, ARAM, SRAM as one map per memory and
+  a few region files (ordered items, `gap`, `pin`, `count`), never one file per entry (`docs/open-evermore/memory.md`,
+  tracker M0-M6). A VRAM address in a map is a word address; `memory-probe.mts` reports bytes.
 - **WRAM names come from the `wram` kind** (`codecs/wram.mts`, `KINDS[0]`): `wramAddress`/`wramName`/`wramHolding`, never
   `KNOWLEDGE.entries('wram')` (its `$7E:xxxx` addresses parse to NaN: 1,306 entries unseen) and never a list of your own.
 

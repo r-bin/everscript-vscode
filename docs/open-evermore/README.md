@@ -29,6 +29,7 @@ keeps that plan's reasoning (gates, codecs, placement rules, fast ROM by heat) a
 | [optimizing.md](optimizing.md) | what explode and implode cost (measured), and how to make them faster, easier to use and clearer to read |
 | [progress.md](progress.md) | the step list and the state of each kind |
 | [wram.md](wram.md) | WRAM by name: `temp[]` as a placeholder, the proof of concept, allocation |
+| [memory.md](memory.md) | every memory by name (WRAM, VRAM, CGRAM, OAM, ARAM, SRAM): what each holds (measured), one map per memory instead of one file per entry, region files, the order of work |
 | [extending.md](extending.md) | how easy five kinds of new content are today (a Dog form, Act 0 Dog poses, Laser, a formula, items) and what blocks each |
 | [roadmap.md](roadmap.md) | the road to 10/10: the rules (one kind per folder, typed names, named entries, no derived data), what still breaks them, the order of work |
 
