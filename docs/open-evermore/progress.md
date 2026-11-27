@@ -47,7 +47,7 @@ A kind is **done** when all columns are 🟩:
 | S7d2b | animation scripts (`$C7–$C9`, 1,595 scripts, 52,122 B, inline in `animations/<owner>/<name>.json`) | 🟩 | 🟩 | 🟩 | 🟩 | 🟩 alone (with metasprites, sprite palettes) seeds 1, 2, 3, 7; all kinds 1, 11, 42 | 🟥 | symbolic, pointer-free, byte-for-byte verified at explode; `{ same_as }` sharing; 21 bank-`$90` projectiles exploded; `--strict` keeps page-wrap timing (§2) |
 | W1, W2 | wram: 1,216 named variables in 56 part files by meaning (`wram/<part>.json`: ordered items, `type` + `count`, `cells`, `gap`; regions, parts and saved blocks in the mapping file; v0.475.0) | 🟩 | 🟩 (read first; scripts, records, rings take WRAM names and addresses from it; census operands generated) | 🟩 | 🟩 seeds 1, 2 (vanilla tree and a moved one) | 🟩 `--stable`: 86 variables moved, five playbacks in step; seed 1 with the moves, intro and attract | 🟥 | 388 groups movable, the rest refused by name; tracker [../todo/wram-allocation.md](../todo/wram-allocation.md) |
 | S8 | header | 🟥 | 🟥 | 🟥 | — | — | 🟨 (`header.json` exists) | fixed by hardware at `$FFC0`; vectors by routine name once code is a kind |
-| S9 | code | 🟥 | 🟥 | 🟥 | 🟥 | 🟥 | 🟩 by name already | only routines whose every caller is symbolic; the rest stays in `_base/` |
+| S9 | code | 🟥 | 🟥 | 🟥 | 🟥 | 🟥 | 🟩 by name already | only routines whose every caller is symbolic; the rest stays in `_base/`. State, hazards and steps C0-C6: [code.md](code.md) |
 
 ## 2. Beyond
 

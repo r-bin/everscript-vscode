@@ -1005,3 +1005,4 @@ stays unique.
   A routine with a raw operand left is pinned. Knowledge entries become comments.
 - **Reconstructed C** is not in the tree: `reconstructed-c/` documents the ROM and is not built into it here
   (the C-to-ROM build is its own project, AGENTS.md §0.11).
+- **State and steps**: [code.md](code.md) (why it is not exploded yet, the export labelled by explode, C0-C6).

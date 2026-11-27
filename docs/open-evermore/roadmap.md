@@ -43,7 +43,7 @@ and the order to fix it in. The kinds themselves: [resources.md](resources.md); 
 ## 4. What still breaks the rules (fresh US tree, v0.458.2)
 
 Census of 2026-11-22: 29,837 files, 41 MB; `_base/unexploded.bin` keeps ~0.6 MB of the 3 MiB unexploded (code, `$C4`
-tables, animation records and scripts), the rest is blanked pool. Raw addresses are `"$…"` values in editable JSON;
+tables, animation records and scripts), the rest is blanked pool. Re-measured 2026-11-27: ~0.24 MB, half of it code ([code.md](code.md) §2). Raw addresses are `"$…"` values in editable JSON;
 scripts have none (247 of 73,540 lines keep a `<0x…>` WRAM cell). Score: against §1 and R1–R6, 10 = no gap.
 
 | Folder | Score | Addresses | What keeps it from 10 | Fix |
