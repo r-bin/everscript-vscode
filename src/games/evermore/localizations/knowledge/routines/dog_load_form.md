@@ -25,4 +25,6 @@ reach (`$20`; `$FA` on Act 4, whose attacks fire shots): the companion AI attack
 within it (`routines/enemy_attack_reach_test.md`, `$8F:D9D1`, called by the Dog's `$8F:D0B0` and the Boy's
 `$8F:D05E`; 2026-11-27). Slots 9-14 go to `$1443`-`$144D`, animation records the Dog's AI starts
 (`wram/DOG_FORM_ANIM_9.md` and the four after it). The loader reads entries with 16-bit offsets in bank `$8F`
-(`lda $8F0000,x`), the pointer table with a long operand (`$8F:9477`).
+(21 `lda.l $8F00xx,x`: `$8F:947C` + 7k for k < 20, and `$8F:951F` for `+6`), the pointer table with a long operand
+(`$8F:9477`). Open Evermore grows the forms by rewriting those operands' bank byte and the pointer operand (v0.476.0); a
+copy of the routine elsewhere would need every WRAM operand it holds.

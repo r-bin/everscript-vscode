@@ -65,7 +65,15 @@
     },
     "dog_forms": {
       "pointers": "$8F:945D",
-      "entries": ["$8F:9395", "$8F:93BD", "$8F:93E5", "$8F:940D", "$8F:936D", "$8F:9435"]
+      "entries": ["$8F:9395", "$8F:93BD", "$8F:93E5", "$8F:940D", "$8F:936D", "$8F:9435"],
+      "pointer_read": "$8F:9477",
+      "entry_reads": ["$8F:947C", "$8F:9483", "$8F:948A", "$8F:9491", "$8F:9498", "$8F:949F", "$8F:94A6", "$8F:94AD", "$8F:94B4", "$8F:94BB", "$8F:94C2", "$8F:94C9", "$8F:94D0", "$8F:94D7", "$8F:94DE", "$8F:94E5", "$8F:94EC", "$8F:94F3", "$8F:94FA", "$8F:9501", "$8F:951F"],
+      "flight_palette_read": "$80:BF01",
+      "flight_palettes": "$80:BF0E",
+      "flight_animation_read": "$80:C6F9",
+      "flight_animations": "$80:C707",
+      "equipment_read": "$8E:B4AA",
+      "equipment_entries": "$8E:B512"
     },
     "experience": {
       "boy_table": "$8C:8BD0",

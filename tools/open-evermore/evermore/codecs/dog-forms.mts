@@ -12,9 +12,21 @@
 //   +$0A 15 animation records (bank $C4): stand, walk, run, slot 3, knockback, attack 0-3 into the record
 //        (+$32 +$34 +$36 +$48 +$40 +$38..+$3E), then slots 9-14 into $1443-$144D for the Dog's AI
 //
-// The entries are read with 16-bit offsets in bank $8F (`lda $8F0000,x`), so they stay where they are; the pointer
-// table stays in _base/ (the count is fixed at 6 until a 7th form gets a hook: docs/open-evermore/extending.md §1).
+// The loader reads the pointer table with one long operand (`lda.l $8F945D,x`, $8F:9477) and the entry with 21 long
+// reads `lda.l $8F00xx,x` (X the entry's 16-bit offset): with six forms all stays in place and in _base/. A 7th form and
+// more (docs/open-evermore/extending.md §1, built 2026-11-28) move all of it into a generated block in one bank:
+//   the pointer table (word 0 "no form", then one word per form); every form's 40-byte entry (vanilla's six copied from
+//   their homes, as edited); and the three other tables read by the form number (word 0 unused):
+//     $80:BF0E (read at $80:BF01) the Windwalker flight's Dog palette: a new form flies in its own `palette`
+//     $80:C707 (read at $80:C6F9) the flight's Dog animation: a new form flies with its `animations/stand`
+//     $8E:B512 (read at $8E:B4AA) the Dog's equipment ring entry of $C4:5A75: a new form shows entry 0 (as Act 0 does)
+//   Implode rewrites the pointer read's operand, the 21 entry reads' bank byte and the three reads' operands: the same
+//   instructions, the same length and cycles, no hook (a copy of the loader would also copy operands other kinds own,
+//   such as its WRAM addresses, which _base/ holds blank). Vanilla's rows are copied byte for byte, the Toaster's
+//   past-the-end words included. With six forms every one of those bytes is vanilla's again.
 import * as map from '../map.mts';
+import type { Codec, ImplodeContext, Span, Write } from '../../codec.mts';
+import { ENUM, enumFile } from '../../enum.mts';
 import { DOG_FORM_NAMES } from './dog-form-names.mts';
 import { recordsCodec } from './records.mts';
 import type { Field } from './records.mts';
@@ -58,10 +70,13 @@ form sets (\`aggro_range\`); the Toaster's +80/+250 bonus is code.
 | \`animations/idle_wait\`, \`idle_wait_2\` | the idle cycle after 60-315 frames (\`$1449\`, \`$144B\`) |
 | \`animations/slot_14\` | \`$144D\`: no code reads it |
 
-Six forms, fixed: a 7th needs a hook first (docs/open-evermore/extending.md §1).
+A 7th form and more: add a file (copy a sibling) and its name to \`_enum.json\`; implode then moves the entries, the pointer table and the
+three tables the form number picks into one generated block. A new form flies the Windwalker in its \`palette\` with its
+\`animations/stand\`, and the equipment ring shows it entry 0 (as Act 0). Scripts ask for form n (0-based, in
+\`_enum.json\` order) by writing 2·(n+1) to \`$2443\` (\`ROOM_METATILE_DESCRIPTOR_PTR\`, an old wrong name).
 `;
 
-export const dogFormsCodec = recordsCodec({
+const vanillaCodec = recordsCodec({
     kind: DOG_FORMS, group: 'characters', count: ENTRIES.length, names: () => DOG_FORM_NAMES, fields,
     entryAt: id => ENTRIES[id], readme: README,
     why: 'six 40-byte entries in bank $8F by the pointer table $8F:945D, read in place by form number',
@@ -75,3 +90,146 @@ export const dogFormsCodec = recordsCodec({
         });
     },
 });
+
+// ── growth: a 7th form and more ──
+const VANILLA = ENTRIES.length, ENTRY = 40, LIMIT = 64;
+/** `lda.l $8F945D,x` (the pointer table) and the 21 `lda.l $8F00xx,x` (an entry's bytes) in the loader. */
+const POINTER_READ = map.file('dog_forms.pointer_read'), ENTRY_READS = map.files('dog_forms.entry_reads');
+const VANILLA_POINTERS = map.bus('dog_forms.pointers'), ENTRY_BANK = VANILLA_POINTERS >> 16;
+const SIDES = [
+    { read: map.file('dog_forms.flight_palette_read'), table: map.bus('dog_forms.flight_palettes') },
+    { read: map.file('dog_forms.flight_animation_read'), table: map.bus('dog_forms.flight_animations') },
+    { read: map.file('dog_forms.equipment_read'), table: map.bus('dog_forms.equipment_entries') },
+];
+const KEY = `${DOG_FORMS}/_grown`;
+const le24 = (v: number) => [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF];
+const u16 = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8);
+const u24 = (b: Uint8Array, at: number) => b[at] | (b[at + 1] << 8) | (b[at + 2] << 16);
+const fileOf = (bus: number) => bus & 0x3FFFFF;
+
+/** The generated block's layout for `n` forms (offsets in it; the pointer table first). */
+function layout(n: number) {
+    const entries = 2 * (n + 1), sides = entries + ENTRY * n;
+    return { pointers: 0, entries, sides: SIDES.map((_, k) => sides + 2 * (n + 1) * k), length: sides + 2 * (n + 1) * SIDES.length };
+}
+
+/** The operand bytes a grown kind rewrites, with vanilla's. */
+const SITES = new Map<number, number[]>([
+    [POINTER_READ + 1, le24(VANILLA_POINTERS)],
+    ...ENTRY_READS.map(r => [r + 3, [ENTRY_BANK]] as [number, number[]]),
+    ...SIDES.map(s => [s.read + 1, le24(s.table)] as [number, number[]]),
+]);
+const SPANS: Span[] = [...SITES].map(([at, b]) => ({ start: at, end: at + b.length }));
+
+/** A records codec for the forms from the 7th on, `entryAt` giving where each one's 40 bytes are. */
+const extraCodec = (count: number, entryAt: (id: number) => number, names: () => readonly string[]) => recordsCodec({
+    kind: DOG_FORMS, group: 'characters', count, names, fields, entryAt, why: 'the forms past vanilla\'s six',
+});
+
+/** The grown form of a ROM implode built: the block's file offset and its form count, or null for vanilla's. */
+function grownIn(rom: Uint8Array): { block: number; n: number } | null {
+    const pointers = u24(rom, POINTER_READ + 1);
+    if (pointers === VANILLA_POINTERS) return null;
+    const block = fileOf(pointers), first = (block & 0x3F0000) | u16(rom, block + 2);
+    return { block, n: (first - block) / 2 - 1 };
+}
+
+function grow(inner: Codec): Codec {
+    const DIR = inner.path;
+    const vanillaIds = (ctx: ImplodeContext) => new Map([...(ctx.ids.get(DOG_FORMS) ?? [])].filter(([, id]) => id < VANILLA));
+    /** The new forms by id from 6, in order; null when there are none, or an id is missing (an error says which). */
+    function extras(ctx: ImplodeContext): string[] | null {
+        const ids = ctx.ids.get(DOG_FORMS);
+        if (!ids) return null;
+        const count = Math.max(VANILLA, ...[...ids.values()].map(id => id + 1));
+        if (count === VANILLA) return null;
+        const byId = new Map([...ids].map(([n, id]) => [id, n])), out: string[] = [];
+        for (let id = VANILLA; id < count; id++) {
+            const n = byId.get(id);
+            if (n === undefined) { ctx.findings.error('missing-file', `${DIR}/${ENUM}`, `/names/${id}`, `form numbers are a list: no gap (id ${id} is missing)`); return null; }
+            out.push(n);
+        }
+        return out;
+    }
+    const withIds = (ctx: ImplodeContext, ids: Map<string, number>): ImplodeContext => ({ ...ctx, ids: new Map(ctx.ids).set(DOG_FORMS, ids) });
+    const extraIds = (names: string[]) => new Map(names.map((n, k) => [n, k]));
+
+    return {
+        ...inner,
+
+        explode(rom, name, options, countOf, nameAt) {
+            const g = grownIn(rom);
+            for (const [at, b] of SITES)
+                if (!g && !b.every((x, k) => rom[at + k] === x)) throw new Error(`dog_forms: $${(0xC00000 | at).toString(16).toUpperCase()} is not the code this codec knows; another release?`);
+            if ([POINTER_READ, ...ENTRY_READS].some(r => rom[r] !== 0xBF) || ENTRY_READS.some(r => rom[r + 1] >= ENTRY || rom[r + 2] !== 0))
+                throw new Error('dog_forms: the loader at $8F:9471 does not read its entry with `lda.l $8F00xx,x`; another release?');
+            const out = inner.explode(rom, name, options, countOf, nameAt);
+            const names = Array.from({ length: VANILLA }, (_, id) => name(DOG_FORMS, id));
+            if (g && g.n > VANILLA) {
+                const pointers = g.block + layout(g.n).pointers, bank = g.block & 0x3F0000;
+                const extra = Array.from({ length: g.n - VANILLA }, (_, k) => name(DOG_FORMS, VANILLA + k));
+                const x = extraCodec(extra.length, id => bank | u16(rom, pointers + 2 * (VANILLA + id + 1)), () => extra)
+                    .explode(rom, (kind, id) => kind === DOG_FORMS ? extra[id] : name(kind, id), options, countOf, nameAt);
+                for (const [p, b] of x.files) if (p.startsWith(`${DIR}/`) && p !== `${DIR}/${ENUM}`) out.files.set(p, b);
+                names.push(...extra);
+            }
+            out.files.set(`${DIR}/${ENUM}`, enumFile({ kind: DOG_FORMS, limit: LIMIT, names, why: `form n is request value 2·(n+1) in $2443; the six vanilla entries are read in place in bank $8F, a 7th and more move them, the pointer table and the three tables the form number picks into a generated block in one bank and point the loader there (dog-forms.mts; the limit is ours)` }));
+            out.tables.push(...SPANS);
+            return out;
+        },
+
+        encode(ctx, names) {
+            const items = inner.encode(withIds(ctx, vanillaIds(ctx)), new Set([...names].filter(n => (ctx.ids.get(DOG_FORMS)?.get(n) ?? 0) < VANILLA)));
+            const extra = extras(ctx);
+            if (!extra) return items;
+            items.push(...extraCodec(extra.length, () => 0, () => extra).encode(withIds(ctx, extraIds(extra)), new Set(extra)));
+            const n = VANILLA + extra.length;
+            items.push({ key: KEY, file: `${DIR}/${ENUM}`, bytes: new Uint8Array(layout(n).length), rule: map.rule('grown_tables'), generated: true });
+            return items;
+        },
+
+        tables(ctx, placed) {
+            const ids = ctx.ids.get(DOG_FORMS);
+            if (!ids) return [];
+            const writes = inner.tables(withIds(ctx, vanillaIds(ctx)), placed);
+            const file = `${DIR}/${ENUM}`, extra = extras(ctx), at = placed.get(KEY);
+            const put = (where: number, bytes: number[]) => writes.push({ at: where, bytes: Uint8Array.from(bytes), file });
+            if (!extra || at === undefined) {
+                for (const [where, b] of SITES) put(where, b);
+                return writes;
+            }
+            const n = VANILLA + extra.length, l = layout(n), bus = (o: number) => ctx.pointer(o), bank = bus(at) >> 16;
+            // Every form's 40 bytes: vanilla's six from the writes at their homes, the new ones' at a scratch offset.
+            const entries = Array.from({ length: n }, () => new Uint8Array(ENTRY));
+            const apply = (w: Write, start: number, e: Uint8Array) => { for (let k = 0; k < w.bytes.length; k++) { const o = w.at + k - start; if (o >= 0 && o < ENTRY) e[o] = w.bytes[k]; } };
+            for (const w of writes) ENTRIES.forEach((home, k) => apply(w, home, entries[k]));
+            const SCRATCH = 0x10000000;
+            for (const w of extraCodec(extra.length, id => SCRATCH + ENTRY * id, () => extra).tables(withIds(ctx, extraIds(extra)), placed))
+                extra.forEach((_, k) => apply(w, SCRATCH + ENTRY * k, entries[VANILLA + k]));
+            const block = new Uint8Array(l.length);
+            entries.forEach((e, k) => {
+                const where = bus(at + l.entries + ENTRY * k) & 0xFFFF;
+                block[l.pointers + 2 * (k + 1)] = where & 0xFF; block[l.pointers + 2 * (k + 1) + 1] = where >> 8;
+                block.set(e, l.entries + ENTRY * k);
+            });
+            // The three side tables: vanilla's rows as the game reads them, the new forms' from their entries.
+            SIDES.forEach((s, t) => {
+                for (let k = 0; k < n; k++) {
+                    const o = l.sides[t] + 2 * (k + 1);
+                    if (k < VANILLA) { const src = fileOf(s.table) + 2 * (k + 1); block[o] = ctx.base.image[src]; block[o + 1] = ctx.base.image[src + 1]; continue; }
+                    const e = entries[k], v = t === 0 ? u16(e, 6) : t === 1 ? u16(e, 0x0A) : 0;
+                    block[o] = v & 0xFF; block[o + 1] = v >> 8;
+                }
+            });
+            put(at, [...block]);
+            // The loader reads the block's pointer table and the entries in its bank; the three reads its tables.
+            put(POINTER_READ + 1, le24(bus(at + l.pointers)));
+            ENTRY_READS.forEach(r => put(r + 3, [bank]));
+            SIDES.forEach((s, t) => put(s.read + 1, le24(bus(at + l.sides[t]))));
+            ctx.findings.info('grown', file, '', `${n} Dog forms: the entries and their tables moved to $${bus(at).toString(16).toUpperCase()} (form ${n - 1} is request value $${(2 * n).toString(16).toUpperCase()} in $2443)`);
+            return writes;
+        },
+    };
+}
+
+export const dogFormsCodec = grow(vanillaCodec);

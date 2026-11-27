@@ -858,10 +858,22 @@ characters/dog_forms/README.md     what each field does (not compared)
 Six 40-byte entries in bank `$8F` (`act1` `$9395`, `act1_stick` `$93BD`, `act2` `$93E5`, `act3` `$940D`, `act0` `$936D`,
 `act4` `$9435`), ids in the order of the pointer table `$8F:945D` (word 0 = no form; a script asks for form n with
 2·(n+1) in `$2443`). Read in place (`records.mts` with `entryAt`: entries by the mapping file's `dog_forms.entries`, checked
-against the pointer table at explode); the table stays in `_base/`. The loader `$8F:9471` reads them with 16-bit offsets in
-`$8F`, so they cannot move. Behaviour and stats are `characters/records/dog.json`. The HUD portraits (`$CC:3C72`…) are now
+against the pointer table at explode); the table stays in `_base/`. The loader `$8F:9471` reads the table with one long
+operand (`$8F:9477`) and an entry with 21 `lda.l $8F00xx,x` (X the entry's 16-bit offset). Behaviour and stats are
+`characters/records/dog.json`.
+
+**A 7th form and more** *(v0.476.0)*: a file plus its name in `_enum.json` (limit 64, ours). Implode then puts the pointer
+table, all entries (vanilla's six copied as edited) and the three other tables the form number picks (`$80:BF0E` flight
+palette, `$80:C707` flight animation, `$8E:B512` equipment ring entry; vanilla's rows copied, the Toaster's past-the-end
+words too) into one generated block in one bank, and rewrites the pointer operand, the 21 reads' bank byte and the three
+reads' operands: same instructions, same cycles, no hook. A new form flies in its `palette` with its `animations/stand` and
+shows equipment entry 0. Scripts request it by number: `write_word CHANGE_DOGGO, 14` for form 6. A first version copied the
+loader instead: the copy took the `_base/` image's blanked WRAM operands (`$FFFF`) and crashed on the first load.
+**Proven** (7 forms, `raptor_purple`: the raptor record's palette and animations): G0 of the fresh tree, `--random` 1 and 2
+round-trip, in MesenCE the raptor follows the Boy in Brian's room (form `$0E`), and the Podunk form in the same build draws
+Brian's room exactly as vanilla on snes9x. The HUD portraits (`$CC:3C72`…) are now
 metasprites `portraits/dog_<form>` (they were in `_base/`; `act1` and `act1_stick` share one; Act 0's is also played by a
-debug script). Slot roles: [extending.md](extending.md) §2. Count fixed at 6: a 7th form needs a loader hook (§1 there).
+debug script). Slot roles: [extending.md](extending.md) §2.
 **Proven**: G0 (vanilla sha1), seeds 11 and 12 round-trip, `prove --random 11`; an edit by name lands (`act0` slot 14 →
 `dog/act0_bark` writes `$4526` at `$8F:9395`, entry `+$26`); not seen in game.
 

@@ -11,7 +11,7 @@ Scale: 🟩 works today by editing files · 🟨 one missing kind or hook, the s
 
 | Request | Verdict | What stands in the way |
 |---|---|---|
-| A new Dog form | 🟨 (a recolour) / 🟨 (new art) | `dog_forms` built (v0.472.0) but fixed at 6; no free byte in bank `$8F` for a 7th entry; three other per-form tables |
+| A new Dog form | 🟩 (built v0.476.0, any record's art) / 🟨 (new art) | a 7th form is a file (resources.md §dog_forms); new poses are §2 |
 | Act 0 Dog's missing animations | 🟨 engineering, 🟥 art | the same `dog_forms` kind; about 85 poses still have to be drawn; new sprites are not yet proven in game (G2) |
 | Fix Laser | 🟩 (borrowed effect) / 🟨 (own look) / 🟥 ("halves HP") | the `$91` effect programs are not a kind; no op halves HP |
 | A new formula | 🟨 | formulas fixed at 35; ring items; formula WRAM packed 35 wide |
@@ -43,14 +43,14 @@ reads), so they cannot leave `$8F`. Forms differ in their looks and their attack
    `portrait`, `menu_sprite`, the 15 slots by animation name and `aggro_range`. It is in place for the six vanilla
    forms, and scripts would write the form by name (`write_word DOG_FORM_REQUEST, characters/dog_forms/act0`), the
    way `PRIZE` takes items by name.
-2. **Room for a 7th entry.** Bank `$8F` is code and has no proven free byte. Moving the 14-byte pointer table out
-   frees too little. The pattern the repo already uses is a hook (`ingredient-hooks.mts`): a `jsl` at `$8F:9477`
-   to a generated loader that reads a generated table of 24-bit entry pointers, so entries can go anywhere. This
-   has to be generated only when the kind has grown, and give vanilla's bytes otherwise.
+2. **Room for a 7th entry** *(built, v0.476.0)*. No hook was needed: the loader reads the pointer table with one long
+   operand and an entry with 21 `lda.l $8F00xx,x`, so a grown build moves the table and every entry into a generated
+   block in one bank and rewrites that operand and the 21 bank bytes (same cycles). A copy of the loader was tried first
+   and crashed: it copied WRAM operands that `_base/` holds blank.
 3. **Three more per-form tables**, all sized for vanilla's forms. A 7th form reads whatever bytes follow each one:
    `$80:BF0E` (the Windwalker flight's Dog palette: five words, and the Toaster already reads past its end),
    `$80:C707` (the flight's Dog animation), and `$8E:B512` (the equipment ring's entry of `$C4:5A75` for the Dog).
-   Each needs a generated copy and its one reader redirected.
+   Each needs a generated copy and its one reader redirected *(built, v0.476.0: copies in the same block)*.
 
 **Effort.** A recolour (a new palette plus vanilla's slots) costs the kind, the hook and three small tables, about
 one session like v0.461.0. A form with new art costs the same plus everything in §2.
