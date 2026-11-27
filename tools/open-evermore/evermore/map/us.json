@@ -301,5 +301,16 @@
   },
   "pastEnd": [
     ["$B0:E293", 1984]
-  ]
+  ],
+  "memory": {
+    "wram": {
+      "direct_page": { "span": ["$7E:0000", "$7E:00FF"], "reach": "direct", "why": "read with 1-byte direct-page operands (the engine runs with D = $0000; wram.md W3 suspects code with another D)" },
+      "low": { "span": ["$7E:0100", "$7E:1FFF"], "reach": "mirror", "why": "read with 16-bit absolute operands from the code banks ($80-$BF), which reach WRAM only through its low mirror $0000-$1FFF" },
+      "system": { "span": ["$7E:2000", "$7E:2257"], "reach": "bank", "why": "past the low mirror: absolute operands with the data bank $7E (pea $7E7E / plb), or long ones; the names ($2210, $2234) end it" },
+      "save": { "span": ["$7E:2258", "$7E:2833"], "reach": "bank", "why": "from the save block at $2258 to temp[]: saved blocks and the script save area (save-system.md, growable-items.md); a save from one layout does not load in another (W8)" },
+      "temp": { "span": ["$7E:2834", "$7E:28FB"], "reach": "bank", "why": "the compiler's temp[], wiped on every room load" },
+      "room": { "span": ["$7E:28FC", "$7E:FFFF"], "reach": "bank", "why": "engine and room state, buffers and tables past temp[], reached with the data bank $7E or long" },
+      "bank_7f": { "span": ["$7F:0000", "$7F:FFFF"], "reach": "long", "why": "bank $7F: long operands, DMA, or the data bank $7F" }
+    }
+  }
 }

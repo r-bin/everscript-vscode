@@ -20,7 +20,7 @@ const ROOT = new URL('../../tools/open-evermore/evermore/', import.meta.url);
 const US = new URL('map/us.json', ROOT);
 const sources = [new URL('kinds.mts', ROOT), ...readdirSync(new URL('codecs/', ROOT)).map(f => new URL(`codecs/${f}`, ROOT))].map(u => readFileSync(u, 'utf8')).join('\n');
 /** Every map.<accessor>('…') the codecs make: literals, and template strings as patterns. */
-const asked = [...sources.matchAll(/map\.(file|files|bus|offset|bank|readers|rule|window)\(\s*(['`])([^'`]+)\2/g)].map(m => ({ accessor: m[1], key: m[3] }));
+const asked = [...sources.matchAll(/map\.(file|files|bus|offset|bank|readers|rule|window|memory)\(\s*(['`])([^'`]+)\2/g)].map(m => ({ accessor: m[1], key: m[3] }));
 const pattern = (key: string) => new RegExp('^' + key.replace(/[.]/g, '\\.').replace(/\$\{[^}]+\}/g, '[a-z0-9_]+') + '$');
 
 test('us.json loads and every value parses', () => {
@@ -32,13 +32,26 @@ test('us.json loads and every value parses', () => {
 test('every address a codec asks for is in us.json, and every one there is asked for', () => {
     const m = map.loadMap('us'), keys = [...m.addresses.keys()], kinds = [...m.placement.keys()];
     for (const a of asked) {
+        if (a.accessor === 'memory') continue;
         const pool = a.accessor === 'rule' || a.accessor === 'window' ? kinds : keys, p = pattern(a.key);
         assert.ok(pool.some(k => p.test(k)), `map.${a.accessor}('${a.key}'): not in us.json`);
     }
-    const unused = keys.filter(k => !asked.some(a => a.accessor !== 'rule' && a.accessor !== 'window' && pattern(a.key).test(k)));
+    const unused = keys.filter(k => !asked.some(a => a.accessor !== 'rule' && a.accessor !== 'window' && a.accessor !== 'memory' && pattern(a.key).test(k)));
     assert.deepStrictEqual(unused, [], 'addresses nothing reads');
     const unusedRules = kinds.filter(k => !asked.some(a => (a.accessor === 'rule' || a.accessor === 'window') && pattern(a.key).test(k)));
     assert.deepStrictEqual(unusedRules, [], 'placements nothing reads');
+    const spaces = [...m.memory.keys()], askedSpaces = asked.filter(a => a.accessor === 'memory').map(a => a.key);
+    assert.deepStrictEqual(spaces.filter(s => !askedSpaces.includes(s)), [], 'memories nothing reads');
+    assert.deepStrictEqual(askedSpaces.filter(s => !spaces.includes(s)), [], 'memories asked for that us.json lacks');
+});
+
+test('memory regions: in order, no hole or overlap in a bank, each with how the engine reaches it', () => {
+    const wram = map.memory('wram');
+    assert.deepStrictEqual(wram.map(r => r.name), ['direct_page', 'low', 'system', 'save', 'temp', 'room', 'bank_7f']);
+    assert.deepStrictEqual(wram[0], { name: 'direct_page', from: 0x7E0000, to: 0x7E0100, reach: 'direct', why: wram[0].why });
+    assert.strictEqual(wram.find(r => r.name === 'low')!.to, 0x7E2000, 'the low mirror ends at $1FFF');
+    assert.deepStrictEqual(wram.find(r => r.name === 'temp')!, { name: 'temp', from: 0x7E2834, to: 0x7E28FC, reach: 'bank', why: wram.find(r => r.name === 'temp')!.why });
+    assert.throws(() => map.memory('vram'), /has no memory "vram"/);
 });
 
 test('the rules are the ones the codecs wrote before the map', () => {

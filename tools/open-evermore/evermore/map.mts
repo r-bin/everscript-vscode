@@ -48,9 +48,18 @@ interface MapFile {
     placement: Record<string, PlacementSpec>;
     /** Bytes the game reads past the end of its image: [from, length]. */
     pastEnd: [string, number][];
+    /** Each memory's regions in order (docs/open-evermore/memory.md): where each starts and ends, how the engine reaches it. */
+    memory?: Record<string, Record<string, RegionSpec>>;
 }
+/** A memory region: `span` its first and last byte, `reach` the addressing the engine uses for it (what forces its place). */
+interface RegionSpec { span: [string, string]; reach: Reach; why: string }
+/** direct: 1-byte direct-page operands; mirror: 16-bit absolute operands from banks $00-$3F/$80-$BF (WRAM's low mirror
+ *  $0000-$1FFF); bank: 16-bit absolute operands with the data bank set to the region's bank, or long ones; long: long only. */
+export type Reach = 'direct' | 'mirror' | 'bank' | 'long';
+/** A region as the codecs read it: bus addresses, `to` exclusive. */
+export interface Region { name: string; from: number; to: number; reach: Reach; why: string }
 
-export interface GameMap { release: string; name: string; chain: string[]; addresses: Map<string, Value>; placement: Map<string, PlacementSpec>; pastEnd: [string, number][] }
+export interface GameMap { release: string; name: string; chain: string[]; addresses: Map<string, Value>; placement: Map<string, PlacementSpec>; pastEnd: [string, number][]; memory: Map<string, Map<string, RegionSpec>> }
 
 let active: GameMap | undefined;
 let read = false;
@@ -75,7 +84,18 @@ export function loadMap(release: string, dir: URL = DIR): GameMap {
     }
     const addresses = new Map<string, Value>(), placement = new Map<string, PlacementSpec>();
     let pastEnd: [string, number][] = [];
+    const memory = new Map<string, Map<string, RegionSpec>>();
     for (const f of chain) {
+        for (const [space, regions] of Object.entries(f.memory ?? {})) {
+            const m = memory.get(space) ?? new Map<string, RegionSpec>();
+            for (const [name, spec] of Object.entries(regions)) {
+                if (!Array.isArray(spec.span) || spec.span.length !== 2) throw new Error(`map/${f.release}.json memory.${space}.${name}: "span" is [first, last]`);
+                for (const a of spec.span) parse(a, `map/${f.release}.json memory.${space}.${name}`);
+                if (!['direct', 'mirror', 'bank', 'long'].includes(spec.reach)) throw new Error(`map/${f.release}.json memory.${space}.${name}: "reach" is direct, mirror, bank or long`);
+                m.set(name, spec);
+            }
+            memory.set(space, m);
+        }
         for (const [kind, entries] of Object.entries(f.addresses ?? {})) for (const [k, v] of Object.entries(entries)) {
             for (const one of Array.isArray(v) ? v : [v]) parse(one, `map/${f.release}.json ${kind}.${k}`);
             addresses.set(`${kind}.${k}`, v);
@@ -84,7 +104,7 @@ export function loadMap(release: string, dir: URL = DIR): GameMap {
         if (f.pastEnd) pastEnd = f.pastEnd;
     }
     const top = chain[chain.length - 1];
-    return { release, name: top.name, chain: chain.map(c => c.release), addresses, placement, pastEnd };
+    return { release, name: top.name, chain: chain.map(c => c.release), addresses, placement, pastEnd, memory };
 }
 
 /** Selects the release the codecs read; once anything was read, only the same release. Unknown → throws. */
@@ -178,6 +198,15 @@ export function rule(kind: string): Rule {
 
 /** Bytes the game reads past its image, as file spans. */
 export const pastEnd = (): { start: number; end: number }[] => gameMap().pastEnd.map(([at, n]) => { const s = fileOfBus(parse(at, 'pastEnd').bus); return { start: s, end: s + n }; });
+
+/** A memory's regions by address (`wram`): spans that overlap or leave a hole are refused. */
+export function memory(space: string): Region[] {
+    const m = gameMap().memory.get(space);
+    if (!m) throw new Error(`open-evermore: map/${gameMap().release}.json has no memory "${space}"`);
+    const out = [...m].map(([name, s]) => ({ name, from: parse(s.span[0], name).bus, to: parse(s.span[1], name).bus + 1, reach: s.reach, why: s.why })).sort((a, b) => a.from - b.from);
+    for (let k = 1; k < out.length; k++) if (out[k].from !== out[k - 1].to && out[k].from >> 16 === out[k - 1].from >> 16) throw new Error(`map: memory ${space}: ${out[k - 1].name} and ${out[k].name} ${out[k].from < out[k - 1].to ? 'overlap' : 'leave a hole'}`);
+    return out;
+}
 
 /** Every address path of the active map (for the test that each is used). */
 export const addressPaths = (): string[] => [...gameMap().addresses.keys()];

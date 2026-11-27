@@ -36,7 +36,7 @@ and the order to fix it in. The kinds themselves: [resources.md](resources.md); 
 | target | `"targets/enemies_nearest_three"` | `targets/` (rules of `$05AD`) | built (v0.469.0): formulas, consumables |
 | sprite palette | `"boy_bone_crusher"`, `"ring_icon_04d"` | `palettes/sprites/` | built (v0.464.0; 269 bank `$90`/`$D0` palettes) |
 | animation | `"boy/walk"`, `"dog/act2_leap"` (`animate.json` keys) | `animations/` (`animate.json` for ids) | built (v0.465.0: 783 animations with inline scripts + 212 `animate()` ids; no addresses) |
-| WRAM | `wram/LEVEL_LOW_CURE` (typed, v0.469.0), `temp[n]` | `wram/` (v0.459.0, from names.json, the compiler and the WRAM map) | built: scripts, records, rings name it through `wram/`; **unnamed cells stay `$7E:xxxx`**; moving: W2 ([wram.md](wram.md)) |
+| WRAM | `wram/LEVEL_LOW_CURE` (typed, v0.469.0), `temp[n]` | `wram/` (v0.459.0, from names.json, the compiler and the WRAM map; region files v0.474.0) | built: scripts, records, rings name it through `wram/`; **unnamed cells stay `$7E:xxxx`**; moving: W2 ([wram.md](wram.md)) |
 | flag | `WEAPONS_OWNED_FLAGS_0+1` and its bit | knowledge entries, compiler FLAG enum | the word by name; **the bit is a number** |
 | routine | `script_op_5c_set_object_state` | `soe://rom/code/` | built (handlers) |
 

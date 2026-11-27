@@ -46,8 +46,13 @@ before touching its codec. This skill is how to work on it and what bit us.
   top down, named in its file; say that they are wiped on every room load and not saved. Real allocation is the tracker
   `docs/todo/wram-allocation.md` (W0-W10, `docs/open-evermore/wram.md`).
 - **Every memory goes the WRAM way** (owner, 2026-11-27: all dynamic): VRAM, CGRAM, ARAM, SRAM as one map per memory and
-  a few region files (ordered items, `gap`, `pin`, `count`), never one file per entry (`docs/open-evermore/memory.md`,
-  tracker M0-M6). A VRAM address in a map is a word address; `memory-probe.mts` reports bytes.
+  a few region files, never one file per entry (`docs/open-evermore/memory.md`, tracker M0-M6). WRAM's exist (v0.474.0):
+  `wram/<region>.json` ordered items (`type` + `count` from the exploded vanilla `_types.json`, `cells`, `gap`), the spans
+  and each region's `reach` (direct page, low mirror, data bank, long) in the mapping file's `memory.wram`, never in the
+  tree. A region cut must not split a WRAM map entry (the map's `areas` do). A VRAM address in a map is a word address;
+  `memory-probe.mts` reports bytes.
+- **temp[] cells read as `temp[n]`**: `TEMP_COMPILER_ARENA` is a variable (`wramAddress`), but `wramName` never returns a
+  temp-area name, or ~40 scripts would print the block's name for `temp[0]`.
 - **WRAM names come from the `wram` kind** (`codecs/wram.mts`, `KINDS[0]`): `wramAddress`/`wramName`/`wramHolding`, never
   `KNOWLEDGE.entries('wram')` (its `$7E:xxxx` addresses parse to NaN: 1,306 entries unseen) and never a list of your own.
 

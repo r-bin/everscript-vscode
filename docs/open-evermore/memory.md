@@ -161,6 +161,13 @@ a C struct:
 - The other kinds keep naming WRAM by name (`wram/DOG_BISCUIT`), now also by field (`wram/ENTITY_SLOTS[0].hp`); VRAM,
   CGRAM and ARAM regions get typed links the same way (`vram/field/sprite_cache`, `cgram/field/boy`).
 
+**Built for WRAM (v0.474.0, [wram.md](wram.md) §0):** 7 regions, not ~30: a cut must not split a WRAM map entry, and the
+map's `areas` do (the weather buffer runs from `$2110` past `$2200`, `MAP_ANIM_FRAMES` past `$5000`). So the regions are
+the cuts where the engine's reach changes (direct page, low mirror, data bank `$7E`, long) plus the save area and temp[].
+The format is `open-evermore/memory` (`space`, `region`, `items`), no `base` (the mapping file has it), no `pin` (every item
+is pinned until W2), the types in `wram/_types.json`. VRAM, ARAM, CGRAM and SRAM get the same files under their own
+folder once their maps exist (M3-M6), with their regions in the mapping file's `memory.<space>`.
+
 The region files are generated from the maps (owner's W1b: "generate the wram/ folder from the wram map"): explode
 writes them from `data/*-map.md` and `types.json`, never from a list of its own.
 
@@ -190,7 +197,7 @@ The steps, one line each (detail and state in the tracker, [../todo/wram-allocat
 | Step | What | State |
 |---|---|---|
 | M0 | Measure what vanilla writes in VRAM, CGRAM, OAM, ARAM (intro and attract) | ✅ v0.473.1 |
-| M1 | One map per memory, thin entries folded into rows, repeated slots as types; ~30 region files; vanilla bases per release (needs W1b) | 🔴 proposed |
+| M1 | One map per memory, thin entries folded into rows, repeated slots as types; region files; vanilla bases per release (needs W1b) | 🟡 WRAM's region files (7) and bases (`memory.wram`), v0.474.0 |
 | M2 | The probe per screen mode, PPU base registers read from the core; settle §3 | 🔴 |
 | M3 | SRAM map and `sram.json`, generated from the save blocks once W8 lands | 🔴 |
 | M4 | ARAM map and `aram.json`: driver constants, generated package destinations, a shorter echo as the proof | 🔴 |

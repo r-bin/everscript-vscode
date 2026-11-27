@@ -960,12 +960,14 @@ Not a kind of their own: each script is a facing inside an animation file (`anim
 
 ## wram — WRAM variables *(built, W1, v0.459.0)*
 
-**Folder**: `wram/<NAME>.json` per named variable (1,216; UPPER_CASE names, the ones scripts read cells by), `_enum.json`
-empty (no ids). A file holds `at` (`"$7E:0133"`) or `in` + `offset` (inside another variable, moving with it) and `size`
-when known. **References**: script operands (`write_word ENEMY_SPAWNER_QUANTITY, 1`), records' `wram` fields, rings'
+**Folder** (v0.474.0): `wram/<region>.json`, one per region of the mapping file's `memory.wram` (`direct_page`, `low`,
+`system`, `save`, `temp`, `room`, `bank_7f`), plus `_types.json` (the vanilla types, exploded) and `_enum.json` (empty,
+no ids). A region file is an ordered list of items (`name`, `type` + `count`, `size`, `cells`) and `gap`s. Each place
+follows from the order and the sizes; there are 1,216 variables, UPPER_CASE names, the ones scripts read cells by.
+[wram.md](wram.md) §0. **References**: script operands (`write_word ENEMY_SPAWNER_QUANTITY, 1`), records' `wram` fields, rings'
 `buffer` use its names; implode reads it first (`KINDS[0]`) and hands the addresses on. **Implode generates**: nothing
-yet; a variable off its vanilla place is an error (`wram-moved`) until W2. **Limits**: `$7E:0000`-`$7F:FFFF`, an `in`
-variable inside its parent's size, names unique. **Codec**: `codecs/wram.mts` (names: script-model/names.ts
+yet; a variable off its vanilla place or size is an error (`wram-moved`, `wram-resized`) until W2. **Limits**: an item
+inside its region (`wram-region-full`), a cell inside its item, names unique, types known. **Codec**: `codecs/wram.mts` (names: script-model/names.ts
 `displayNames`; sizes: `localizations/wram-map.ts`). Design and steps: [wram.md](wram.md),
 [../todo/wram-allocation.md](../todo/wram-allocation.md).
 

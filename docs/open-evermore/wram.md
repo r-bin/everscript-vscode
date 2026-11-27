@@ -1,10 +1,9 @@
 # Open Evermore: WRAM by name
 
-Status: **the `wram` kind (v0.459.0)**: every named variable a file, every other kind names WRAM through it; moving
-is the next step. **Proof of concept (v0.456.0)**: one variable moved by name, the stored playbacks in step. Tracker:
+Status: **the `wram` kind (v0.459.0)**, written as region files since v0.474.0: every other kind names WRAM through it.
+Moving is the next step. **Proof of concept (v0.456.0)**: one variable moved by name, the stored playbacks in step. Tracker:
 [../todo/wram-allocation.md](../todo/wram-allocation.md) (W0-W10). Back to [README.md](README.md). Labels as there.
-The other memories (VRAM, CGRAM, OAM, ARAM, SRAM) and the planned replacement of one file per variable by region files
-(§0's format): [memory.md](memory.md).
+The other memories (VRAM, CGRAM, OAM, ARAM, SRAM), each to be written the same way: [memory.md](memory.md).
 
 The ROM kinds place resources anywhere because every reference to them is generated. WRAM is the same problem one level
 down: the files already name WRAM (`write_word ENEMY_SPAWNER_QUANTITY, 1` in scripts, a ring's `buffer`, a formula's
@@ -12,22 +11,67 @@ down: the files already name WRAM (`write_word ENEMY_SPAWNER_QUANTITY, 1` in scr
 whose per-id state lives in WRAM (a 36th formula, a 15th weapon) needs WRAM that is not there: the formulas' experience,
 level and cast words are 35 each, back to back; the weapon skill words run into the Dog's.
 
-## 0. The `wram` kind *(W1, v0.459.0)*
+## 0. The `wram` kind *(W1, v0.459.0; region files v0.474.0)*
 
-`wram/<NAME>.json`, one file per named variable (1,216; 67 `in` another), no ids (`_enum.json` lists none):
+`wram/<region>.json`, one file per region, and `wram/_types.json`. There are 1,216 variables in 7 files (until
+v0.473 there was one file per variable), and `_enum.json` lists no ids. A region file is an ordered list. Each item's
+address follows from the region's start, the order and the sizes, as in a C struct (shortened from `room.json`):
 
+```json
+{ "format": "open-evermore/memory", "version": 1, "space": "wram", "region": "room",
+  "items": [
+    { "name": "ANIM_ALCHEMY_SLOTS_BASE", "type": "AnimAlchemySlot", "count": 8 },
+    { "name": "PROJ_ALCHEMY_SLOTS_BASE", "type": "ProjAlchemySlot", "count": 8 },
+    { "name": "PROJ_ALCHEMY_ALIGN_PAD", "type": "u8", "count": 2 },
+    { "gap": 6 },
+    { "name": "JOYPAD_CHORD_HISTORY", "type": "u16", "count": 128, "cells": [{ "name": "ATTACK_SLOT_128", "offset": 0 }] },
+    { "name": "DOG_READ" }
+  ] }
 ```
-{ "format": "open-evermore/wram", "version": 1, "at": "$7E:0133", "size": 2 }
-{ "format": "open-evermore/wram", "version": 1, "in": "DIRECT_PAGE_BLOCK", "offset": 38, "size": 2 }
-```
 
-`at` is where it starts; `in` + `offset` a variable inside another (a struct's field, a cell of a block), which moves with
-it; `size` in bytes when known (else the cell is as wide as each access). Implode reads the kind first (`KINDS[0]`) and
-hands its addresses to the later kinds: script operands (`write_word ENEMY_SPAWNER_QUANTITY, 1`), records' `wram` fields
-(`LEVEL_LOW_CURE`), rings' buffers. A name no file has is an error where it is used; a rename (the file and its uses)
-builds the vanilla sha1, and the round trip keeps the new name (the kind's `symbols` give each name's address).
-**Moving is refused** (`wram-moved`): a variable must sit on a vanilla variable's place, each place held once, until
-implode rewrites the code that reaches it (W2).
+- **`type` and `count`** give the size: the type's size × count. Types are `u8`/`i8`/`u16`/`i16`/`u24`/`u32`, or a
+  struct, typedef or sized enum of `_types.json`. `_types.json` is the vanilla `localizations/data/types.json`,
+  exploded; edit or extend it there. `size` beside a type only where the WRAM map's size is not the type's.
+- **`cells`** are names inside an item: a struct's field, an array's cell, a second name on the same byte. Each has an
+  `offset` and maybe a `size`, and moves with its item.
+- **An item with no type or size** is a cell whose width each access decides. It takes no room; the `gap` after it does.
+- **`gap`** is bytes nothing is named for.
+- **The regions come from the mapping file** (`memory.wram` in `evermore/map/<release>.json`, [mapping.md](mapping.md)):
+  each region's span, and how the engine reaches it. That is what forces a variable into its region:
+
+  | Region | Span | Reach |
+  |---|---|---|
+  | `direct_page` | `$0000`-`$00FF` | 1-byte direct-page operands (D = 0) |
+  | `low` | `$0100`-`$1FFF` | 16-bit absolute operands from banks `$80`-`$BF` (WRAM's low mirror) |
+  | `system` | `$2000`-`$2257` | data bank `$7E`, or long |
+  | `save` | `$2258`-`$2833` | data bank `$7E` (the save blocks and the script save area) |
+  | `temp` | `$2834`-`$28FB` | data bank `$7E`; temp[] (`TEMP_COMPILER_ARENA`, 200 bytes) |
+  | `room` | `$28FC`-`$FFFF` | data bank `$7E`, or long |
+  | `bank_7f` | `$7F:0000`-`$FFFF` | long |
+
+  A region holds no address of its own, so a language release with other bases only changes its mapping file.
+
+Implode reads the kind first (`KINDS[0]`) and hands its addresses to the later kinds: script operands
+(`write_word ENEMY_SPAWNER_QUANTITY, 1`), records' `wram` fields (`LEVEL_LOW_CURE`) and rings' buffers. A name no
+region has is an error where it is used. A rename (in its region file and at its uses) builds the vanilla sha1, and the
+round trip keeps the new name (the kind's `symbols` give each name's address).
+
+**Moving and resizing are refused** until implode rewrites the code that reaches a variable (W2):
+
+- `wram-resized`: a variable at its vanilla address with another size.
+- `wram-moved`: the variables that left their place, one finding per region, the first three by name.
+- `wram-region-full`: an item that ends past its region.
+
+The owner's two checks show what the format lets a user say, and what is still missing (2026-11-27,
+`wram.test.mts`):
+
+- **temp[] is bigger than it needs to be.** `"count": 100` and a `{ "gap": 100 }` say it in two lines. Implode refuses
+  it as resized: the compiler's temp[] size is not generated yet.
+- **A 9th projectile alchemy slot** (the game crashes with 9 at once: 8 from the player, 1 from a boss). `"count": 9`
+  on `PROJ_ALCHEMY_SLOTS_BASE` shifts the 109 variables after it by 118 bytes, and the last ones would leave bank
+  `$7E`. Implode names the resize, the moves and the overflow. What growth needs (three loop-end immediates, an
+  unrolled clear, two target words to move) is written in `knowledge/wram/PROJ_ALCHEMY_SLOTS_BASE.md`. It is tracked
+  as W10.
 
 **Names.** One per address, the ones scripts already read cells by (script-model/names.ts `displayNames`: names.json,
 then the compiler's MEMORY enum, then the WRAM map), plus the WRAM map's `$7F` entries; sizes from the WRAM map

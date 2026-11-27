@@ -47,6 +47,14 @@ eight and the 4 MiB bound in seven. Each is now one entry.
 }
 ```
 
+### 2.0 Memory regions *(v0.474.0)*
+
+`"memory": { "wram": { "<region>": { "span": ["$7E:0000", "$7E:00FF"], "reach": "direct", "why": "…" } } }`: each memory's
+regions in address order, no hole or overlap inside a bank. `reach` says how the engine addresses the region (`direct`:
+1-byte direct page; `mirror`: 16-bit absolute from the code banks, so only `$0000`-`$1FFF`; `bank`: 16-bit absolute with
+the data bank set; `long`). It is what forces a variable into its region. Read with `map.memory('wram')`. The `wram`
+kind's region files carry no addresses ([wram.md](wram.md) §0).
+
 ### 2.1 Addresses
 
 Written as the game addresses them (HiROM; the file offset is the address `& $3FFFFF`). The codecs read them by
