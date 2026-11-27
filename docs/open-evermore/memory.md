@@ -9,6 +9,13 @@ Goal (owner, 2026-11-27): every memory is **dynamic**. Its layout is named data 
 reader is generated from, the same way ROM resources work. Then the whole game can change: a 36th formula, a bigger
 sprite cache, a longer echo, a fifth save slot.
 
+This page decides three things:
+
+- **What to document:** five memories beyond WRAM, each with its size, who lays it out and what must be generated
+  before it can move (§1, with what vanilla uses in §2 and what the docs claim in §3).
+- **How to write it down:** one map per memory plus about 30 region files, instead of one file per entry (§4).
+- **The order of work:** WRAM, then SRAM, ARAM, CGRAM, VRAM; OAM only as a named limit (§5, steps M0-M6).
+
 ## 1. The memories
 
 | Memory | Size | Laid out by | What reaches into it (what implode must generate) | Known | Dynamic means |
@@ -26,6 +33,9 @@ named once in `src/platform/snes/` for every game. Direct page and the stack liv
 build ([../exhirom/README.md](../exhirom/README.md)), not to vanilla.
 
 ## 2. What the game uses: measured
+
+In both playbacks **4 KiB of VRAM is never written** (bytes `$1800-$1BFF`, `$3000-$3BFF`) and **ARAM's 10 KiB echo
+buffer holds data in only 6 % of samples**: the first free space to claim, once field play confirms it (M2).
 
 Both stored playbacks (`intro-2m20`, 8,414 frames; `attract-loop`, 6,224), vanilla US, every 4th frame, per block:
 *used* = the block held a non-zero byte, *churn* = it changed since the last sample (`node tools/open-evermore/memory-probe.mts <rom> <movie>`, debugger
@@ -174,3 +184,22 @@ writes them from `data/*-map.md` and `types.json`, never from a list of its own.
 
 Every step proves itself the WRAM way: `--strict` builds vanilla, a moved region plays the stored playbacks in step
 ([wram.md](wram.md) §2), and a probe of the space (§2) shows the new layout in use.
+
+The steps, one line each (detail and state in the tracker, [../todo/wram-allocation.md](../todo/wram-allocation.md)):
+
+| Step | What | State |
+|---|---|---|
+| M0 | Measure what vanilla writes in VRAM, CGRAM, OAM, ARAM (intro and attract) | ✅ v0.473.1 |
+| M1 | One map per memory, thin entries folded into rows, repeated slots as types; ~30 region files; vanilla bases per release (needs W1b) | 🔴 proposed |
+| M2 | The probe per screen mode, PPU base registers read from the core; settle §3 | 🔴 |
+| M3 | SRAM map and `sram.json`, generated from the save blocks once W8 lands | 🔴 |
+| M4 | ARAM map and `aram.json`: driver constants, generated package destinations, a shorter echo as the proof | 🔴 |
+| M5 | CGRAM map and `cgram/<mode>.json`: roles per mode, role numbers generated | 🔴 |
+| M6 | VRAM map and `vram/<mode>.json` (word addresses): regions, registers, DMA destinations, cache slot tables; a bigger sprite cache | 🔴 |
+
+## 6. Open questions for the owner
+
+- **Next step:** the format change (M1, after W1b) or the per-mode measurement (M2)? M1 changes the knowledge loader,
+  the map checker and `soe://ram/`; M2 changes no format and settles §3 first.
+- **Addresses in region files:** assumed none (each release's bases only in its mapping file); the alternative is an
+  `at` per region for reading.
