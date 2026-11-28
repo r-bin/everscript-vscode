@@ -26,7 +26,7 @@ if (!romPath || !existsSync(romPath)) {
     const { GAME, KINDS, PAST_END } = await loadRuntime(release);
     const tree = explode(rom, { release, sha1: sha1(rom), explodedWith: 'demos-rom-test' }, GAME, KINDS);
     const demos = listDemos();
-    assert.strictEqual(demos.length, 4);
+    assert.strictEqual(demos.length, 5);
 
     for (const demo of demos) {
         for (const noScene of [false, true]) {

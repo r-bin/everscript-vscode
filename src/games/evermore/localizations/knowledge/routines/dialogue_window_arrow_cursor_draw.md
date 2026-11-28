@@ -28,3 +28,9 @@ When typewriter text reaches a pause point or concludes a message, the routine c
 ## Variables and memory (hypotheses)
 - `$22`, `$24` (Dialogue window boundary coordinates)
 - `$26` (OAM staging offset for prompt arrow sprite)
+
+## Correction (2026-11-28)
+It fills the whole 32×32 shadow map of the window frame layer with the blank tile word `$0FFF`: a full-screen menu
+calls it before drawing its boxes (run from new code in MesenCE,
+[full-screen-menus.md](../../../../../../docs/disassembly/ui/full-screen-menus.md)). Previously believed: it draws the
+dialogue prompt arrow.

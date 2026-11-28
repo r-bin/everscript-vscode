@@ -77,3 +77,8 @@ assert.deepStrictEqual([...extBytes], [
 ]);
 assert.deepStrictEqual(bad('    lda.w #!NO_SUCH'), ['1: unknown define !NO_SUCH']);
 console.log('  ✓ !defines, constants, parenthesized expressions, shifts and unary ~ assemble cleanly');
+
+// Strings in db: one byte a character, a `;` or `,` inside the quotes is text, a comment after them is not.
+assert.deepStrictEqual(sized('    db $81," a;b, c",0 ; "not text"'), [0x81, 0x20, 0x61, 0x3B, 0x62, 0x2C, 0x20, 0x63, 0x00]);
+assert.strictEqual(bad('    dw "ab"')[0], '1: a string is printable ASCII in quotes, in db: "ab"');
+console.log('  ✓ db "text" strings');

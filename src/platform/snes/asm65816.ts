@@ -5,9 +5,10 @@
  * `.w` absolute, `.l` long; `jsl`/`jml` long; branches to labels), so text that printer wrote assembles back to the
  * same bytes without an external tool. A hand-written operand without a size takes it as Asar does: a `$` number by the
  * digits written (`$12` direct page, `$0012` absolute, `$7E0012` long), a decimal one by its value.
- * Supported: `label:` (global), `NAME = expr` / `!NAME = expr`, instructions, `db`/`dw`/`dl`, `skip n`, `org`, and
- * expressions of numbers ($hex, %bin, decimal), labels, `!DEFINE`s, parentheses, unary `~`/`+`/`-` and
- * + - * / << >> & |. Not supported: macros, sublabels, incsrc/incbin, strings. Hardware fact only (no game in here).
+ * Supported: `label:` (global), `NAME = expr` / `!NAME = expr`, instructions, `db`/`dw`/`dl`, `db "text"` (printable
+ * ASCII, one byte a character, as Asar's default table), `skip n`, `org`, and expressions of numbers ($hex, %bin,
+ * decimal), labels, `!DEFINE`s, parentheses, unary `~`/`+`/`-` and + - * / << >> & |. Not supported: macros,
+ * sublabels, incsrc/incbin. Hardware fact only (no game in here).
  *
  * Sizes never depend on label values (every operand's width comes from its text), so a file is measured once and
  * encoded once all labels are known (`measure` → `encode`), wherever it is placed.
@@ -54,12 +55,24 @@ const SIZE: Record<string, number> = {
     abs: 2, absx: 2, absy: 2, long: 3, longx: 3, rel8: 1, rel16: 2, iabs: 2, iabsx: 2, ilabs: 2, bm: 2, pea: 2, pei: 1,
 };
 
-/** Splits `a,b` at top-level commas (not inside brackets). */
+/** A line without its comment: `;` starts one, except inside a "string". */
+function stripComment(s: string): string {
+    let quoted = false;
+    for (let i = 0; i < s.length; i++) {
+        if (s[i] === '"') quoted = !quoted;
+        else if (s[i] === ';' && !quoted) return s.slice(0, i);
+    }
+    return s;
+}
+
+/** Splits `a,b` at top-level commas (not inside brackets or a "string"). */
 function splitTop(s: string): string[] {
     const out: string[] = [];
-    let depth = 0, start = 0;
+    let depth = 0, start = 0, quoted = false;
     for (let i = 0; i < s.length; i++) {
         const c = s[i];
+        if (c === '"') quoted = !quoted;
+        if (quoted) continue;
         if (c === '(' || c === '[') depth++;
         else if (c === ')' || c === ']') depth--;
         else if (c === ',' && depth === 0) { out.push(s.slice(start, i).trim()); start = i + 1; }
@@ -163,7 +176,7 @@ export function measure(file: string, text: string, errors: AsmError[]): Measure
     lines.forEach((raw, i) => {
         const line = i + 1;
         const err = (message: string) => errors.push({ file, line, message });
-        let s = raw.replace(/;.*$/, '').trim();
+        let s = stripComment(raw).trim();
         let m: RegExpExecArray | null;
         while ((m = LINE_LABEL_RE.exec(s))) {
             if (out.labels.has(m[1])) err(`label ${m[1]} defined twice`);
@@ -177,7 +190,12 @@ export function measure(file: string, text: string, errors: AsmError[]): Measure
         const head = (sp < 0 ? s : s.slice(0, sp)).toLowerCase(), rest = sp < 0 ? '' : s.slice(sp + 1).trim();
         const [word, size = ''] = head.split('.');
         if (word === 'db' || word === 'dw' || word === 'dl') {
-            const width = word === 'db' ? 1 : word === 'dw' ? 2 : 3, values = splitTop(rest).filter(v => v !== '');
+            const width = word === 'db' ? 1 : word === 'dw' ? 2 : 3;
+            const values = splitTop(rest).filter(v => v !== '').flatMap(v => {
+                if (!v.startsWith('"')) return [v];
+                if (width !== 1 || !/^"[ !#-~]+"$/.test(v)) { err(`a string is printable ASCII in quotes, in db: ${v}`); return []; }
+                return Array.from(v.slice(1, -1), c => String(c.charCodeAt(0)));
+            });
             if (!values.length) err(`${word} without values`);
             out.statements.push({ line, offset: out.length, length: width * values.length, kind: 'data', width, values });
             out.length += width * values.length;

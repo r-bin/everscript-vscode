@@ -6,6 +6,8 @@ Playable, end-to-end mods stored as clean overlay recipes (`demo.json` + optiona
 
 - `demo.json`: metadata, `transforms` (the mod), optional `scene` (boot shortcut to showcase the feature from power-on), and `verify` screenshot assertions.
 - `files/`: optional authored `.txt`, `.json`, or `code/*.asm` files copied into the exploded workspace via `{ "op": "copyFiles" }`.
+- To change a vanilla routine use `replaceText` (`target`, `find`, `replace`, `count`; a different match count is an
+  error): the repository must not hold the routine.
 - `verify.lua`: headless MesenCE (`--testrunner`) Lua verification script emitting `OE_PASS`, `OE_FAIL`, `OE_PNGHEX`, and `OE_DONE`.
 
 ## Commands

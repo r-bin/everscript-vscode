@@ -1,0 +1,31 @@
+{
+  "name": "cheat_menu",
+  "title": "Cheat Menu",
+  "status": "ready",
+  "release": "us",
+  "description": "A full-screen cheat menu in the style of the alchemy screen: hold L and R in the field. Ten categories, written to WRAM at once; names, descriptions and icons are the game's own.",
+  "transforms": [
+    { "op": "copyFiles" },
+    {
+      "op": "replaceText",
+      "target": "code/room_enter_pre_roll_wait_and_entity_spawn.asm",
+      "find": "jsl per_frame_field_tick",
+      "replace": "jsl cheat_menu_hook"
+    }
+  ],
+  "scene": {
+    "description": "Boot into Brian's room, then hold L and R.",
+    "transforms": [
+      { "op": "writeText", "target": "scripts/rooms/podunk_test_room_brians_room/enter.txt", "content": "call_global 0x36\nunfreeze_boy_and_dog\nend\n" },
+      { "op": "patchJson", "target": "maps/rooms/podunk_test_room_brians_room/scripts.json", "set": { "enter": "podunk_test_room_brians_room/enter" }, "delete": ["enterWord"] },
+      { "op": "writeText", "target": "scripts/rooms/podunk_opening_over_the_machine/enter.txt", "content": "load_map 23, 40, podunk_test_room_brians_room\n" }
+    ]
+  },
+  "verify": {
+    "maxFrames": 9200,
+    "screenshotExpect": {
+      "name": "cheat_menu",
+      "minNonBlackPixels": 20000
+    }
+  }
+}

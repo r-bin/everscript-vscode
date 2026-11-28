@@ -14,3 +14,8 @@ Equipping a weapon rewrites the Boy's WRAM record (`$0A26`) from the weapon's en
 walk, run and four attack animations, its dodge (`+$48`) and knockback (`+$40`), its range
 (`+$13`) and its palette (`+$09`), which it loads at once. The Bazooka picks its entry by the
 ammo it holds (`$2349`). `sprites/character-model.ts` reads the same entries.
+
+## Note (2026-11-28)
+X = 0 (the fist) is not a weapon record: loading it fills the Boy's record from unrelated bytes and the game hangs.
+It happens if `EQUIPPED_WEAPON` is 0 while `PACIFIED` is 0 and the loaded-weapon word is `$FFFF` (reproduced in
+MesenCE); vanilla's "no weapon" state sets `PACIFIED` instead.

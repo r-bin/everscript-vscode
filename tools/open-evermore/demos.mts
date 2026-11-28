@@ -22,6 +22,7 @@ export type DemoTransform =
     | { op: 'cloneFile'; from: string; to: string }
     | { op: 'copyFiles'; from?: string }
     | { op: 'writeText'; target: string; content: string }
+    | { op: 'replaceText'; target: string; find: string; replace: string; count?: number }
     | { op: 'writeJson'; target: string; value: unknown }
     | { op: 'patchJson'; target: string; set?: Record<string, unknown>; delete?: string[] }
     | { op: 'appendEnum'; target: string; names: string[] }
@@ -73,7 +74,7 @@ export interface DemoVerifyReport {
 }
 
 const KNOWN_OPS = new Set([
-    'cloneDir', 'cloneFile', 'copyFiles', 'writeText', 'writeJson', 'patchJson', 'appendEnum', 'shiftPalette',
+    'cloneDir', 'cloneFile', 'copyFiles', 'writeText', 'replaceText', 'writeJson', 'patchJson', 'appendEnum', 'shiftPalette',
 ]);
 
 function validateTransforms(list: unknown, prefix: string, errors: string[]): void {
@@ -91,6 +92,12 @@ function validateTransforms(list: unknown, prefix: string, errors: string[]): vo
             errors.push(`${prefix}[${i}]: ${r.op} requires string target`);
         }
         if (r.op === 'writeText' && typeof r.content !== 'string') errors.push(`${prefix}[${i}]: writeText requires string content`);
+        if (r.op === 'replaceText') {
+            if (typeof r.target !== 'string' || typeof r.find !== 'string' || !r.find || typeof r.replace !== 'string') {
+                errors.push(`${prefix}[${i}]: replaceText requires string target, find (not empty) and replace`);
+            }
+            if (r.count !== undefined && !(Number.isInteger(r.count) && (r.count as number) > 0)) errors.push(`${prefix}[${i}]: replaceText count must be a positive integer`);
+        }
         if (r.op === 'writeJson' && !('value' in r)) errors.push(`${prefix}[${i}]: writeJson requires value`);
         if (r.op === 'appendEnum' && (!Array.isArray(r.names) || r.names.some((n) => typeof n !== 'string'))) {
             errors.push(`${prefix}[${i}]: appendEnum requires string[] names`);
@@ -225,6 +232,14 @@ function applyOp(tree: Tree, demoDir: string, op: DemoTransform): void {
         tree.set(op.target, text(op.content));
         return;
     }
+    if (op.op === 'replaceText') {
+        const raw = tree.get(op.target);
+        if (!raw) throw new Error(`replaceText: missing ${op.target}`);
+        const parts = readText(raw).split(op.find), want = op.count ?? 1;
+        if (parts.length - 1 !== want) throw new Error(`replaceText: ${op.target} has ${JSON.stringify(op.find)} ${parts.length - 1} times, expected ${want}`);
+        tree.set(op.target, text(parts.join(op.replace)));
+        return;
+    }
     if (op.op === 'writeJson') {
         tree.set(op.target, json(op.value));
         return;
@@ -320,6 +335,9 @@ function checkScreenshot(stats: PngRgbStats, spec: ScreenshotExpect): string | n
     return null;
 }
 
+/** A long check gets 15 ms a frame (headless MesenCE runs a few hundred a second), at least the runner's minute. */
+const mesenTimeout = (demo: DemoEntry): number => Math.max(60_000, (demo.manifest.verify?.maxFrames ?? 0) * 15);
+
 export async function verifyDemo(opts: VerifyDemoOptions): Promise<DemoVerifyReport> {
     const { demo, baseRom, game, kinds, pastEnd } = opts;
     const baseTree = opts.baseTree ?? explode(baseRom, { release: demo.manifest.release, sha1: sha1(baseRom), explodedWith: 'demo-verify' }, game, kinds);
@@ -374,7 +392,7 @@ export async function verifyDemo(opts: VerifyDemoOptions): Promise<DemoVerifyRep
         };
     }
 
-    const run = await runMesenScript({ mesen, rom: built.image, lua: demo.verifyLua, tag: demo.name, outDir: opts.outDir });
+    const run = await runMesenScript({ mesen, rom: built.image, lua: demo.verifyLua, tag: demo.name, outDir: opts.outDir, timeoutMs: mesenTimeout(demo) });
     const checks = [...run.checks];
     let screenshotStats: PngRgbStats | undefined;
 
@@ -400,7 +418,7 @@ export async function verifyDemo(opts: VerifyDemoOptions): Promise<DemoVerifyRep
 
     let baselineFailed: boolean | null = null;
     if (opts.checkBaseline !== false) {
-        const baseRun = await runMesenScript({ mesen, rom: baseRom, lua: demo.verifyLua, tag: `${demo.name}-baseline` });
+        const baseRun = await runMesenScript({ mesen, rom: baseRom, lua: demo.verifyLua, tag: `${demo.name}-baseline`, timeoutMs: mesenTimeout(demo) });
         baselineFailed = !baseRun.ok;
         if (!baselineFailed) {
             errors.push('baseline negative check passed on unmodified ROM (assertions are vacuous)');

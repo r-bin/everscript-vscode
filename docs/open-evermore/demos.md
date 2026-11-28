@@ -2,16 +2,16 @@
 
 See [README.md](README.md) for the resource model, [extending.md](extending.md) for what each kind allows today, [tool.md](tool.md) for the CLI verbs and proof, [debugging-a-rom.md](../reverse-engineering/debugging-a-rom.md) for boot-scene testing, and [reference-emulators](../../.agents/skills/reference-emulators/SKILL.md) for why MesenCE is the WRAM and visual reference.
 
-Unit tests (`npm test`) and `in-game.test.mts` catch structural mistakes and simple boot assertions, but `snes9x2005` fails to draw the Boy or Dog in Brian's room where MesenCE draws both *(repo — see [debugging-a-rom.md](../reverse-engineering/debugging-a-rom.md))*, and building a ROM alone does not prove new sprites, palettes, alchemy math, consumables, or custom rooms behave cleanly in hardware-accurate PPU/WRAM emulation. Open Evermore (`v0.479.0`) stores four end-to-end playable demos cleanly in git (`tools/open-evermore/demos/`) and verifies them automatically against **MesenCE**.
+Unit tests (`npm test`) and `in-game.test.mts` catch structural mistakes and simple boot assertions, but `snes9x2005` fails to draw the Boy or Dog in Brian's room where MesenCE draws both *(repo — see [debugging-a-rom.md](../reverse-engineering/debugging-a-rom.md))*, and building a ROM alone does not prove new sprites, palettes, alchemy math, consumables, or custom rooms behave cleanly in hardware-accurate PPU/WRAM emulation. Open Evermore (`v0.479.0`) added four end-to-end playable demos, stored cleanly in git (`tools/open-evermore/demos/`) and verifies them automatically against **MesenCE**.
 
 > [!NOTE]
 > Running `heal_999` and `turd_ball` under `--random 11` in headless MesenCE immediately exposed a real bug in `characters.mts`: `bankSites()` had included banks `$8D` and `$8E`, rewriting 56 `lda.l $8E0000..06,x` reads of 8-byte `ring_items` descriptors whenever `characters/_records` moved out of bank `$8E`, crashing `ring_menu_load_category_icons`. Fixed in `characters.mts` (`CODE_BANKS` narrowed to `$8C/$8F/$90/$91`).
 
 ---
 
-## 1. The four demos
+## 1. The demos
 
-Each demo exercises a distinct Open Evermore axis: graphics + pointer tables (`dog_forms`), gameplay items + WRAM (`items/consumables`), spell economy + ingredients (`alchemy`), and room geometry + palette + script boot (`maps` + `palettes` + `scripts`).
+Each demo exercises a distinct Open Evermore axis: graphics + pointer tables (`dog_forms`), gameplay items + WRAM (`items/consumables`), spell economy + ingredients (`alchemy`), room geometry + palette + script boot (`maps` + `palettes` + `scripts`), and new code (`code`).
 
 | Demo | Concept | Feasibility today | What it proves |
 |---|---|---|---|
@@ -19,6 +19,7 @@ Each demo exercises a distinct Open Evermore axis: graphics + pointer tables (`d
 | `heal_999` | New consumable (heals 999 HP) | 🟩 Ready (`v0.461.0`) | `items/consumables` growth past 8, debug ring allocation, 16-bit heal power word (`$C4:5AA0`), heal block (`petals`), `temp[]` count cell & script consumption |
 | `turd_ball` | Variant A: rework `hard_ball` -> `turd_ball` + 2 new ingredients; Variant B: add 36th formula | 🟩 Variant A ready (`v0.460.0`); 🟨 Variant B waits on formula growth | `ingredients` growth past 22 (`$C4:601F` cost pairs, ring items, script drops); Variant B serves as acceptance test for lifting the 35-formula cap |
 | `brians_room_blue` | New room at id `0x7F` (blue glowing Brian's room) | 🟩 Ready | `maps`, `palettes`, and `scripts` relocation/growth, `load_map` wiring, CGRAM blue shift + enter-script lighting/glow |
+| `cheat_menu` | A full-screen cheat menu (L+R in the field), [cheat-menu.md](cheat-menu.md) | 🟩 Ready (`v0.480.0`) | a new routine file calling the game's menu engine by routine name, the demo op `replaceText` (one line of a vanilla routine, none of it in git), menu behaviour checked button by button |
 
 ### 1.1 `purple_raptor` (new Dog form)
 

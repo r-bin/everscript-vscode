@@ -14,7 +14,7 @@ console.log('\nOpen Evermore demos unit checks:');
 // 1. All demo manifests under tools/open-evermore/demos/ are valid and include verify.lua.
 const demos = listDemos({ includeBlocked: true });
 const names = demos.map((d) => d.name).sort();
-assert.deepStrictEqual(names, ['brians_room_blue', 'heal_999', 'purple_raptor', 'turd_ball']);
+assert.deepStrictEqual(names, ['brians_room_blue', 'cheat_menu', 'heal_999', 'purple_raptor', 'turd_ball']);
 for (const d of demos) {
     assert.deepStrictEqual(validateDemoManifest(d.manifest, d.name), [], `${d.name} manifest invalid`);
     assert.ok(d.verifyLua && d.verifyLua.includes('OE_DONE'), `${d.name} must have verify.lua emitting OE_DONE`);
@@ -55,6 +55,15 @@ for (const c of palDoc.colours.slice(1) as string[]) {
 const withScene = applyDemo(synth, blueDemo, { noScene: false });
 assert.ok(readText(withScene.get('scripts/rooms/podunk_opening_over_the_machine/enter.txt')!).includes('brians_room_blue'));
 console.log('  ✓ transform engine (cloneDir, cloneFile, shiftPalette BGR555, patchJson, appendEnum, --no-scene)');
+
+// 2b. replaceText edits a routine by one line, so no demo has to carry the rest of it; a wrong match count is an error.
+const hookDemo = loadDemo('cheat_menu');
+const routine = 'code/room_enter_pre_roll_wait_and_entity_spawn.asm';
+const hooked = applyDemo(new Map([...synth, [routine, text('a:\n    jsl per_frame_field_tick\n    rtl\n')]]), hookDemo, { noScene: true });
+assert.strictEqual(readText(hooked.get(routine)!), 'a:\n    jsl cheat_menu_hook\n    rtl\n');
+assert.ok(hooked.has('code/cheat_menu.asm'));
+assert.throws(() => applyDemo(new Map([[routine, text('    rtl\n')]]), hookDemo, { noScene: true }), /0 times, expected 1/);
+console.log('  ✓ replaceText (one match, else an error) and the cheat menu overlay');
 
 // 3. Mesen stdout parser tolerates noise + parses OE_PASS, OE_FAIL, OE_DONE, OE_PNGHEX.
 const rgba = new Uint8Array(4 * 4 * 4);

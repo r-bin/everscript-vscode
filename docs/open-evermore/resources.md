@@ -716,11 +716,13 @@ room other kinds release; (e) measure the box in game (a 20-character name on th
 ### Full-screen menus *(explored, not a kind)*
 
 Each options action fades out, runs an init and a loop in bank `$8D` and fades back (Action `$8D:82F0`/`$862A`,
-Control Prefs `$9DB4`/`$9FB6`, Window Edit `$9B2A`/`$9CD1`, Alchemy `$C321`/`$C803`, status `$A0E9`/`$A6F6`); the
+Control Prefs `$9DB4`/`$9FB6`, Window Edit `$9B2A`/`$9CD1`, Alchemy Formulas / Ingredients `$C321`/`$C803`, Alchemy Setup (script opcode `0x63`)
+`$B7D6`/`$B98F`, status `$A0E9`/`$A6F6`); the
 `$8D` routine names still describe other screens. The screen's background is verified (8bpp tiles, palette, tilemap,
 `$8C:B797`). Before a kind: per screen, read the init for its tilemap, tiles and palette uploads (resources), the
 loop for the text it formats (WRAM fields shown: a table of `{ at, field, format }` only where the code reads them
 from data, otherwise derived and read-only) and the buttons it tests on `$0104` (immediates, like the HUD columns).
+The engine calls a new screen is built from: [full-screen-menus.md](../disassembly/ui/full-screen-menus.md).
 
 ### HUD layout *(open)*
 

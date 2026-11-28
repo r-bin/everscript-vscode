@@ -17,3 +17,9 @@ Calculates source and destination parameters for a 512-byte sprite tile graphics
 computes the destination VRAM address for the allocated sprite slot, and queues the asynchronous DMA
 transfer through `$80:85FA`.
 Full disassembly and clean C reconstruction: `docs/disassembly/entities/sprite-slicer.md`.
+
+## Correction (2026-11-28)
+It loads a **sprite palette**, not tiles: A = a palette address in bank `$90`, X = slot·2; it copies 15 colours (from
+A+2) to CGRAM `$81 + slot·16` through `cgram_palette_dma_enqueue_or_immediate` (read whole; run from new code in
+MesenCE, [full-screen-menus.md](../../../../../../docs/disassembly/ui/full-screen-menus.md)). Previously believed: a
+512-byte tile transfer to VRAM.
