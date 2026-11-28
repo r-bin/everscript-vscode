@@ -42,6 +42,16 @@
 !cm_t5 = $0D5B
 !cm_t6 = $0D5D
 !cm_pending = $0D5F     ; buttons pressed while the list was being drawn
+!cm_line = $0D33        ; the screen row a list loop is at
+!cm_dst = $0D61         ; the tile-pair slot being printed into
+; The list window has one slot (a pair of tile rows) more than the screen shows. A row is printed into the spare slot,
+; out of sight, and the frame layer's map is then pointed at it in the same vertical blank as the sprites: nothing is
+; ever seen half drawn.
+!cm_slot = $0F60        ; 7 words: the slot each screen row shows; bit 15: the row is blank
+!cm_spare = $0F6E
+!cm_slot_last = $0F6C  ; !cm_slot of the last screen row (written out: Asar would not multiply first)
+!cm_map_base = $0F70    ; the map word of the window's first tile
+!cm_scratch = $0400     ; unused VRAM (the stone layer's map is 32 × 32): text is printed here, then uploaded whole
 ; kept between openings: the tail of the debug ring's item buffer, which nothing fills (RING_DEBUG_ITEMS + $1E)
 !cm_saved_page = $0F7C
 !cm_combo_held = $0F7E
@@ -82,6 +92,7 @@ charm_name = $8CBC1A
 charm_desc = $8CC3D0
 charm_icon = $C45A12            ; by 3·charm: sprite record
 trade_name = $8CBC00            ; by 2·good
+trade_icon = $C45A4E            ; by 3·good: sprite record
 currency_name = $8F8704         ; by 3·currency: long pointer
 currency_icon = $CC3C56         ; 7-byte sprite records
 boy_xp_table = $8C8BD0          ; 24-bit totals by level
@@ -189,6 +200,30 @@ cm_init_palette:
     bcc cm_init_palette
     jsl dialogue_window_arrow_cursor_draw       ; blank the frame layer's map
     rep #$30
+    ldx.w #cm_list_layout-cm_title_layout
+    ldy.w #!cm_list_window
+    jsr.w cm_open_window
+    lda.l $7FC800+$01C6                 ; row 7, column 3: the window's first tile
+    sta.w !cm_map_base
+    ldx.w #$0000
+    lda.w #$0FFF                        ; blank the window's rows again; the boxes and cm_write_map fill them
+cm_init_map:
+    sta.l $7FC800+$01C0,x
+    inx
+    inx
+    cpx.w #$0400                        ; 16 rows
+    bcc cm_init_map
+    ldx.w #$0000
+    lda.w #$8000
+cm_init_slot:
+    sta.w !cm_slot,x
+    inc a
+    inx
+    inx
+    cpx.w #!ROWS*2
+    bcc cm_init_slot
+    lda.w #!ROWS
+    sta.w !cm_spare
     lda.w #$0001                        ; list box: column 1, row 6, 30 × 16
     sta.b $02
     lda.w #$0006
@@ -212,9 +247,6 @@ cm_init_palette:
     rep #$30
     ldx.w #$0000
     ldy.w #!cm_title_window
-    jsr.w cm_open_window
-    ldx.w #cm_list_layout-cm_title_layout
-    ldy.w #!cm_list_window
     jsr.w cm_open_window
     ldx.w #cm_desc_layout-cm_title_layout
     ldy.w #!cm_desc_window
@@ -428,7 +460,7 @@ cm_move:
 cm_move_jump_above:
     lda.w !cm_row
     sta.w !cm_top
-    jsr.w cm_list_redraw
+    jsr.w cm_list_rebuild
     bra cm_move_desc
 cm_move_not_above:
     sec
@@ -447,37 +479,20 @@ cm_move_not_above:
 cm_move_jump_below:
     lda.w !cm_t0
     sta.w !cm_top
-    jsr.w cm_list_redraw
+    jsr.w cm_list_rebuild
 cm_move_desc:
     jsr.w cm_desc_redraw
     rts
 
-; The list one row further (the rows move up): move the window's pixels and the icons, then draw the last row.
+; The list one row further (the rows move up): rotate the slots and the icons, then draw the last row.
 cm_scroll_on:
-    jsl wait_for_nmi
-    rep #$30
-    stz.w !cm_col
-cm_scroll_on_column:
-    jsr.w cm_column_offset
+    lda.w !cm_slot
+    sta.w !cm_dst
     phb
-    clc
-    adc.w #$A300
-    tay
-    clc
-    adc.w #$0020
-    tax
-    lda.w #$00BF                        ; 6 rows of 32 bytes
-    mvn $7F,$7F
-    plb
-    jsr.w cm_column_offset
-    clc
-    adc.w #$00C0
-    jsr.w cm_clear_pair
-    inc.w !cm_col
-    lda.w !cm_col
-    cmp.w #$001A
-    bcc cm_scroll_on_column
-    phb
+    ldx.w #!cm_slot+2
+    ldy.w #!cm_slot
+    lda.w #$000B
+    mvn $7E,$7E
     ldx.w #!cm_records+$10
     ldy.w #!cm_records
     lda.w #$005F                        ; 6 records
@@ -491,34 +506,21 @@ cm_scroll_on_column:
     lda.w #$000B
     mvn $7E,$7E
     plb
+    lda.w !cm_dst
+    sta.w !cm_slot_last
     lda.w #!ROWS-1
-    jsr.w cm_scroll_new_row
+    jsr.w cm_row_enter
     rts
 
 ; The list one row back (the rows move down): the same from the other end, then draw the first row.
 cm_scroll_back:
-    jsl wait_for_nmi
-    rep #$30
-    stz.w !cm_col
-cm_scroll_back_column:
-    jsr.w cm_column_offset
+    lda.w !cm_slot_last
+    sta.w !cm_dst
     phb
-    clc
-    adc.w #$A3BF                        ; the last byte of row 5
-    tax
-    clc
-    adc.w #$0020
-    tay
-    lda.w #$00BF
-    mvp $7F,$7F
-    plb
-    jsr.w cm_column_offset
-    jsr.w cm_clear_pair
-    inc.w !cm_col
-    lda.w !cm_col
-    cmp.w #$001A
-    bcc cm_scroll_back_column
-    phb
+    ldx.w #!cm_slot+11
+    ldy.w #!cm_slot+13
+    lda.w #$000B
+    mvp $7E,$7E
     ldx.w #!cm_records+$5F
     ldy.w #!cm_records+$6F
     lda.w #$005F
@@ -532,12 +534,21 @@ cm_scroll_back_column:
     lda.w #$000B
     mvp $7E,$7E
     plb
+    lda.w !cm_dst
+    sta.w !cm_slot
     lda.w #$0000
-    jsr.w cm_scroll_new_row
+    jsr.w cm_row_enter
     rts
 
-; A = the screen row that scrolled in: its icon and text, then the whole window to VRAM in two vertical blanks.
-cm_scroll_new_row:
+; A = a screen row that holds a new entry: start its icon, then print and show it.
+cm_row_enter:
+    pha
+    jsr.w cm_row_icon
+    pla
+    jsr.w cm_put_row
+    rts
+; A = a screen row: start the icon of the entry it holds.
+cm_row_icon:
     sta.w !cm_n
     clc
     adc.w !cm_top
@@ -551,55 +562,6 @@ cm_scroll_new_row:
     tax
     jsr.w (cm_t_icon,x)
     rep #$30
-    jsr.w cm_row_print
-    lda.w #$A300
-    sta.b $26
-    lda.w #$007F
-    sta.b $28
-    lda.w #$0D80
-    sta.b $2E
-    ldx.w #$0B60                        ; 13 columns
-    jsl vram_dma_upload_tile_block
-    rep #$30
-    jsl wait_for_nmi
-    rep #$30
-    lda.w #$A300+$0B60
-    sta.b $26
-    lda.w #$007F
-    sta.b $28
-    lda.w #$0D80+$05B0
-    sta.b $2E
-    ldx.w #$0B60
-    jsl vram_dma_upload_tile_block
-    rep #$30
-    jsr.w cm_poll
-    rts
-
-; A = the offset of column !cm_col in the list window's buffer: 224 bytes a column (14 tiles of 16): col·256 − col·32
-cm_column_offset:
-    lda.w !cm_col
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a
-    sta.w !cm_t1
-    lda.w !cm_col
-    xba
-    sec
-    sbc.w !cm_t1
-    rts
-; A = offset in the list window's buffer: clear one row of one column (32 bytes)
-cm_clear_pair:
-    tax
-    ldy.w #$0010
-    lda.w #$0000
-cm_clear_word:
-    sta.l $7FA300,x
-    inx
-    inx
-    dey
-    bne cm_clear_word
     rts
 
 ; --- changing ---
@@ -695,17 +657,19 @@ cm_to_max:
     lda.w !cm_maxhi
     sta.w !cm_valhi
     rts
-; One row redrawn; the party page redraws all, as a level changes the HP rows too.
+; One row redrawn (the description stays: it does not depend on the value); the party page redraws all, as a level
+; changes the HP rows too.
 cm_after_change:
     lda.w !cm_page
     cmp.w #$0009
     bne cm_after_one
-    jsr.w cm_list_redraw
-    bra cm_after_desc
+    jsr.w cm_list_refresh
+    rts
 cm_after_one:
-    jsr.w cm_row_redraw
-cm_after_desc:
-    jsr.w cm_desc_redraw
+    lda.w !cm_row
+    sec
+    sbc.w !cm_top
+    jsr.w cm_put_row
     rts
 
 cm_less:
@@ -803,27 +767,28 @@ cm_all_row:
     lda.w !cm_k
     cmp.w !cm_t0
     bcc cm_all_row
-    jsr.w cm_list_redraw
-    jsr.w cm_desc_redraw
+    jsr.w cm_list_refresh
     rts
 
 ; --- drawing the text ---
+; A new category: first the title with an empty list and description, all in one vertical blank, then row by row.
 cm_page_enter:
     lda.w !cm_page
     sta.l !cm_saved_page
     stz.w !cm_row
     stz.w !cm_top
-    asl a
-    tax
-    lda.l cm_t_palette7,x               ; the sprite palette this category's still icons need
-    beq cm_page_title
-    ldx.w #$000E
-    jsl sprite_tile_vram_dma_enqueue
+    jsl wait_for_nmi
     rep #$30
-cm_page_title:
-    ldy.w #!cm_title_window
-    jsl window_tilemap_buffer_init
-    rep #$30
+    jsr.w cm_list_hide
+    ldx.w #$A000                        ; the title's buffer: 13 × 3 tiles
+    ldy.w #$0138
+    jsr.w cm_zero
+    lda.w #$0000
+    sta.w !cm_title_window
+    lda.w #$0007
+    sta.w !cm_title_window+$02
+    lda.w #!cm_scratch
+    sta.w !cm_title_window+$1A
     lda.w !cm_page
     asl a
     clc
@@ -837,73 +802,145 @@ cm_page_title:
     ldy.w #!cm_title_window
     jsl dialogue_format_and_append_line
     rep #$30
-    jsr.w cm_list_redraw
-    jsr.w cm_desc_redraw
-    rts
-
-cm_list_redraw:
-    ldy.w #!cm_list_window
-    jsl window_tilemap_buffer_init
+    ldx.w #$BF00                        ; the description's buffer: 28 × 4 tiles
+    ldy.w #$0380
+    jsr.w cm_zero
+    jsl wait_for_nmi
     rep #$30
-    stz.w !cm_n
-cm_list_row:
-    lda.w !cm_n
-    asl a
-    tax
-    stz.w !cm_icon_type,x
-    lda.w !cm_top
-    clc
-    adc.w !cm_n
-    sta.w !cm_k
-    jsr.w cm_count
-    sta.w !cm_t0
-    lda.w !cm_k
-    cmp.w !cm_t0
-    bcs cm_list_next
+    lda.w #$0C00
+    sta.w !cm_title_window+$1A
+    jsr.w cm_compose
+    lda.w #$A000
+    sta.b $26
+    lda.w #$007F
+    sta.b $28
+    lda.w #$0C00
+    sta.b $2E
+    ldx.w #$0270
+    jsl vram_dma_upload_tile_block
+    rep #$30
+    jsr.w cm_desc_upload
     lda.w !cm_page
     asl a
     tax
-    jsr.w (cm_t_icon,x)
+    lda.l cm_t_palette7,x               ; the sprite palette this category's still icons need
+    beq cm_page_shown
+    ldx.w #$000E
+    jsl sprite_tile_vram_dma_enqueue
     rep #$30
-    jsr.w cm_row_print
-    jsl wait_for_nmi                    ; let the upload queue drain
-    rep #$30
-    jsr.w cm_poll
-cm_list_next:
-    inc.w !cm_n
-    lda.w !cm_n
-    cmp.w #!ROWS
-    bcc cm_list_row
+cm_page_shown:
+    jsr.w cm_present
+    jsr.w cm_list_reveal
+    jsr.w cm_desc_redraw
     rts
 
-; The selected row only: clear its two tile rows in every column of the list window, then print it again.
-cm_row_redraw:
-    lda.w !cm_row
-    sta.w !cm_k
-    sec
-    sbc.w !cm_top
-    sta.w !cm_n
-    stz.w !cm_col
-cm_clear_column:
-    lda.w !cm_n
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a                               ; 32 bytes a tile pair
-    sta.w !cm_t0
-    jsr.w cm_column_offset
+; Blank every row and take the icons away (shown by the next cm_present).
+cm_list_hide:
+    ldx.w #$0000
+cm_list_hide_row:
+    stz.w !cm_icon_type,x
+    lda.w !cm_slot,x
+    ora.w #$8000
+    sta.w !cm_slot,x
+    inx
+    inx
+    cpx.w #!ROWS*2
+    bcc cm_list_hide_row
+    rts
+; The list from another place: empty it, then row by row.
+cm_list_rebuild:
+    jsl wait_for_nmi
+    rep #$30
+    jsr.w cm_list_hide
+    jsr.w cm_compose
+    jsr.w cm_present
+; falls through
+; Print every row out of sight, then show them all in one frame.
+cm_list_reveal:
+    stz.w !cm_line
+cm_list_reveal_row:
+    lda.w !cm_line
     clc
-    adc.w !cm_t0
-    sta.w !cm_t1
-    jsr.w cm_clear_pair
-    lda.w !cm_t1
+    adc.w !cm_top
+    sta.w !cm_t0
+    jsr.w cm_count
+    cmp.w !cm_t0
+    beq cm_list_reveal_done
+    bcc cm_list_reveal_done
+    lda.w !cm_line
+    jsr.w cm_row_icon
+    lda.w !cm_line
+    jsr.w cm_print_row
+    inc.w !cm_line
+    lda.w !cm_line
+    cmp.w #!ROWS
+    bcc cm_list_reveal_row
+cm_list_reveal_done:
+    jsl wait_for_nmi
+    rep #$30
+    jsr.w cm_compose
+    jsr.w cm_present
+    rts
+; The same rows with new values: each is replaced as a whole.
+cm_list_refresh:
+    stz.w !cm_line
+cm_list_refresh_row:
+    lda.w !cm_line
+    clc
+    adc.w !cm_top
+    sta.w !cm_t0
+    jsr.w cm_count
+    cmp.w !cm_t0
+    beq cm_list_refresh_done
+    bcc cm_list_refresh_done
+    lda.w !cm_line
+    jsr.w cm_put_row
+    inc.w !cm_line
+    lda.w !cm_line
+    cmp.w #!ROWS
+    bcc cm_list_refresh_row
+cm_list_refresh_done:
+    rts
+
+; A = a screen row: replace it on screen by its entry, as a whole.
+cm_put_row:
+    jsr.w cm_print_row
+    jsr.w cm_compose
+    jsr.w cm_present
+    rts
+; A = a screen row: print its entry into the spare slot, which the next cm_present shows there.
+cm_print_row:
+    sta.w !cm_n
+    clc
+    adc.w !cm_top
+    sta.w !cm_k
+    lda.w !cm_spare
+    sta.w !cm_dst
+    stz.w !cm_col
+cm_put_row_clear:
+    jsr.w cm_tile_offset
+    clc
+    adc.w #$A300
+    tax
+    ldy.w #$0010
+    jsr.w cm_zero
+    inc.w !cm_col
+    lda.w !cm_col
+    cmp.w #$001A
+    bcc cm_put_row_clear
+    jsr.w cm_row_print
+    jsl wait_for_nmi                    ; the printer's own uploads reach the hidden slot
+    rep #$30
+    stz.w !cm_col
+cm_put_row_upload:
+    jsr.w cm_tile_offset
+    pha
     clc
     adc.w #$A300
     sta.b $26
     lda.w #$007F
     sta.b $28
-    lda.w !cm_t1
+    pla
     lsr a                               ; VRAM words
     clc
     adc.w #$0D80
@@ -914,13 +951,112 @@ cm_clear_column:
     inc.w !cm_col
     lda.w !cm_col
     cmp.w #$001A
-    bcc cm_clear_column
-    jsl wait_for_nmi
-    rep #$30
-    jsr.w cm_row_print
+    bcc cm_put_row_upload
+    lda.w !cm_n
+    asl a
+    tax
+    lda.w !cm_slot,x
+    and.w #$7FFF
+    sta.w !cm_spare
+    lda.w !cm_dst
+    and.w #$7FFF
+    sta.w !cm_slot,x
+    jsr.w cm_poll
+    rts
+; A = the offset of slot !cm_dst in column !cm_col of the list window's buffer: 256 bytes a column, 32 a slot
+cm_tile_offset:
+    lda.w !cm_dst
+    and.w #$000F
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    sta.w !cm_t1
+    lda.w !cm_col
+    xba
+    ora.w !cm_t1
+    rts
+; X = address in bank $7F, Y = words: zero them
+cm_zero:
+    lda.w #$0000
+cm_zero_word:
+    sta.l $7F0000,x
+    inx
+    inx
+    dey
+    bne cm_zero_word
     rts
 
-; Row !cm_k on screen row !cm_n: name, then its value; grey when it is off or none.
+; One frame's picture: build the sprites, then (after the caller queued its uploads) the map, and wait for the blank.
+cm_compose:
+    jsr.w cm_draw
+    jsl oam_finalize_and_blank_unused
+    rep #$30
+    rts
+cm_present:
+    jsr.w cm_write_map
+    lda.w #$C9C0                        ; map rows 7-20
+    sta.b $26
+    lda.w #$007F
+    sta.b $28
+    lda.w #$08E0
+    sta.b $2E
+    ldx.w #$0380
+    jsl vram_dma_upload_tile_block
+    rep #$30
+    jsl wait_for_vblank_with_engine_tick
+    rep #$30
+    jsr.w cm_poll
+    rts
+; The shadow map's list rows from !cm_slot: tiles run down each column, 16 a column, two a slot.
+cm_write_map:
+    stz.w !cm_t5                        ; screen row
+cm_map_row:
+    lda.w !cm_t5
+    asl a
+    tax
+    lda.w !cm_slot,x
+    bmi cm_map_blank
+    asl a
+    clc
+    adc.w !cm_map_base
+    sta.w !cm_t4
+    bra cm_map_place
+cm_map_blank:
+    stz.w !cm_t4
+cm_map_place:
+    lda.w !cm_t5
+    xba
+    lsr a                               ; two map rows a screen row: 128 bytes
+    tax
+    ldy.w #$001A
+cm_map_column:
+    lda.w !cm_t4
+    beq cm_map_empty
+    sta.l $7FC9C6,x
+    inc a
+    sta.l $7FC9C6+$40,x
+    clc
+    adc.w #$000F                        ; the next column's tile
+    sta.w !cm_t4
+    bra cm_map_next
+cm_map_empty:
+    lda.w #$0FFF
+    sta.l $7FC9C6,x
+    sta.l $7FC9C6+$40,x
+cm_map_next:
+    inx
+    inx
+    dey
+    bne cm_map_column
+    inc.w !cm_t5
+    lda.w !cm_t5
+    cmp.w #!ROWS
+    bcc cm_map_row
+    rts
+
+; Row !cm_k into slot !cm_dst: name, then its value; grey when it is off or none.
 cm_row_print:
     jsr.w cm_load
     lda.w #$0008
@@ -940,7 +1076,8 @@ cm_row_grey:
     lda.w #$0008
     tsb.w !cm_list_window+$12
 cm_row_name:
-    lda.w !cm_n
+    lda.w !cm_dst
+    and.w #$000F
     asl a
     asl a
     asl a
@@ -1039,16 +1176,38 @@ cm_print_number:
     rep #$30
     rts
 
+; The selected row's description, printed out of sight and shown whole.
 cm_desc_redraw:
-    ldy.w #!cm_desc_window
-    jsl window_tilemap_buffer_init
-    rep #$30
+    ldx.w #$BF00
+    ldy.w #$0380
+    jsr.w cm_zero
+    stz.w !cm_desc_window
+    lda.w #$0002
+    sta.w !cm_desc_window+$02
+    lda.w #!cm_scratch
+    sta.w !cm_desc_window+$1A
     lda.w !cm_row
     sta.w !cm_k
     lda.w !cm_page
     asl a
     tax
     jsr.w (cm_t_desc,x)
+    rep #$30
+    jsl wait_for_nmi
+    rep #$30
+    lda.w #$1B80
+    sta.w !cm_desc_window+$1A
+    jsr.w cm_desc_upload
+    rts
+cm_desc_upload:
+    lda.w #$BF00
+    sta.b $26
+    lda.w #$007F
+    sta.b $28
+    lda.w #$1B80
+    sta.b $2E
+    ldx.w #$0700
+    jsl vram_dma_upload_tile_block
     rep #$30
     rts
 
@@ -1607,8 +1766,15 @@ cm_formula_text:
     rts
 
 ; ===================== ingredients =====================
+; Row k is ingredient 21 - k: the game numbers them backwards through the alphabet, Wax first.
+cm_ingredient_x:
+    lda.w #$0015
+    sec
+    sbc.w !cm_k
+    tax
+    rts
 cm_ingredient_load:
-    ldx.w !cm_k
+    jsr.w cm_ingredient_x
     lda.l WAX,x
     and.w #$00FF
     sta.w !cm_val
@@ -1616,21 +1782,23 @@ cm_ingredient_load:
     sta.w !cm_max
     rts
 cm_ingredient_store:
-    ldx.w !cm_k
+    jsr.w cm_ingredient_x
     sep #$20
     lda.w !cm_val
     sta.l WAX,x
     rep #$20
     rts
-; The ring items of the ingredients are not in id order: find the one whose index is the row.
+; The ring items of the ingredients are not in id order: find the one whose index is the ingredient.
 cm_ingredient_item:
+    jsr.w cm_ingredient_x
+    stx.w !cm_t0
     ldy.w #$0118
 cm_ingredient_search:
     tyx
     lda.l ring_item_table,x
     tax
     lda.l ring_item_index,x
-    cmp.w !cm_k
+    cmp.w !cm_t0
     beq cm_ingredient_found
     iny
     iny
@@ -1835,8 +2003,13 @@ cm_trade_name:
     sta.b $24
     rts
 cm_trade_icon:
-    lda.w #$009E                        ; the pouch: trade goods have no icon of their own
-    jsr.w cm_icon_ring
+    lda.w !cm_k
+    asl a
+    clc
+    adc.w !cm_k
+    tax
+    lda.l trade_icon,x
+    jsr.w cm_icon_still
     rts
 
 ; ===================== money: 24 bits a purse =====================
@@ -2072,9 +2245,10 @@ cm_tab_dy:
 ; added to a currency picture's y, to centre it: talons, jewels, gold pieces, credits
 cm_money_dy:
     dw $FFFD, $FFFC, $FFFF, $FFFF
-; the palette each category loads into sprite slot 7 (0: none): the charm pictures', the currency icons'
+; the palette each category loads into sprite slot 7 (0: none): the pause screen's for charms and trade goods, the
+; money window's for the currencies
 cm_t_palette7:
-    dw 0, 0, 0, 0, 0, 0, $AB0B, 0, $AD6B, 0
+    dw 0, 0, 0, 0, 0, 0, $AB0B, $AB0B, $AACB, 0
 ; sprite palettes (bank $90) of slots 0-6: cursor and formulas, weapons, consumables, ingredients, buttons, armour,
 ; formulas (second)
 cm_obj_palettes:
@@ -2086,7 +2260,7 @@ cm_tab_items:
 cm_title_layout:
     dw 0, 7, 1, 3, $A000, $0C00, $030D
 cm_list_layout:
-    dw 0, 0, 7, 3, $A300, $0D80, $0E1A
+    dw 0, 0, 7, 3, $A300, $0D80, $101A
 cm_desc_layout:
     dw 0, 2, 23, 2, $BF00, $1B80, $041C
 ; the titles: the game's own strings where it has one

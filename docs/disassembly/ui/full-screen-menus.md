@@ -52,8 +52,9 @@ left and top margin, `+12` flags (`$0008` grey, `$0400` no wrap), `+14` / `+16` 
   window room for its longest title (a clipped one hung the charm page).
 - Grey needs the text palette `$C4:1EE4` in CGRAM 0-3; the default one shows blue instead.
 - The VRAM upload queue holds 64 entries and does not check: wait for an NMI after each printed row.
-- Scrolling by a row: move each column's bytes in the buffer, print the new row, upload the window in two vertical
-  blanks (printing a 7-row window again takes about twice as long).
+- To change text without showing it half drawn: print into tiles the map does not show (a spare row slot of the
+  window, or a descriptor whose VRAM address points at unused VRAM), then switch the map or upload the buffer in one
+  vertical blank, after `oam_finalize_and_blank_unused` so the sprites change in the same one.
 - A press made while the screen draws is lost unless `$7E:0104` is read (and acknowledged) between the rows.
 
 ## Sprites *(run)*

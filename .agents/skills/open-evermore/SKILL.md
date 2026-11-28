@@ -106,6 +106,8 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
 
 ## Traps
 
+- **New code in `code/` must read the same to Asar**: our assembler has operator precedence, Asar (`--asar`) works left to
+  right, so `x+(n-1)*2` differs. Keep one operator, or parenthesize from the left; run `--asar` on new asm.
 - **WRAM census traps** (v0.475.0): the library keys a word access by its first byte (count both, or `lda $0105` hides
   `JOYPAD1_HELD`); a 16-bit operand names bank `$7F` when the bytes it touched are there (DB `$7F`); `sta $420B` is credited
   with its DMA's WRAM bytes; `script-xrefs.bin` is everything the engine touched during a script instruction (millions),

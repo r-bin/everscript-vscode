@@ -13,3 +13,8 @@ see: [routines/award_kill_money.md, routines/hud_portraits_init.md, docs/item-ic
 The money icon of each era. The script picks the sprite by the currency index. The colours are not
 confirmed: the Scripts tab draws them in the HUD's (`$D0AD6B`, the Boy portrait's), where the coin
 comes out gold (maps/hud-icons.ts).
+
+## Correction (2026-11-28)
+Their colours are palette `$D0:AACB`: the money window (script opcode `0x9F`, `$8C:E5B0`) starts the icon's animation
+and loads that palette (seen in MesenCE: the window put it in a sprite palette slot and drew the talon in it).
+Previously believed: the HUD's portrait palette `$D0:AD6B`.

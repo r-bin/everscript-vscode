@@ -1,7 +1,7 @@
 -- MesenCE headless check of the cheat menu: opens it with L+R in Brian's room, changes something in every category,
 -- checks the WRAM it wrote, leaves, and checks the field still runs and the menu opens again. It also covers what
--- broke while it was built: removing the held weapon, long charm descriptions, quick presses during a redraw and the
--- icon colours after the ring menu.
+-- broke while it was built: removing the held weapon, long charm descriptions, quick presses during a redraw, the
+-- icon colours after the ring menu and on the money page, and a row blinking while its value changes.
 local W = emu.memType.snesWorkRam
 local frames, inRoom, step, wait, failed = 0, 0, 1, 0, false
 local pad = {}
@@ -27,6 +27,32 @@ local function expect(name, read, want)
     run(function() local got = read(); result(got == want, name, string.format("got %d, want %d", got, want)) end)
 end
 local function page(key) tap(key or "r", 90) end
+local VRAM, CGRAM = emu.memType.snesVideoRam, emu.memType.snesCgRam
+-- Screen row n as the PPU has it: the frame layer's map word of the row's first name tile, and whether its tiles
+-- hold any pixel. A row that is blank for even one frame blinks.
+local function rowShown(n)
+    local at = (0x0800 + (7 + 2 * n) * 32 + 6) * 2
+    local word = emu.read(at, VRAM, false) + 256 * emu.read(at + 1, VRAM, false)
+    if word == 0x0FFF then return false end
+    for column = 0, 3 do
+        local tiles = ((word & 0x3FF) + 16 * column) * 16
+        for i = 0, 31 do if emu.read(tiles + i, VRAM, false) ~= 0 then return true end end
+    end
+    return false
+end
+local watched, blinks = nil, 0
+-- Sprite palette `slot` shows the 15 colours of the game's palette at $90:`address`.
+local function palette(name, slot, address)
+    local bad = 0
+    for c = 1, 15 do
+        local a = (128 + 16 * slot + c) * 2
+        local screen = emu.read(a, CGRAM, false) + 256 * emu.read(a + 1, CGRAM, false)
+        local rom = 0x100000 + address + 2 * c
+        local want = emu.read(rom, emu.memType.snesPrgRom, false) + 256 * emu.read(rom + 1, emu.memType.snesPrgRom, false)
+        if screen ~= want then bad = bad + 1 end
+    end
+    result(bad == 0, name, bad .. " colours differ")
+end
 local MENU = function() return u8(0x0D11) end
 
 pause(120)
@@ -42,8 +68,12 @@ expect("first_page", MENU, 0)
 -- a script's "no weapon" state survives edits
 run(function() poke(0x23BF, 1) end)
 
--- weapons: B owns the Gladiator Sword, Right raises its level
-tap("down", 40); tap("b", 60); tap("right", 60)
+-- weapons: B owns the Gladiator Sword, Right raises its level; the row never goes blank meanwhile
+tap("down", 40)
+run(function() watched = 1 end)
+tap("b", 60); tap("right", 60)
+run(function() watched = nil end)
+expect("row_never_blank", function() return blinks end, 0)
 expect("weapon_owned", function() return u8(0x22DA) & 0x04 end, 4)
 expect("weapon_level", function() return u16(0x0AE1) end, 0x0200)
 run(function() shot("weapons") end)
@@ -83,9 +113,11 @@ expect("wraps_to_last", function() return u8(0x0D0D) end, 34)
 expect("list_scrolled", function() return u8(0x0D0F) end, 28)
 run(function() shot("alchemy_end") end)
 
--- ingredients: X fills every row
+-- ingredients, alphabetical: the first row is the Acorn (the game's last id); X fills every row
 page()
-tap("x", 150)
+tap("right", 60)
+expect("first_ingredient_is_acorn", function() return u8(0x2314) end, 1)
+tap("x", 200)
 expect("ingredient_first", function() return u8(0x22FF) end, 99)
 expect("ingredient_last", function() return u8(0x2314) end, 99)
 run(function() shot("cheat_menu") end)
@@ -122,8 +154,9 @@ page()
 tap("right", 40); tap("right", 60)
 expect("trade_amount", function() return u16(0x2517) end, 2)
 
--- money: Right is 100, B fills a 24-bit purse
+-- money: Right is 100, B fills a 24-bit purse; the icons in the money window's colours
 page()
+run(function() palette("money_colours", 7, 0xAACB) end)
 tap("right", 60); expect("talons_step", function() return u24(0x0AC6) end, 100)
 tap("down", 40); tap("b", 60); expect("jewels_max", function() return u24(0x0AC9) end, 999999)
 expect("talons_kept", function() return u24(0x0AC6) end, 100)
@@ -156,17 +189,7 @@ openMenu()
 run(function() shot("reopened") end)
 expect("reopens_lit", function() return u8(0x0106) end, 15)
 -- the weapons' palette in sprite slot 1 is the game's, colour for colour
-run(function()
-    local bad = 0
-    for c = 1, 15 do
-        local a = (128 + 16 + c) * 2
-        local screen = emu.read(a, emu.memType.snesCgRam, false) + 256 * emu.read(a + 1, emu.memType.snesCgRam, false)
-        local rom = 0x100000 + 0xAA8B + 2 * c
-        local want = emu.read(rom, emu.memType.snesPrgRom, false) + 256 * emu.read(rom + 1, emu.memType.snesPrgRom, false)
-        if screen ~= want then bad = bad + 1 end
-    end
-    result(bad == 0, "icon_colours", bad .. " colours differ")
-end)
+run(function() palette("icon_colours", 1, 0xAA8B) end)
 tap("y", 220)
 run(function() x0 = u16(0x4E89 + 0x1A) end)
 queue[#queue + 1] = { "pad", { left = true } }; pause(40); queue[#queue + 1] = { "pad", {} }; pause(20)
@@ -181,6 +204,7 @@ emu.addEventCallback(function()
         shot("timeout"); result(false, "finished", "stopped at step " .. step); print("OE_DONE"); emu.stop(0)
     end
     if inRoom == 0 then return end
+    if watched and not rowShown(watched) then blinks = blinks + 1 end
     if wait > 0 then wait = wait - 1; return end
     while true do
         local a = queue[step]

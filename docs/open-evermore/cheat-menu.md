@@ -27,7 +27,7 @@ Every change is written to WRAM at once and stays in the save. Names, descriptio
 | Weapons | 13 | owned (B), level 1-3 (Left / Right; the Bazooka: on / off only) | bits `$22DA/$22DB`, level in the high byte of `$0ADD + 2·weapon` | taking the held weapon away gives the Boy another; the last one owned stays; stats rebuilt |
 | Bazooka | 3 | 0-99 | `$2345-$2347` | the weapon reloads |
 | Alchemy | 35 | known (B), level 0-9 | bits from `$2258`, level `$2F98 + 2·formula` (experience cleared) | a forgotten formula leaves the selected nine (`$0AD2`) |
-| Ingredients | 22 | 0-99 | `$22FF + id` | |
+| Ingredients | 22, alphabetical (the game's ids run backwards through the alphabet) | 0-99 | `$22FF + id` | |
 | Items | 8 | 0-6; Call Beads up to their capacity (99 if it is 0) | `$2315 + id` | |
 | Armor | 40 | 0-6 | `$231D + id` | the last of a worn piece is taken off; stats rebuilt |
 | Charms | 20 | on / off | bits `$2261-$2264` | stats rebuilt |
@@ -68,9 +68,21 @@ With the scene (`demo apply` without `--no-scene`) the game boots into an empty 
 ## Checking it
 
 `verify.lua` changes something on every page and reads WRAM back, removes the held weapon, walks the long charm
-descriptions, taps two quick presses during a redraw, compares an icon palette with the ROM after the ring menu was
-open, and walks after leaving. One-off checks on 2026-11-28, not stored: one-row scrolling matched a full redraw byte
-for byte (buffer and VRAM) on six pages, and seven seeds of 500 random presses never ran the field inside the menu.
+descriptions, taps two quick presses during a redraw, watches that a changed row is never blank, compares icon palettes
+with the ROM (after the ring menu was open, and on the money page), and walks after leaving. One-off checks on
+2026-11-28, not stored: every frame after a press showed the old picture, an emptied list or the new one; one-row
+scrolling matched a full redraw on six pages; a populated room's picture came back unchanged; seven seeds of 500 random
+presses (before the redraw was reworked) never ran the field inside the menu.
+
+## Drawing
+
+Nothing is shown half drawn. The list window has eight row slots for seven screen rows: a row is printed into the
+hidden one, then the window layer's map points at it in the same vertical blank as the sprites. A new category shows
+its title over an empty list, then every row at once. The title and the description are printed into unused VRAM
+(`$0400`, the stone layer's map is only 32 × 32) and uploaded whole.
+
+Icons: ring items bring their own; charms and trade goods use the pause screen's pictures (`$C4:5A12`, `$C4:5A4E`,
+palette `$D0:AB0B`); the currencies the money window's palette (`$D0:AACB`).
 
 ## Limits
 

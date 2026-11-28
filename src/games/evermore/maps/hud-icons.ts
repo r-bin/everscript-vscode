@@ -12,7 +12,8 @@
 //   currencies     the animation script at $C8:00BE picks one of four sprites by the currency index
 //                  (0 talons, 3 jewels, 6 gold coins, 9 credits: knowledge rom/8f8689): $CC3C56,
 //                  $CC3C5D, $CC3C64, $CC3C6B (blocks $7CB-$7CE: a talon, a jewel, a coin, a card).
-//                  Drawn in the Boy portrait's colours, the HUD's (likely: not seen on screen).
+//                  Their colours, $D0AACB, are the ones the money window loads with them (opcode
+//                  $9F, $8C:E5B0; seen on screen).
 //
 // docs/item-icons.md has the evidence.
 
@@ -26,6 +27,7 @@ type Rgba = { width: number; height: number; data: Uint8Array };
 const BOY_PORTRAIT_LOW = 0x8f810f;
 const BOY_PORTRAIT_BANK = 0x8f8116;
 const HUD_PALETTE = 0xad6b;
+const CURRENCY_PALETTE = 0xaacb;
 /** The 24-bit sprite list the currency animation script picks from ($C8:00BE: opcode, then 4 × 3 bytes). */
 const CURRENCY_SPRITES = 0xc800c1;
 export const CURRENCIES = ['talons', 'jewels', 'gold coins', 'credits'];
@@ -41,5 +43,5 @@ export function boyPortrait(rom: Uint8Array): Rgba | null {
 /** Currency `n` (0 talons, 1 jewels, 2 gold coins, 3 credits: the game's index / 3). */
 export function currencyIcon(rom: Uint8Array, n: number): Rgba | null {
     if (n < 0 || n >= CURRENCIES.length) return null;
-    return renderSpriteAt(rom, u24(rom, CURRENCY_SPRITES + 3 * n), paletteAt(rom, HUD_PALETTE));
+    return renderSpriteAt(rom, u24(rom, CURRENCY_SPRITES + 3 * n), paletteAt(rom, CURRENCY_PALETTE));
 }

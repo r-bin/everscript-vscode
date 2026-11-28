@@ -18,3 +18,6 @@ Array of 4 single-chunk 16×16 sprite records in Bank `$CC` (`$CC:3C56`..`$CC:3C
 - `$CC:3C6B`: Omnitopia Credits (block `$7CE`)
 
 Indexed by animation script `$C8:00BE` and displayed in shops and HUD dialogs.
+
+## Correction (2026-11-28)
+The money window draws these in palette `$D0:AACB`, not in the HUD portraits' (see `currency_icon_sprites`).

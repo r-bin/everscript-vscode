@@ -13,3 +13,6 @@ see: [routines/hud_portraits_init.md, routines/spr_hud_boy_portrait.md, routines
 ---
 16-color PPU CGRAM palette (32 bytes, `$D0:AD6B`..`$D0:AD8A`) applied to character HUD portraits and currency icons.
 Contains flesh tones for the Boy's portrait and metallic luster colors for talons, jewels, coins, and credits.
+
+## Correction (2026-11-28)
+The currency icons are **not** drawn in this palette: the money window loads `$D0:AACB` (see `currency_icon_sprites`).

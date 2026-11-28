@@ -184,7 +184,7 @@ them. The palettes were matched against the screen.
 |---|---|---|---|---|
 | Boy's portrait | `$CC37AC` | `$7AB` | the HUD setup `$8F:810E` (`$4EF7`) | `$D0AD6B` (seen on screen) |
 | Dog's portrait | form entry `+3` (`$CC3C72` wolf, `$CC3C79` greyhound, `$CC3C80` poodle, `$CC3C87` toaster, `$CC3C8E` Podunk) | `$7CF`–`$7D3` | the form loader `$8F:9471` (`$4FA5`) | the form's palette, entry `+6` (`$D0AE0B` for the wolf: seen on screen) |
-| Talons, jewels, gold coins, credits | `$CC3C56`, `$CC3C5D`, `$CC3C64`, `$CC3C6B` | `$7CB`–`$7CE` | the animation script at `$C8:00BE`, in currency order | not seen; drawn in `$D0AD6B` |
+| Talons, jewels, gold coins, credits | `$CC3C56`, `$CC3C5D`, `$CC3C64`, `$CC3C6B` | `$7CB`–`$7CE` | the animation script at `$C8:00BE`, in currency order | `$D0AACB`, loaded by the money window (opcode `0x9F`, `$8C:E5B0`; seen on screen, 2026-11-28; was drawn in `$D0AD6B`) |
 
 Podunk's portrait (`$7D3`) is a frame of the shaded ball the blocks after it rotate through, not a
 face; it is also what `$8F:810E` gives the Dog before any form loads. The Scripts tab draws `boy()`,
