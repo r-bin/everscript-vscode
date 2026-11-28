@@ -1,6 +1,6 @@
 # Open Evermore: the road to 10/10
 
-Status: **rule set and plan (owner, 2026-11-22); step 1 (rooms) built in v0.457.0; §4 scored per folder at v0.458.2.** What makes the tree a product
+Status: **rule set and plan (owner, 2026-11-22); step 1 (rooms) built in v0.457.0; §4 scored per folder at v0.458.2; master execution roadmap in [open-evermore-10-of-10.md](../todo/open-evermore-10-of-10.md).** What makes the tree a product
 a romhacker uses rather than a lab, the rules every kind follows, what still breaks them (counted in a fresh tree),
 and the order to fix it in. The kinds themselves: [resources.md](resources.md); the state of each: [progress.md](progress.md).
 
