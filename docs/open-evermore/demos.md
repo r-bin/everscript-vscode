@@ -1,8 +1,11 @@
-# Open Evermore Demos and MesenCE Verification *(proposal)*
+# Open Evermore Demos and MesenCE Verification *(implemented v0.479.0)*
 
 See [README.md](README.md) for the resource model, [extending.md](extending.md) for what each kind allows today, [tool.md](tool.md) for the CLI verbs and proof, [debugging-a-rom.md](../reverse-engineering/debugging-a-rom.md) for boot-scene testing, and [reference-emulators](../../.agents/skills/reference-emulators/SKILL.md) for why MesenCE is the WRAM and visual reference.
 
-Unit tests (`npm test`) and `in-game.test.mts` catch structural mistakes and simple boot assertions, but `snes9x2005` fails to draw the Boy or Dog in Brian's room where MesenCE draws both *(repo — see [debugging-a-rom.md](../reverse-engineering/debugging-a-rom.md))*, and building a ROM alone does not prove new sprites, palettes, alchemy math, consumables, or custom rooms behave cleanly in hardware-accurate PPU/WRAM emulation. This document proposes four end-to-end playable demos stored cleanly in git and verified automatically against **MesenCE**.
+Unit tests (`npm test`) and `in-game.test.mts` catch structural mistakes and simple boot assertions, but `snes9x2005` fails to draw the Boy or Dog in Brian's room where MesenCE draws both *(repo — see [debugging-a-rom.md](../reverse-engineering/debugging-a-rom.md))*, and building a ROM alone does not prove new sprites, palettes, alchemy math, consumables, or custom rooms behave cleanly in hardware-accurate PPU/WRAM emulation. Open Evermore (`v0.479.0`) stores four end-to-end playable demos cleanly in git (`tools/open-evermore/demos/`) and verifies them automatically against **MesenCE**.
+
+> [!NOTE]
+> Running `heal_999` and `turd_ball` under `--random 11` in headless MesenCE immediately exposed a real bug in `characters.mts`: `bankSites()` had included banks `$8D` and `$8E`, rewriting 56 `lda.l $8E0000..06,x` reads of 8-byte `ring_items` descriptors whenever `characters/_records` moved out of bank `$8E`, crashing `ring_menu_load_category_icons`. Fixed in `characters.mts` (`CODE_BANKS` narrowed to `$8C/$8F/$90/$91`).
 
 ---
 
@@ -150,26 +153,24 @@ Whenever a demo verification suite is added or edited, run its exact `verify.lua
 
 ### Layer 4 — CLI and test tiers (`test-discipline`)
 
-- **Tool entry point**: Add a single action in `tools/open-evermore/open-evermore.mts`:
+- **Tool entry point**: `tools/open-evermore/open-evermore.mts` provides:
+  - `open-evermore demo list`
   - `open-evermore demo apply <name|all> <exploded-dir> [--no-scene]`
-  - `open-evermore demo verify <name|all> [--mesen <path>] [--keep-out]`
-- **Test tiers** (preserving fast `npm test` ~7s rule):
-  - `unit` (`npm test`): validates `demo.json` schemas and checks clean merge/lint (no ROM or emulator).
-  - `rom` (`npm run test:rom`): runs `explode` -> `demo apply` -> `implode --strict --random` + `--asar` + combined build (`test:rom`).
-  - `emulator` (`npm run test:emulator` / dedicated `mesen` check): executes headless MesenCE scripts when a local ROM and `MESEN` binary exist, gracefully skipping with a clear message in CI environments without a ROM or Mesen binary.
+  - `open-evermore demo verify <name|all> [rom] [--mesen <path>] [--random [seed]] [--asar] [--asar-bin <path>] [--no-baseline] [--out <dir>]`
+- **Test tiers** (`tests/tiers.json`, preserving fast `npm test` ~7s rule):
+  - `unit` ([`tests/open-evermore/demos.test.mts`](../../tests/open-evermore/demos.test.mts)): validates `demo.json` manifests, transform ops (including 5-bit BGR555 palette shifts), and MesenCE stdout/screenshot parsing (no ROM or emulator).
+  - `rom` ([`tests/open-evermore/demos-rom.test.mts`](../../tests/open-evermore/demos-rom.test.mts)): builds every ready demo individually (scene and `--no-scene`) + combined stack (`--random 7`) + whole-game Asar byte-exact parity (skips without base ROM).
+  - `emulator` ([`tests/open-evermore/demos-mesen.test.mts`](../../tests/open-evermore/demos-mesen.test.mts)): executes all 4 headless MesenCE scripts under `--random 11` with Asar verification and baseline negative checks (skips gracefully if base ROM or `Mesen` binary is absent).
 
 ---
 
-## 4. Rollout order and open decisions
+## 4. Implementation status and follow-up
 
-| Step | Scope |
-|---|---|
-| `D0` | Add `tools/open-evermore/demos/` loader + `demo apply` primitive set (`cloneDir`, `cloneFile`, `shiftPalette`, `patchJson`, `copyFiles`, `patchScript`). |
-| `D1` | Generalize `tools/exhirom/mesen.js` into a reusable headless MesenCE runner (stdout protocol, SRAM isolation, screenshot hex export to `out/`). |
-| `D2` | Implement and Mesen-verify the three immediately ready demos (`brians_room_blue`, `purple_raptor`, `heal_999`) plus `turd_ball` Variant A, and run baseline negative checks for each. |
-| `D3` | Add combined multi-demo build test + `--no-scene` `prove` regression; keep `turd_ball` Variant B (`blocked_by_formula_cap`) ready to turn green when `alchemy/formulas` becomes growable. |
+| Step | Scope | Status |
+|---|---|---|
+| `D0` | `tools/open-evermore/demos.mts` + `tools/open-evermore/demos/` (`cloneDir`, `cloneFile`, `copyFiles`, `writeText`, `writeJson`, `patchJson`, `appendEnum`, `shiftPalette`) | ✅ Implemented (`v0.479.0`) |
+| `D1` | `tools/open-evermore/mesen.mts` headless MesenCE `--testrunner` harness (`OE_PASS`/`OE_FAIL`/`OE_PNGHEX`/`OE_DONE`, SRAM isolation, exit-code tolerance) | ✅ Implemented (`v0.479.0`) |
+| `D2` | Four ready demos (`brians_room_blue`, `purple_raptor`, `heal_999`, `turd_ball` Variant A) passing in MesenCE under `--random 11` + Asar + baseline fail | ✅ Implemented (`v0.479.0`) |
+| `D3` | Combined stack `test:rom` (`demos-rom.test.mts`); `turd_ball` Variant B (`36th` formula alongside `hard_ball`) waits on growable `alchemy/formulas` | ✅ Combined stack live; 🟨 Variant B open |
 
-*(Owner's call — decide before implementing `D0`–`D2`)*:
-1. **`turd_ball` Variant A vs waiting for Variant B**: Start with Variant A (reworking vanilla `hard_ball` -> `turd_ball` + 2 brand-new ingredients) right away, or prioritize lifting the 35-formula cap first so Variant B is the initial demo?
-2. **`brians_room_blue` glow mechanism**: Tint the room's palette colors only (`palettes/*.json`), add SNES hardware color-math (`$2130`–`$2132` blue subscreen glow in the enter script / ASM), or both?
-3. **Combined stack in `test:rom`**: Should `npm run test:rom` run each demo separately, only the combined stack (`purple_raptor` + `heal_999` + `turd_ball` + `brians_room_blue`), or both?
+*(Follow-up — open)*: `turd_ball` Variant B (36th formula alongside vanilla `hard_ball`) waits on growable `alchemy/formulas`, and optional SNES hardware color-math (`$2130`–`$2132`) can layer on top of `brians_room_blue`'s blue-shifted palette.

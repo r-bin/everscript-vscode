@@ -1,0 +1,38 @@
+{
+  "name": "heal_999",
+  "title": "Heal 999 Consumable",
+  "status": "ready",
+  "release": "us",
+  "description": "Adds a 10th consumable (heal_999, power 999, petals block) wired to debug_heel and temp[194], tested live via Boy's items ring.",
+  "transforms": [
+    { "op": "writeText", "target": "strings/menu/debug_heel.txt", "content": "Heal 999\n" },
+    { "op": "patchJson", "target": "menus/ring_items/debug_heel.json", "set": { "index": 9 } },
+    {
+      "op": "writeJson",
+      "target": "items/consumables/heal_999.json",
+      "value": {
+        "held": "temp[194]",
+        "ring_item": "menus/ring_items/debug_heel",
+        "target": "targets/party_or_all",
+        "block": "petals",
+        "power": 999
+      }
+    },
+    { "op": "appendEnum", "target": "items/consumables/_enum.json", "names": ["heal_999"] }
+  ],
+  "scene": {
+    "description": "Boot into Brian's room, set BOY_MAX_HP=999, BOY_CURRENT_HP=10, and temp[194]=3 so Boy can open Items ring and use Heal 999.",
+    "transforms": [
+      { "op": "writeText", "target": "scripts/rooms/podunk_test_room_brians_room/enter.txt", "content": "call_global 0x36\nunfreeze_boy_and_dog\nsleep_a7 5\nwrite_word_at 0x0A35, 999\nwrite_word_at boy + 42, 10\nwrite_temp_word temp[194], 3\nend\n" },
+      { "op": "patchJson", "target": "maps/rooms/podunk_test_room_brians_room/scripts.json", "set": { "enter": "podunk_test_room_brians_room/enter" } },
+      { "op": "writeText", "target": "scripts/rooms/podunk_opening_over_the_machine/enter.txt", "content": "load_map 23, 40, podunk_test_room_brians_room\n" }
+    ]
+  },
+  "verify": {
+    "maxFrames": 1600,
+    "screenshotExpect": {
+      "name": "heal_999",
+      "minNonBlackPixels": 2500
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "brians_room_blue",
+  "title": "Brian's Room (Blue Glow)",
+  "status": "ready",
+  "release": "us",
+  "description": "Adds room 0x7F cloned from Brian's room with a blue-shifted background palette and glowing blue enter script.",
+  "transforms": [
+    { "op": "cloneDir", "from": "maps/rooms/podunk_test_room_brians_room", "to": "maps/rooms/brians_room_blue", "exclude": ["preview.png"] },
+    { "op": "appendEnum", "target": "maps/rooms/_enum.json", "names": ["brians_room_blue"] },
+    { "op": "cloneFile", "from": "palettes/backgrounds/palette_015.json", "to": "palettes/backgrounds/brians_room_blue.json" },
+    { "op": "appendEnum", "target": "palettes/backgrounds/_enum.json", "names": ["brians_room_blue"] },
+    { "op": "shiftPalette", "target": "palettes/backgrounds/brians_room_blue.json", "rgbScale": [0.3, 0.65, 1.9], "rgbBias": [0, 24, 104], "skipIndex0": true },
+    { "op": "patchJson", "target": "maps/rooms/brians_room_blue/map.json", "set": { "palettes": ["brians_room_blue"] } },
+    { "op": "writeText", "target": "scripts/rooms/brians_room_blue/enter.txt", "content": "call_global 0x36\nunfreeze_boy_and_dog\nend\n" },
+    { "op": "patchJson", "target": "maps/rooms/brians_room_blue/scripts.json", "set": { "enter": "brians_room_blue/enter" }, "delete": ["enterWord"] }
+  ],
+  "scene": {
+    "description": "Redirect opening script directly into brians_room_blue at Brian's entrance (23, 40).",
+    "transforms": [
+      { "op": "writeText", "target": "scripts/rooms/podunk_opening_over_the_machine/enter.txt", "content": "load_map 23, 40, brians_room_blue\n" }
+    ]
+  },
+  "verify": {
+    "maxFrames": 1200,
+    "screenshotExpect": {
+      "name": "brians_room_blue",
+      "minNonBlackPixels": 2500
+    }
+  }
+}

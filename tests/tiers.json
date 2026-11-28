@@ -29,6 +29,7 @@
   "tests/imports/status.test.mts",
   "tests/open-evermore/asm65816.test.mts",
   "tests/open-evermore/asar-project.test.mts",
+  "tests/open-evermore/demos.test.mts",
   "tests/open-evermore/enum-layout.test.mts",
   "tests/open-evermore/formats.test.mts",
   "tests/open-evermore/implode.test.mts",
@@ -84,6 +85,7 @@
   "tests/mana/mana-evermore.test.js",
   "tests/terra/terra-rom.test.mts",
   "tests/open-evermore/g0.test.mts",
+  "tests/open-evermore/demos-rom.test.mts",
   "tests/terra/terra-evermore.test.js",
   "tests/debugger/rom-history.test.js"
  ],
@@ -122,7 +124,8 @@
   "tests/debugger/tas-verify.test.js",
   "tests/mana/mana-play.test.js",
   "tests/terra/terra-play.test.js",
-  "tests/open-evermore/in-game.test.mts"
+  "tests/open-evermore/in-game.test.mts",
+  "tests/open-evermore/demos-mesen.test.mts"
  ],
  "manual": {
   "tests/debugger/emulator-runtime.test.js": "stale: waits for ss-hook-btn / ss-hook-all-btn and the pause/resume buttons removed in v0.219.0"

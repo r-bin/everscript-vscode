@@ -1,0 +1,50 @@
+{
+  "name": "purple_raptor",
+  "title": "Purple Raptor Dog Form",
+  "status": "ready",
+  "release": "us",
+  "description": "Adds a 7th Dog form (purple_raptor, form index 6, request 14) using raptor_purple palette and animations.",
+  "transforms": [
+    { "op": "cloneFile", "from": "characters/dog_forms/act1.json", "to": "characters/dog_forms/purple_raptor.json" },
+    {
+      "op": "patchJson",
+      "target": "characters/dog_forms/purple_raptor.json",
+      "set": {
+        "palette": "palettes/sprites/raptor_purple",
+        "aggro_range": 60,
+        "animations/stand": "animations/shared/stand_4",
+        "animations/walk": "animations/shared/walk_2",
+        "animations/run": "animations/shared/walk_2",
+        "animations/slot_3": "animations/shared/stand_4",
+        "animations/knockback": "animations/raptor_green/knockback",
+        "animations/attack_0": "animations/raptor_green/attack_0",
+        "animations/attack_1": "animations/raptor_green/attack_0",
+        "animations/attack_2": "animations/raptor_green/attack_0",
+        "animations/attack_3": "animations/raptor_green/attack_0",
+        "animations/sniff": "animations/shared/stand_4",
+        "animations/sniff_look_around": "animations/shared/walk_2",
+        "animations/steered_still": "animations/shared/stand_4",
+        "animations/idle_wait": "animations/shared/stand_4",
+        "animations/idle_wait_2": "animations/shared/stand_4",
+        "animations/slot_14": "animations/shared/stand_4"
+      }
+    },
+    { "op": "appendEnum", "target": "characters/dog_forms/_enum.json", "names": ["purple_raptor"] }
+  ],
+  "scene": {
+    "description": "Enter Brian's room and request Dog form 6 (purple_raptor, CHANGE_DOGGO = 14).",
+    "transforms": [
+      { "op": "writeText", "target": "scripts/rooms/podunk_test_room_brians_room/enter.txt", "content": "call_global 0x36\nwrite_word CHANGE_DOGGO, 14\nunfreeze_boy_and_dog\nend\n" },
+      { "op": "patchJson", "target": "maps/rooms/podunk_test_room_brians_room/scripts.json", "set": { "enter": "podunk_test_room_brians_room/enter" } },
+      { "op": "writeText", "target": "scripts/rooms/podunk_opening_over_the_machine/enter.txt", "content": "load_map 23, 40, podunk_test_room_brians_room\n" }
+    ]
+  },
+  "verify": {
+    "maxFrames": 1200,
+    "screenshotExpect": {
+      "name": "purple_raptor",
+      "minNonBlackPixels": 2500,
+      "minPurplePixels": 80
+    }
+  }
+}

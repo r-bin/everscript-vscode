@@ -10,7 +10,7 @@
 // Facts used (docs/entities/character_table.md, knowledge routines/character_records.md, tools/table-hack/tables.js):
 //   records   74 bytes apart from $8E:B678, 142 in vanilla (records 0 and 1: the Boy's and the Dog's templates, copied
 //             to WRAM $0A26 by `mvn` at $8F:8046). Code reads a field as `op $8E00xx,X` with X = the record's 16-bit
-//             address: 131 such operands in the code banks, all in the $8E form. Records keep offset $B678 and order;
+//             address: 75 such operands in banks $8C/$8F/$90/$91, all in the $8E form (banks $8D/$8E hold 8-byte ring_items descriptor reads at $8E:0000-0006, not character records). Records keep offset $B678 and order;
 //             only the bank moves, in the $80-$BF form. Room for 254
 //   ENEMY     the index at $8E:B55A, one word per id (a record's 16-bit address), read by `lda.l $8EB55A,x` in the
 //             four spawn handlers ($8C:DC9A/DCC3/DCD9/DCEC); 143 ids; 0xBA/0xC2 take a byte id: 256 at most
@@ -44,7 +44,8 @@ const RECORD_LIMIT = Math.floor((0x10000 - OFFSET) / STRIDE);
 const MVN = map.file('characters.records_mvn');
 const ENEMY_READERS: Reader[] = map.readers('characters.enemy_index_readers');
 const LONG_OPS = new Set([0xAF, 0x8F, 0x6F, 0xEF, 0xCF, 0x2F, 0x0F, 0x4F, 0xBF, 0x9F, 0x7F, 0xFF, 0xDF, 0x3F, 0x1F, 0x5F]);
-const CODE_BANKS = new Set([0x00, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11]);
+// Banks $8D (0x0D) and $8E (0x0E) hold 8-byte ring_items descriptor reads (`lda.l $8E0000..06,x`), not character records.
+const CODE_BANKS = new Set([0x0C, 0x0F, 0x10, 0x11]);
 
 /** The bits of +$05 (entity +$10's names, entities-reference.md) and +$07 (character-properties.md), bit 0 first. */
 const SPAWN_FLAGS = ['hidden', 'invincible', 'party', 'parked', 'never_sleeps', 'inactive', 'animating', 'through_bodies',

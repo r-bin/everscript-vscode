@@ -1,0 +1,50 @@
+{
+  "name": "turd_ball",
+  "title": "Turd Ball Alchemy + New Ingredients",
+  "status": "ready",
+  "release": "us",
+  "description": "Reworks hard_ball into turd_ball using two new growable ingredients (mud_clump at temp[198], stink_moss at temp[196]).",
+  "transforms": [
+    { "op": "writeText", "target": "strings/menu/hard_ball.txt", "content": "Turd Ball\n" },
+    { "op": "writeText", "target": "strings/menu/target_gets_beaned.txt", "content": "Target gets fouled\n" },
+    {
+      "op": "writeJson",
+      "target": "alchemy/ingredients/mud_clump.json",
+      "value": { "text": "Mud Clump", "held": "temp[198]", "icon": "alchemy/ingredients/clay" }
+    },
+    {
+      "op": "writeJson",
+      "target": "alchemy/ingredients/stink_moss.json",
+      "value": { "text": "Stink Moss", "held": "temp[196]", "icon": "alchemy/ingredients/root" }
+    },
+    { "op": "appendEnum", "target": "alchemy/ingredients/_enum.json", "names": ["mud_clump", "stink_moss"] },
+    {
+      "op": "patchJson",
+      "target": "alchemy/formulas/hard_ball.json",
+      "set": {
+        "cost/0/ingredient": "alchemy/ingredients/mud_clump",
+        "cost/0/count": 1,
+        "cost/1/ingredient": "alchemy/ingredients/stink_moss",
+        "cost/1/count": 1
+      }
+    }
+  ],
+  "scene": {
+    "description": "Boot into Raptors room with Turd Ball learned/equipped and 5 of each new ingredient.",
+    "transforms": [
+      {
+        "op": "writeText",
+        "target": "scripts/rooms/prehistoria_jungle_raptors/enter.txt",
+        "content": "call_global 0x36\nwrite_word_at signed STATS_PTR_BOY + 15, 200\nwrite_word_at boy + 42, 200\nwrite_temp_word temp[198], 5\nwrite_temp_word temp[196], 5\nset_flag HARD_BALL, 1\nwrite_word_at 0x0AD2, 0xFF22\nwrite_word_at 0x0AD4, 0xFFFF\nwrite_word_at 0x0AD6, 0xFFFF\nwrite_word_at 0x0AD8, 0xFFFF\nwrite_byte_at 0x0ADA, 0xFF\nspawn raptor_purple, 0, 27, 39\nunfreeze_boy_and_dog\nend\n"
+      },
+      { "op": "writeText", "target": "scripts/rooms/podunk_opening_over_the_machine/enter.txt", "content": "load_map 29, 39, prehistoria_jungle_raptors\n" }
+    ]
+  },
+  "verify": {
+    "maxFrames": 1600,
+    "screenshotExpect": {
+      "name": "turd_ball",
+      "minNonBlackPixels": 3000
+    }
+  }
+}

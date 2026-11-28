@@ -74,6 +74,9 @@ node $T implode <dir> --random 42 --check-only    # … reproduce a seed; valida
 node $T implode <dir> --random 42 --strict         # … keeping every encoding as written (vanilla's script groups)
 node $T prove out/open-evermore --random 42       # original vs that layout (built --strict) on the stored playbacks, in lockstep
 node $T prove out/open-evermore --stable          # ROM at home; WRAM the tree moved compared through the move
+node $T demo list                                 # list playable overlay demos under tools/open-evermore/demos/
+node $T demo apply <name|all> <dir> [--no-scene]  # overlay demo recipe + files onto an exploded tree
+node $T demo verify <name|all> [rom] [--random [seed]] [--asar]  # implode + Asar + headless MesenCE + baseline check
 node $T locate <rom> [--out <dir>]                # draft another release's mapping file (check it before use)
 ```
 
@@ -90,6 +93,5 @@ plan to cut it: [optimizing.md](../../docs/open-evermore/optimizing.md). A missp
 - **No ROM bytes in the repo.** The tree and `_build/` are ROM-derived: `out/` or outside the repository.
 - **Generic files stay generic.** Only `evermore/` names the game (AGENTS.md §0.4); the Evermore facts that still sit
   in generic files are listed in [game-agnostic-open-rom.md](../../docs/todo/game-agnostic-open-rom.md) §1.
-- Tests: `tests/open-evermore/enum-layout.test.mts`, `implode.test.mts` (unit), `g0.test.mts` (rom), `in-game.test.mts`
-  (emulator: edits played in the snes9x core); `prove` on
+- Tests: `tests/open-evermore/demos.test.mts`, `enum-layout.test.mts`, `implode.test.mts` (unit), `g0.test.mts`, `demos-rom.test.mts` (rom), `in-game.test.mts`, `demos-mesen.test.mts` (emulator: snes9x + headless MesenCE); `prove` on
   demand only.

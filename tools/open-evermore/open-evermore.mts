@@ -27,6 +27,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { assembleWithAsar } from './asar-project.mts';
+import { applyDemos, listDemos, loadDemo, verifyDemo } from './demos.mts';
 import { GAME, loadMap, selectRelease } from './evermore/map.mts';
 import { draft, locateAll } from './evermore/map-locate.mts';
 import { explode } from './explode.mts';
@@ -49,7 +50,7 @@ async function load(release: string | null | undefined): Promise<Kinds> {
 /** The release a tree was exploded from (manifest.json `base.release`). */
 const treeRelease = (tree: Map<string, Uint8Array>): string | undefined => { try { return JSON.parse(readText(tree.get(MANIFEST)!)).base?.release; } catch { return undefined; } };
 
-const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict] [--asar] [--asar-bin <path>]\n       open-evermore.mts prove <dir> [--random [seed] | --stable] [--promoted] [--movies <file|dir>…]\n       open-evermore.mts locate <rom> [--out <dir>]';
+const USAGE = 'usage: open-evermore.mts explode [rom] [--out out/open-evermore] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict] [--asar] [--asar-bin <path>]\n       open-evermore.mts prove <dir> [--random [seed] | --stable] [--promoted] [--movies <file|dir>…]\n       open-evermore.mts demo <list|apply|verify> ...\n       open-evermore.mts locate <rom> [--out <dir>]';
 
 async function runExplode(args: string[], flag: (n: string) => boolean, value: (n: string) => string | null): Promise<number> {
     const force = flag('--force'), previews = flag('--previews');
@@ -183,6 +184,60 @@ async function runImplode(args: string[], flag: (n: string) => boolean, value: (
     return 0;
 }
 
+async function runDemo(args: string[], flag: (n: string) => boolean, value: (n: string) => string | null): Promise<number> {
+    const sub = args.shift();
+    if (sub === 'list') {
+        const all = listDemos({ includeBlocked: true });
+        for (const d of all) console.log(`${d.name.padEnd(20)} [${d.manifest.status}] ${d.manifest.title}`);
+        return 0;
+    }
+    if (sub === 'apply') {
+        const noScene = flag('--no-scene');
+        const targetName = args.shift(), dirArg = args.shift();
+        if (!targetName || !dirArg) { console.error('usage: open-evermore.mts demo apply <name|all> <dir> [--no-scene]'); return 2; }
+        const dir = resolve(dirArg);
+        const tree = readTree(dir);
+        const demos = targetName === 'all' ? listDemos() : [loadDemo(targetName)];
+        const applied = applyDemos(tree, demos, { noScene });
+        writeTree(dir, applied);
+        console.log(`Applied ${demos.map((d) => d.name).join(', ')} to ${dir} (${applied.size} files).`);
+        return 0;
+    }
+    if (sub === 'verify') {
+        const noBaseline = flag('--no-baseline'), checkAsar = flag('--asar');
+        const asarBin = value('--asar-bin'), mesenBin = value('--mesen'), outArg = value('--out');
+        const seed = takeSeed(args);
+        const targetName = args.shift(), romArg = args.shift();
+        if (!targetName) { console.error('usage: open-evermore.mts demo verify <name|all> [rom] [--mesen <path>] [--random [seed]] [--asar] [--asar-bin <path>] [--no-baseline] [--out <dir>]'); return 2; }
+        const { baseRomOrExit } = require('../rom.js');
+        const { identifyRom } = require('../../dist/platform');
+        const { stripCopierHeader } = require('../../dist/platform/roms/header');
+        const romPath = baseRomOrExit(GAME, romArg);
+        const baseRom: Uint8Array = stripCopierHeader(new Uint8Array(readFileSync(romPath)));
+        const release: string = identifyRom(baseRom).variant ?? 'us';
+        const { KINDS, PAST_END } = await load(release);
+        const baseTree = explode(baseRom, { release, sha1: sha1(baseRom), explodedWith: TOOL_VERSION }, GAME, KINDS);
+        const demos = targetName === 'all' ? listDemos() : [loadDemo(targetName)];
+        const outDir = resolve(outArg ?? join(REPO, 'out', 'open-evermore-demos'));
+        let allOk = true;
+        for (const demo of demos) {
+            const report = await verifyDemo({
+                demo, baseRom, baseTree, game: GAME, kinds: KINDS, pastEnd: PAST_END,
+                randomSeed: seed, checkAsar, asarBin: asarBin ?? undefined, mesenBin: mesenBin ?? undefined,
+                checkBaseline: !noBaseline, outDir,
+            });
+            if (!report.ok) allOk = false;
+            const mark = report.ok ? '✓' : '✗';
+            console.log(`${mark} ${report.name} (${report.title}): ${report.mesenChecks.length} checks${report.asarVerified === true ? ', asar byte-exact' : ''}${report.baselineFailed === true ? ', baseline failed as expected' : ''}`);
+            for (const c of report.mesenChecks) console.log(`    ${c.ok ? 'PASS' : 'FAIL'} ${c.name}${c.detail ? ` — ${c.detail}` : ''}`);
+            for (const e of report.errors) console.error(`    ERR: ${e}`);
+        }
+        return allOk ? 0 : 1;
+    }
+    console.error('usage: open-evermore.mts demo <list|apply|verify> ...');
+    return 2;
+}
+
 async function main(): Promise<void> {
     const args = process.argv.slice(2);
     const flag = (name: string) => { const i = args.indexOf(name); if (i >= 0) args.splice(i, 1); return i >= 0; };
@@ -191,6 +246,7 @@ async function main(): Promise<void> {
     process.exitCode = action === 'explode' ? await runExplode(args, flag, value)
         : action === 'implode' ? await runImplode(args, flag, value)
         : action === 'prove' ? await runProve(args, flag)
+        : action === 'demo' ? await runDemo(args, flag, value)
         : action === 'locate' ? runLocate(args, value)
         : (console.error(USAGE), 2);
 }
