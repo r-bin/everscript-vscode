@@ -31,6 +31,7 @@ keeps that plan's reasoning (gates, codecs, placement rules, fast ROM by heat) a
 | [wram.md](wram.md) | WRAM by name: `temp[]` as a placeholder, the proof of concept, allocation |
 | [memory.md](memory.md) | every memory by name (WRAM, VRAM, CGRAM, OAM, ARAM, SRAM): what each holds (measured), one map per memory instead of one file per entry, region files, the order of work |
 | [extending.md](extending.md) | how easy five kinds of new content are today (a Dog form, Act 0 Dog poses, Laser, a formula, items) and what blocks each |
+| [demos.md](demos.md) | proposed playable demos (`purple_raptor`, `heal_999`, `turd_ball`, `brians_room_blue`), overlay format, and headless MesenCE verification |
 | [code.md](code.md) | code (S9): every recorded routine a file at its vanilla address (C0), what `_base/` still holds (measured), the hazards of moving a routine, the export labelled by explode, steps C0-C6 |
 | [roadmap.md](roadmap.md) | the road to 10/10: the rules (one kind per folder, typed names, named entries, no derived data), what still breaks them, the order of work |
 
