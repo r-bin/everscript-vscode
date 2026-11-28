@@ -1,8 +1,12 @@
 # Open Evermore: code (S9), every routine a file, and how it starts to move
 
-Back to [README.md](README.md). Status: **C0 built (v0.477.0, 2026-11-28)**: every routine the vanilla game was
-recorded running is a file, `code/<routine>.asm` (1,448 of them, plus the folder's README), at its vanilla address. Implode assembles them
-itself; G0 and the random round trips hold (§2.1). Moving a routine and adding a new one are steps C1-C4 (§5).
+Back to [README.md](README.md). Status: **C0–C3 foundation built (v0.478.0, 2026-11-28)**: every routine the vanilla game was
+recorded running is `code/<routine>.asm` (1,448 files, plus the folder's README) with symbolic WRAM operands (`3,448` census
+sites) and symbolic generated-table `lda.l` readers (`maps`, `tiles`, `scripts`, `animations`, `characters._enemy_index`,
+`sprite_blocks_16`, `sprite_blocks_8`). New routines without `org` (C1) and `154` pure `jsl`-only leaves (C3) relocate
+freely in FastROM; `implode` assembles them in two phases (`asm65816.ts`) and emits a complete standalone Asar project
+in `_build/asar/` (`--asar` verified byte-identical with Asar 1.90pre for `--strict` and `--random 1`). `prove --random 1`
+plays both playbacks (14,638 frames) in lockstep. Moving `(abs,x)` jump-table/group routines is C4 (§5).
 Until 2026-11-27 code was not exploded at all; §1-§4 say why and what stood in the way. The tracker with the
 current state and the open steps: [../todo/open-evermore-code.md](../todo/open-evermore-code.md).
 Labels: *(repo)* = exists today; *(measured)* = counted on 2026-11-27, method given; *(proposal)*; *(owner's call)*;
@@ -159,11 +163,13 @@ Each step ends at the usual gates (README.md §7): G0 stable, `--random` round t
 
 | Step | What | Gate | Needs |
 |---|---|---|---|
-| **C0** ✅ v0.477.0 | **Explode code pinned** (§2.1): `code/<routine>.asm` per routine, in the export's Asar syntax, named by the knowledge base, labelled at every target; implode assembles it (`asm65816.ts`) at its vanilla address. No routine moves; the data kinds it reads still move through their own operand patches (holes) | G0 vanilla sha1; `--random` seeds 1, 2026 round-trip; a same-size edit lands and an edit of other instruction lengths round-trips (`g0.test.mts`) | done |
-| C0b | **Data by label** (§3.1): operands into another kind's resource written as its label, `symbols` from placement, and the codecs' operand patches retired one by one (the WRAM operands from the `wram` kind's names) | G0; `--random` | the label of a resource (`<kind>/<name>` → an Asar name); per-kind operand lists |
-| C1 | **New routines by name**: `code/<name>.asm` without `org` is placed by `placement.mts` in the 4th MB. Handler tables, `header.json` and other code name it, and a bank-local table gets a generated `jml` stub in its bank. The item and ingredient hooks move from TS byte arrays into this form | G0 with no new file; G2 with one new opcode or charm effect played | a "same bank as" rule or a stub per bank; 16 free bytes in `$8C` (`$8C:D880-$D88F`, [../todo/custom-opcodes.md](../todo/custom-opcodes.md)) |
+| **C0** ✅ v0.477.0 | **Explode code pinned** (§2.1): `code/<routine>.asm` per routine, in the export's Asar syntax, named by the knowledge base, labelled at every target; implode assembles it (`asm65816.ts`) at its vanilla address. | G0 vanilla sha1; `--random` seeds 1, 2026 round-trip; edits land and round-trip (`g0.test.mts`) | done |
+| **C0a** ✅ v0.478.0 | **Whole-game Asar project** (`asar-project.mts`): `implode` emits `_build/asar/` (`main.asm`, `enums.asm`, `wram.asm`, `symbols.asm`, `blobs/`); `--asar` verifies byte-identical builds | Asar 1.90pre matches `implode --strict` (vanilla sha1) and `--random 1` (`g0.test.mts`) | done |
+| **C0b** 🟨 v0.478.0 | **Data by label** (§3.1): generated-table `lda.l` readers (`maps`, `tiles`, `scripts`, `animations`, `characters._enemy_index`, `sprite_blocks_16`, `sprite_blocks_8`) written as `tbl_*` symbols (`code-symbols.mts`); codec `readerWrites` handoff via `code/owned-sites` | G0; `--random` (`g0.test.mts`) | remaining non-`lda.l` patches (`rings`, `dog_forms`, `consumables`, `ingredients`, `palettes`, `characters` bank bytes) |
+| **C0c** ✅ v0.478.0 | **WRAM by name in the code**: all `3,448` WRAM census sites written as WRAM symbols (`BOY_HP`, `VAR-$7E0000`), `wram.asm` generated, `wram.tables` skips `code/owned-sites` | G0; WRAM move in `code/` + round-trip (`g0.test.mts`) | done |
+| **C1** ✅ v0.478.0 | **New routines by name**: `code/<name>.asm` without `org` is placed by `layout.mts` in FastROM, referencing routines, WRAM, `tbl_*`/`res_*` symbols, and `!ENUM`/`!STRUCT` defines | G0; new routine + grown caller round-trip (`g0.test.mts`) | optional bank stubs for handler tables remain open |
 | C2 | Symbols M0, M1, M4: game regions, local labels for the 227 `seg_+off` branches, DB-relative operands | the export still G0, and a padding test per bank (M8) | `asar-export.ts` |
-| C3 | **Move `jsl`-only leaves**: an `rtl` routine with no `jsr.w` caller, no `phk : plb`, no `pea`/`per` and no mid entry. It moves inside FastROM (`$80-$BF` upper half, `$C0-$FF`) | `--random` + `prove --strict` | an xref count: which routines qualify (85 pure leaves among 291 bindable routines in replay 01) |
+| **C3** ✅ v0.478.0 | **Move `jsl`-only leaves**: `154` `rtl`/`jml` leaves with no `jsr.w` caller, no foreign holes, no table readers, no `phk`/`pea`/`per`/data, no WRAM indirect-jump hook references, and no `_base` pointer matches relocate freely in FastROM | `--random` + `prove --random 1` (14,638 frames in lockstep) + `g0.test.mts` | done |
 | C4 | Move a bank's handlers with their table (b), or a whole `jsr.w` group (a) | `prove --strict` | a free range in the bank or a stub; never a cross-bank change under `--strict` |
 | C5 | Header vectors by name (S8) | G0 | C0 |
 | C6 | M5-M7: address immediates, pointers in data, never-run code | the ratchet only shrinks | data flow, a static pass |

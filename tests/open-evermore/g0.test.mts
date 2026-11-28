@@ -5,13 +5,16 @@
 // checked. Playing them is `open-evermore.mts prove` (on demand: never in a tier). Skips without the ROM.
 // Run: node tests/open-evermore/g0.test.mts   (npm run build:ts first)
 import assert from 'node:assert';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { assembleWithAsar, findAsar } from '../../tools/open-evermore/asar-project.mts';
 import { GAME, KINDS, PAST_END } from '../../tools/open-evermore/evermore/kinds.mts';
 import { explode } from '../../tools/open-evermore/explode.mts';
 import { HOOKS_LENGTH } from '../../tools/open-evermore/evermore/codecs/ingredient-hooks.mts';
 import { implode } from '../../tools/open-evermore/implode.mts';
-import { sha1 } from '../../tools/open-evermore/tree.mts';
+import { sha1, writeTree } from '../../tools/open-evermore/tree.mts';
 
 const require = createRequire(import.meta.url);
 const games = require('../../dist/games');
@@ -28,7 +31,7 @@ if (!path || !existsSync(path)) {
     const tree = explode(rom, { release: 'us', sha1: sha1(rom), explodedWith: 'test' }, GAME, KINDS);
     console.log('\nOpen Evermore on the base ROM:');
 
-    const stable = implode(tree, GAME, KINDS, { strict: true });
+    const stable = implode(tree, GAME, KINDS, { strict: true, emitAsar: true });
     assert.deepStrictEqual(stable.findings.list.filter(f => f.severity !== 'info'), []);
     assert.strictEqual(stable.sha1, sha1(rom));
     console.log(`  ✓ stable --strict: ${tree.size} files → the same ROM (${stable.sha1}), no warnings`);
@@ -38,8 +41,10 @@ if (!path || !existsSync(path)) {
     assert.ok(fast.sha1 !== sha1(rom) && !fast.findings.list.some(f => f.rule === 'changed'), 'fast forms, nothing changed');
     console.log(`  ✓ stable: every relative call absolute, round trip holds (${fast.layout})`);
 
+    let random1!: ReturnType<typeof implode>;
     for (const seed of [1, 2026]) {
-        const r = implode(tree, GAME, KINDS, { seed });
+        const r = implode(tree, GAME, KINDS, { seed, emitAsar: seed === 1 });
+        if (seed === 1) random1 = r;
         assert.deepStrictEqual(r.findings.list.filter(f => f.severity !== 'info'), []);
         const moved = r.placed.filter(p => p.at !== p.home).length;
         assert.ok(moved > 100, `only ${moved} rooms moved`);
@@ -492,22 +497,72 @@ if (!path || !existsSync(path)) {
     assert.deepStrictEqual(swapped.findings.list.filter(f => f.severity === 'error'), []);
     console.log('  ✓ music: 71 packages, their data as .bin; an edited package rebuilds; unknown data or a bad sound is an error');
 
-    // Code (docs/open-evermore/code.md C0): every recorded routine is a file by name, at its vanilla address. A same-size
-    // edit lands; an edit whose instructions change length round-trips (a routine compares by its bytes); a longer
-    // routine, a new one and an unknown label are errors.
+    // Code (docs/open-evermore/code.md C0-C3): every recorded routine is a file by name with symbolic WRAM and
+    // table-reader operands, C1 new routines and C3 pure jsl-only leaves relocate freely in FastROM, and implode emits
+    // a standalone whole-game Asar project.
     const codeFiles = [...tree.keys()].filter(p => p.startsWith('code/') && p.endsWith('.asm'));
     assert.ok(codeFiles.length > 1400 && tree.has('code/reset_handler.asm') && tree.has('code/nmi_handler.asm'), `${codeFiles.length} routines`);
     const editText = (t: typeof tree, p: string, fn: (s: string) => string) => t.set(p, new Uint8Array(Buffer.from(fn(Buffer.from(t.get(p)!).toString()))));
     const reset = (s: string) => s.replace('    lda.b #$8F\n', '    lda.b #$80\n').replace('loc_808034:\n    lda.w #$0000\n', 'loc_808034:\n    nop\n    nop\n    nop\n');
     const ce = new Map(tree);
     editText(ce, 'code/reset_handler.asm', reset);
-    const cb = implode(ce, GAME, KINDS, { strict: true });
+    const cb = implode(ce, GAME, KINDS, { strict: true, emitAsar: true });
     assert.deepStrictEqual(cb.findings.list.filter(f => f.severity !== 'info'), []);
     const diff = [...cb.image!.keys()].filter(i => cb.image![i] !== rom[i]);
     assert.deepStrictEqual(diff.filter(i => i < 0xFFDC || i > 0xFFDF), [0x8021, 0x8034, 0x8035, 0x8036], 'only the edited bytes (and the checksum)');
+    assert.ok(cb.asar?.has('main.asm') && cb.asar.has('enums.asm') && cb.asar.has('wram.asm') && cb.asar.has('symbols.asm') && cb.asar.has('blobs/base.bin'), 'asar project emitted');
     assert.deepStrictEqual(rules(t => editText(t, 'code/reset_handler.asm', s => s + '    nop\n'), true), ['code-size code/reset_handler.asm#']);
-    assert.deepStrictEqual(rules(t => t.set('code/my_new.asm', new Uint8Array(Buffer.from('my_new:\n    rtl\n'))), true), ['code-new code/my_new.asm#']);
     assert.deepStrictEqual(rules(t => editText(t, 'code/reset_handler.asm', s => s.replace('    sta.w $2100\n', '    sta.w no_such_label\n')), true), ['asm code/reset_handler.asm#line 5']);
+
+    // C0b + C0c: WRAM and generated-table readers use symbols instead of raw addresses + comments.
+    const allCodeText = codeFiles.map(p => Buffer.from(tree.get(p)!).toString()).join('\n');
+    assert.ok(!allCodeText.includes('operand written by wram'), 'no WRAM holes left as raw operands');
+    assert.ok(allCodeText.includes('tbl_maps_map_table') && allCodeText.includes('tbl_tiles_table') && allCodeText.includes('tbl_scripts_table') && allCodeText.includes('tbl_animations_table'), 'table readers use symbols');
+
+    // Moving a WRAM variable updates code operands cleanly and round-trips.
+    const wm = new Map(tree);
+    editJson(wm, 'wram/_types.json', t => { t.enums.ChoiceBoxState.size = 4; t.enums.ChoiceBoxState.values['0x04'] = 'CANCELLED'; });
+    editJson(wm, 'wram/session.json', f => { f.items.find((i: any) => i.name === 'DIALOGUE_SCROLL_ALIGN_GAP').count = 20; });
+    const wramMoved = implode(wm, GAME, KINDS, { strict: true });
+    assert.deepStrictEqual(wramMoved.findings.list.filter(f => f.severity !== 'info'), []);
+    assert.strictEqual(wramMoved.image![0x0DC909], 0x39, 'code assembled moved SAVE_MENU_SRAM_PTR ($0B37 -> $0B39)');
+
+    // C1: a new routine without `org` referencing WRAM, a table symbol, and an enum define places in 4th MB FastROM and round-trips.
+    const c1 = new Map(tree);
+    c1.set('code/my_new.asm', new Uint8Array(Buffer.from('my_new:\n    lda.w #!MAPS_COUNT\n    lda.w FRAME_COUNTER_1\n    lda.l tbl_maps_map_table,x\n    rtl\n')));
+    editText(c1, 'code/face_diagonal.asm', s => s.replace('face_diagonal:\n', 'face_diagonal:\n    jsl my_new\n'));
+    const c1Built = implode(c1, GAME, KINDS, { emitAsar: true });
+    assert.deepStrictEqual(c1Built.findings.list.filter(f => f.severity !== 'info'), []);
+    const myNewPlaced = c1Built.placed.find(p => p.key === 'code/my_new')!;
+    const grownLeaf = c1Built.placed.find(p => p.key === 'code/face_diagonal')!;
+    assert.ok((myNewPlaced.at & 0xFFFF) >= 0x8000 && myNewPlaced.at < 0x400000, 'new routine placed in FastROM');
+    assert.ok((grownLeaf.at & 0xFFFF) >= 0x8000 && grownLeaf.at < 0x400000 && grownLeaf.at !== grownLeaf.home, 'grown C3 leaf relocated to FastROM');
+
+    // C3: pure jsl-only leaves move under --random and round-trip.
+    const movedRoutines = random1.placed.filter(p => p.key.startsWith('code/') && p.home !== undefined && p.at !== p.home);
+    assert.ok(movedRoutines.length >= 40, `expected >= 40 movable routines under --random, got ${movedRoutines.length}`);
+
+    // C0a: real Asar builds the entire game from _build/asar/ byte-identical to implode for both --strict and --random 1.
+    const asarBin = findAsar();
+    if (asarBin) {
+        const tmp = mkdtempSync(join(tmpdir(), 'oe-asar-'));
+        try {
+            const codeTree = new Map([...tree].filter(([p]) => p.startsWith('code/')));
+            writeTree(tmp, codeTree);
+            for (const [label, built] of [['strict', stable], ['random 1', random1]] as const) {
+                const asarDir = join(tmp, '_build', 'asar');
+                rmSync(asarDir, { recursive: true, force: true });
+                writeTree(asarDir, built.asar!);
+                const res = assembleWithAsar(asarDir, join(tmp, '_build', 'out.sfc'), asarBin);
+                assert.ok(res.ok, `${label} asar failed: ${res.error}`);
+                assert.strictEqual(sha1(res.image!), built.sha1, `${label} asar sha1 mismatch`);
+            }
+            console.log('  ✓ real Asar builds whole-game _build/asar/ byte-identical to implode (--strict and --random 1)');
+        } finally {
+            rmSync(tmp, { recursive: true, force: true });
+        }
+    }
+
     // Same bytes in other words: a routine in a subfolder, a label of the modder's own used from another routine, an
     // edited README: the vanilla ROM, and the round trip holds.
     const cw = new Map(tree);
@@ -519,7 +574,7 @@ if (!path || !existsSync(path)) {
     const sw = implode(cw, GAME, KINDS, { strict: true });
     assert.deepStrictEqual(sw.findings.list.filter(f => f.severity !== 'info'), []);
     assert.strictEqual(sw.sha1, sha1(rom));
-    console.log(`  ✓ code: ${codeFiles.length} routines as Asar files; a same-size edit lands, instructions of another length round-trip; a longer or new routine and an unknown label are errors`);
+    console.log(`  ✓ code: ${codeFiles.length} routines with symbolic WRAM/tables, C1 new routines, ${movedRoutines.length} C3 movable leaves, and Asar project generation`);
 
     for (const layout of ['exhirom', 'sa1']) {
         const t = new Map(tree);

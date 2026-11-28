@@ -27,8 +27,10 @@ export function census(): Census {
 /** Each site's operand bytes: the table space this kind generates. */
 export const siteSpans = (): Span[] => census().groups.flatMap(g => g.sites.map(s => ({ start: s.file + 1, end: s.file + 1 + s.length })));
 /** Where a group's first site says it starts, in `rom` (null when the site does not name WRAM). */
-export function groupStart(rom: Uint8Array, g: Group): number | null {
-    const starts = g.sites.map(s => {
+export function groupStart(rom: Uint8Array, g: Group, skip: Span[] = []): number | null {
+    const sites = skip.length ? g.sites.filter(s => !skip.some(h => s.file >= h.start && s.file < h.end)) : g.sites;
+    if (!sites.length) return g.from;
+    const starts = sites.map(s => {
         let v = 0;
         for (let k = s.length - 1; k >= 0; k--) v = v * 256 + rom[s.file + 1 + k];
         const bank = s.length === 3 ? v >> 16 : g.from >> 16;

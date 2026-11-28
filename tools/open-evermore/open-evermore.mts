@@ -26,6 +26,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
+import { assembleWithAsar } from './asar-project.mts';
 import { GAME, loadMap, selectRelease } from './evermore/map.mts';
 import { draft, locateAll } from './evermore/map-locate.mts';
 import { explode } from './explode.mts';
@@ -48,7 +49,7 @@ async function load(release: string | null | undefined): Promise<Kinds> {
 /** The release a tree was exploded from (manifest.json `base.release`). */
 const treeRelease = (tree: Map<string, Uint8Array>): string | undefined => { try { return JSON.parse(readText(tree.get(MANIFEST)!)).base?.release; } catch { return undefined; } };
 
-const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict]\n       open-evermore.mts prove <dir> [--random [seed] | --stable] [--promoted] [--movies <file|dir>…]\n       open-evermore.mts locate <rom> [--out <dir>]';
+const USAGE = 'usage: open-evermore.mts explode [rom] [--out <dir>] [--force] [--palettes json|png] [--tiles png|json] [--kinds a,b] [--previews]\n       open-evermore.mts implode <dir> [--random [seed]] [--check-only] [--strict] [--asar] [--asar-bin <path>]\n       open-evermore.mts prove <dir> [--random [seed] | --stable] [--promoted] [--movies <file|dir>…]\n       open-evermore.mts locate <rom> [--out <dir>]';
 
 async function runExplode(args: string[], flag: (n: string) => boolean, value: (n: string) => string | null): Promise<number> {
     const force = flag('--force'), previews = flag('--previews');
@@ -142,14 +143,16 @@ async function runProve(args: string[], flag: (n: string) => boolean): Promise<n
     return result.ok ? 0 : 1;
 }
 
-async function runImplode(args: string[], flag: (n: string) => boolean): Promise<number> {
-    const checkOnly = flag('--check-only'), strict = flag('--strict');
+async function runImplode(args: string[], flag: (n: string) => boolean, value: (n: string) => string | null): Promise<number> {
+    const checkOnly = flag('--check-only'), strict = flag('--strict'), verifyAsar = flag('--asar'), asarBin = value('--asar-bin');
     const seed = takeSeed(args);
     if (!args[0]) { console.error(USAGE); return 2; }
     const dir = resolve(args[0]);
     const tree = readTree(dir);
     const { PAST_END } = await load(treeRelease(tree));
-    const result = implode(tree, GAME, treeKinds(tree), { checkOnly, seed, pastEnd: PAST_END, strict });
+    const kinds = treeKinds(tree);
+    const emitAsar = !checkOnly && (verifyAsar || !!asarBin || kinds.some(k => k.kind === 'code'));
+    const result = implode(tree, GAME, kinds, { checkOnly, seed, pastEnd: PAST_END, strict, emitAsar });
     if (strict) for (const f of result.findings.list) if (f.severity === 'warning') f.severity = 'error';
     const failed = result.findings.failed;
 
@@ -157,10 +160,27 @@ async function runImplode(args: string[], flag: (n: string) => boolean): Promise
     rmSync(join(build, 'evermore.sfc'), { force: true });
     mkdirSync(build, { recursive: true });
     if (result.image && !failed) writeFileSync(join(build, 'evermore.sfc'), result.image);
+    if (result.asar && !failed) {
+        const asarDir = join(build, 'asar');
+        rmSync(asarDir, { recursive: true, force: true });
+        writeTree(asarDir, result.asar);
+    }
     writeFileSync(join(build, 'report.json'), JSON.stringify({ sha1: result.sha1, seed: result.seed, stats: result.stats, findings: result.findings.list }, null, 2) + '\n');
     writeFileSync(join(build, 'report.md'), markdown(dir, result));
     console.log(terminal(dir, result, checkOnly));
-    return failed ? 1 : 0;
+    if (failed) return 1;
+    if ((verifyAsar || asarBin) && result.asar && result.image) {
+        const asarRom = join(build, 'evermore-asar.sfc');
+        const res = assembleWithAsar(join(build, 'asar'), asarRom, asarBin ?? undefined);
+        if (!res.ok) { console.error(`asar: ${res.error}`); return 1; }
+        const expected = result.layout?.startsWith('HiROM') ? result.image : result.content!;
+        if (sha1(res.image!) !== sha1(expected)) {
+            console.error(`asar: sha1 mismatch (${sha1(res.image!)} vs ${sha1(expected)})`);
+            return 1;
+        }
+        console.log(`Asar verified: ${asarRom} (${sha1(res.image!)})`);
+    }
+    return 0;
 }
 
 async function main(): Promise<void> {
@@ -169,7 +189,7 @@ async function main(): Promise<void> {
     const value = (name: string) => { const i = args.indexOf(name); return i < 0 ? null : args.splice(i, 2)[1] ?? null; };
     const action = args.shift();
     process.exitCode = action === 'explode' ? await runExplode(args, flag, value)
-        : action === 'implode' ? await runImplode(args, flag)
+        : action === 'implode' ? await runImplode(args, flag, value)
         : action === 'prove' ? await runProve(args, flag)
         : action === 'locate' ? runLocate(args, value)
         : (console.error(USAGE), 2);

@@ -59,3 +59,21 @@ const fe: any[] = [];
 asm.encode(far, 0x808000, (s: string) => (s === 'there' ? 0x808000 + 202 : 0x808000), fe);
 assert.match(fe[0].message, /202|200|bytes away/);
 console.log('  ✓ an unknown label, a form the CPU lacks, a label without a size, a label twice, a number too wide, a jump out of its bank and a branch too far are errors; an unsized $ number is as wide as its digits');
+
+// Defines (`!NAME = expr`, `NAME = expr`), parenthesized expressions, bitwise `~`, and shifts.
+const extErr: any[] = [];
+const extSym = new Map<string, number>([['!MAPS_COUNT', 127], ['VAR', 0x7E0A3D], ['tbl_maps_table', 0x908F78], ['tbl_palettes', 0xC41234]]);
+const ext = asm.measure('ext', '!LOCAL = !MAPS_COUNT+1\nCONST = $10\n    lda.w #!MAPS_COUNT\n    lda.w #!LOCAL\n    lda.l VAR-$7E0000,x\n    lda.l (tbl_maps_table+1),x\n    lda.b #tbl_palettes>>16\n    lda.b #~CONST\n    rtl\n', extErr);
+const extBytes = asm.encode(ext, 0x8C8000, (s: string) => extSym.get(s), extErr);
+assert.deepStrictEqual(extErr, []);
+assert.deepStrictEqual([...extBytes], [
+    0xA9, 0x7F, 0x00,
+    0xA9, 0x80, 0x00,
+    0xBF, 0x3D, 0x0A, 0x00,
+    0xBF, 0x79, 0x8F, 0x90,
+    0xA9, 0xC4,
+    0xA9, 0xEF,
+    0x6B,
+]);
+assert.deepStrictEqual(bad('    lda.w #!NO_SUCH'), ['1: unknown define !NO_SUCH']);
+console.log('  ✓ !defines, constants, parenthesized expressions, shifts and unary ~ assemble cleanly');

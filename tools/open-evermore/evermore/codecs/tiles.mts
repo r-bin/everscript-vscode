@@ -19,6 +19,7 @@
 //              an animation frame (marked `dma` by the maps kind) is stored as 64 raw words, since the streamer
 //              $90:A1B4 DMAs 128 bytes from +1
 import * as map from '../map.mts';
+import { codeOwnsSite } from './readers.mts';
 import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -283,6 +284,6 @@ export const tilesCodec: Codec = {
             bytes.set([bus & 0xFF, (bus >> 8) & 0xFF, bus >> 16], id * 3);
         }
         const operand = (r: { add: number }) => { const bus = ctx.pointer(tableAt) + r.add; return Uint8Array.of(bus & 0xFF, (bus >> 8) & 0xFF, bus >> 16); };
-        return [{ at: tableAt, bytes, file: `${DIR}/${ENUM}` }, ...READERS.map(r => ({ at: r.at, bytes: operand(r), file: `${DIR}/${ENUM}` }))];
+        return [{ at: tableAt, bytes, file: `${DIR}/${ENUM}` }, ...READERS.filter(r => !codeOwnsSite(ctx, r.at)).map(r => ({ at: r.at, bytes: operand(r), file: `${DIR}/${ENUM}` }))];
     },
 };

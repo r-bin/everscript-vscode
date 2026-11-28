@@ -34,6 +34,7 @@
 //   gaps         bytes no command reaches, inside a script or between the scripts of a group, are not the script's
 //                (bank $95 keeps tiles between two scripts that call each other): `skip <n>`, a hole in the item
 import * as map from '../map.mts';
+import { codeOwnsSite } from './readers.mts';
 import { createRequire } from 'node:module';
 import type { Codec, ImplodeContext, Item, Span, Write } from '../../codec.mts';
 import { ENUM, enumFile } from '../../enum.mts';
@@ -424,7 +425,7 @@ export const scriptsCodec: Codec = {
         }
         writes.push({ at: tableAt, bytes: table, file: `${DIR}/${ENUM}` });
         const word0 = u16(ctx.base.image, HEADER);
-        for (const r of READERS) writes.push({ at: r.at, bytes: Uint8Array.from(bytes3((ctx.pointer(tableAt) - word0 + r.add) & 0xFFFFFF)), file: `${DIR}/${ENUM}` });
+        for (const r of READERS) if (!codeOwnsSite(ctx, r.at)) writes.push({ at: r.at, bytes: Uint8Array.from(bytes3((ctx.pointer(tableAt) - word0 + r.add) & 0xFFFFFF)), file: `${DIR}/${ENUM}` });
         if (state.boot && ctx.symbols.has(`${DIR}/${state.boot}`)) writes.push({ at: BOOT, bytes: Uint8Array.from(bytes3(packed(state.boot))), file: `${DIR}/${META}` });
         return writes;
     },

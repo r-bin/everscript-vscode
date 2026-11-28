@@ -171,6 +171,8 @@ export interface Codec {
     encode(ctx: ImplodeContext, names: Set<string>): Item[];
     /** Named addresses inside this kind's items, once they are placed (ImplodeContext.symbols). */
     symbols?(ctx: ImplodeContext, placed: Map<string, number>): Map<string, number>;
+    /** Symbolic labels and numeric defines this kind exports for code assembly and Asar headers. */
+    defines?(ctx: ImplodeContext): { labels: Map<string, number>; defines: Map<string, number> };
     /** The generated tables, given each name's id (ctx.ids) and where every item landed (file offsets by key): in the
      *  table space explode recorded, or in a `generated` or `patched` item of this build. */
     tables(ctx: ImplodeContext, placed: Map<string, number>): Write[];

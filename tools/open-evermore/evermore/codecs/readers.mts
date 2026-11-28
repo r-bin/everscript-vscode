@@ -20,9 +20,13 @@ export function tableAt(rom: Uint8Array, readers: Reader[], what: string): numbe
 /** The operand bytes, as generated table space. */
 export const readerSpans = (readers: Reader[]): Span[] => readers.map(r => ({ start: r.at, end: r.at + 3 }));
 
-/** The operands pointing at the table placed at file offset `at`. */
+/** True when the `code` kind owns the operand at file offset `operandOffset` (writes it from symbols). */
+export const codeOwnsSite = (ctx: ImplodeContext, operandOffset: number): boolean =>
+    ctx.marks?.get('code/owned-sites')?.has(operandOffset.toString(16)) ?? false;
+
+/** The operands pointing at the table placed at file offset `at`, skipping sites owned by `code`. */
 export function readerWrites(ctx: ImplodeContext, readers: Reader[], at: number, file: string): Write[] {
-    return readers.map(r => {
+    return readers.filter(r => !codeOwnsSite(ctx, r.at)).map(r => {
         const bus = (ctx.pointer(at) + r.add) & 0xFFFFFF;
         return { at: r.at, bytes: Uint8Array.of(bus & 0xFF, (bus >> 8) & 0xFF, bus >> 16), file };
     });

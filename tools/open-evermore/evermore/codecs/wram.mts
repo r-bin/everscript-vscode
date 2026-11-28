@@ -40,8 +40,9 @@ import type { Tree } from '../../tree.mts';
 import * as map from '../map.mts';
 import { census, check, fromRom, groupStart, siteSpans } from './wram-moves.mts';
 import type { Group, Moved } from './wram-moves.mts';
-import { NAME, TEMP_END, TEMP_START, VANILLA_TYPES, WRAM_START, at16, checkEnums, knownType, partAt, partsOf, placeKey, sizeOfType, splitType, vanillaWram } from './wram-vars.mts';
+import { NAME, TEMP_END, TEMP_START, VANILLA_TYPES, WRAM_START, at16, checkEnums, enumValues, knownType, partAt, partsOf, placeKey, sizeOfType, splitType, vanillaWram } from './wram-vars.mts';
 import type { Cell, Entry, Types, Variable } from './wram-vars.mts';
+import type { Span } from '../../codec.mts';
 
 export { vanillaWram } from './wram-vars.mts';
 export type { Variable } from './wram-vars.mts';
@@ -50,6 +51,10 @@ export const KIND = 'wram';
 const DIR = KIND, FORMAT = 'open-evermore/memory', TYPES_FORMAT = 'open-evermore/memory-types', VERSION = 1, TYPES = '_types.json';
 /** The symbol that tells a round trip's explode that it reads back a tree implode just read (Codec.symbols → nameAt). */
 const TREE_MARK = 0x7FFFFFFF, TREE_NAME = '__tree__';
+/** Code sets this mark in `symbols()` when routines moved so WRAM round-trip ignores moved sites. */
+export const CODE_MOVED_MARK = 0x7FFFFFFE, CODE_MOVED_NAME = '__moved__';
+let movedCodeSpans: Span[] = [];
+export const setMovedCodeHomes = (spans: Span[] | null): void => { movedCodeSpans = spans ?? []; };
 
 // ── the layout the other kinds read: the tree's when implode read the wram kind, else vanilla's ──
 interface Layout { at: Map<string, number>; name: Map<number, string>; list: Variable[] }
@@ -61,6 +66,42 @@ const layout = () => current ?? (current = layoutOf(vanillaWram().map(v => ({ ..
 
 /** The bus address of a WRAM variable by name. */
 export const wramAddress = (name: string): number | undefined => layout().at.get(name);
+/** All variables in the current layout. */
+export const currentWram = (): Variable[] => layout().list;
+/** Active WRAM types/enums/structs from the tree, or vanilla's. */
+export const currentTypes = (): Types => (lastRead?.types as Types | null) ?? (VANILLA_TYPES as Types);
+/** Symbolic WRAM expression for an instruction operand at current bus address `addr`. */
+export function wramSymbolExpr(addr: number, length: 2 | 3 = 3, bank?: number): string | null {
+    const list = layout().list;
+    const exact = list.find(v => v.at === addr && !v.in) ?? list.find(v => v.at === addr);
+    let expr: string | null = exact ? exact.name : null;
+    if (!expr) {
+        const h = wramHolding(addr);
+        if (h) expr = h.offset ? `${h.name}+$${h.offset.toString(16).toUpperCase()}` : h.name;
+    }
+    if (!expr) return null;
+    return length === 3 && bank === 0 ? `${expr}-$7E0000` : expr;
+}
+
+/** Symbolic WRAM expression for a vanilla WRAM address (handles renames/moves on round-trip). */
+export function wramSymbolForVanilla(vanillaAddr: number, length: 2 | 3, bank?: number): string | null {
+    const list = layout().list;
+    const exact = list.find(v => (v.home?.at ?? v.at) === vanillaAddr && !v.in) ?? list.find(v => (v.home?.at ?? v.at) === vanillaAddr);
+    let expr: string | null = exact ? exact.name : null;
+    if (!expr) {
+        let best: Variable | null = null;
+        for (const v of list) {
+            const h = v.home;
+            if (h && h.size !== null && h.at <= vanillaAddr && vanillaAddr < h.at + h.size && (!best || h.size < best.home!.size!)) best = v;
+        }
+        if (best) {
+            const off = vanillaAddr - best.home!.at;
+            expr = off ? `${best.name}+$${off.toString(16).toUpperCase()}` : best.name;
+        }
+    }
+    if (!expr) return null;
+    return length === 3 && bank === 0 ? `${expr}-$7E0000` : expr;
+}
 /** A variable's size in bytes (null: as wide as each access; undefined: no such variable). */
 export const wramSize = (name: string): number | null | undefined => { const at = layout().at.get(name); return at === undefined ? undefined : layout().list.find(v => v.name === name)!.size; };
 /** The variable that starts at a bus address, by name ('' when none). */
@@ -226,8 +267,10 @@ export const wramCodec: Codec = {
     explode(rom, _name, _options, _count, nameAt) {
         // Each movable group's place is in the ROM: the operands implode wrote (vanilla's on a vanilla ROM).
         const vanilla = vanillaWram(), deltas = new Map<Group, number>();
+        const tree = nameAt(KIND, TREE_MARK) === TREE_NAME ? lastRead : null;
+        const skipMoved = tree && nameAt('code', CODE_MOVED_MARK) === CODE_MOVED_NAME ? movedCodeSpans : [];
         if (rom.length) for (const g of census().groups) {
-            const at = groupStart(rom, g);
+            const at = groupStart(rom, g, skipMoved);
             if (at === null) throw new Error(`wram: the operands that reach ${at16(g.from)}-${at16(g.to - 1)} disagree on where it is (another release, or code changed there)`);
             if (at !== g.from) deltas.set(g, at - g.from);
         }
@@ -235,7 +278,6 @@ export const wramCodec: Codec = {
         const files: Tree = new Map();
         // A round trip of a tree implode just read: the ROM holds no type, size or gap, only the places of what moves.
         // The tree's files come back when every place the ROM gives is the tree's; else the ROM's places are written.
-        const tree = nameAt(KIND, TREE_MARK) === TREE_NAME ? lastRead : null;
         if (tree && lastMoves.every(m => !m.now || !census().groups.some(g => m.home.at >= g.from && m.home.at < g.to) || m.now.at - m.home.at === deltaOf(m.home))) {
             for (const [path, f] of tree.files) files.set(path, json(f));
             files.set(`${DIR}/${TYPES}`, typesFile(tree.types ?? VANILLA_TYPES));
@@ -283,16 +325,38 @@ export const wramCodec: Codec = {
 
     symbols: () => new Map([...layout().list.map(v => [`${KIND}/${v.name}`, placeKey(v)] as [string, number]), [`${KIND}/${TREE_NAME}`, TREE_MARK]]),
 
-    /** Every operand of the census, from where its group is now (vanilla's when nothing moved). */
+    defines() {
+        const labels = new Map<string, number>();
+        for (const v of layout().list) labels.set(v.name, v.at);
+        const defines = new Map<string, number>(), types = currentTypes();
+        for (const [enumName, e] of Object.entries(types.enums ?? {})) {
+            for (const [valStr, valName] of Object.entries(enumValues(e as Record<string, unknown>))) {
+                if (typeof valName !== 'string' || !NAME.test(valName)) continue;
+                const num = Number(valStr);
+                if (!Number.isNaN(num)) defines.set(`ENUM_${enumName}_${valName}`, num);
+            }
+        }
+        for (const [structName, s] of Object.entries(types.structs ?? {}) as [string, { size: number; fields?: { offset: number; name: string }[] }][]) {
+            if (Number.isInteger(s?.size)) defines.set(`STRUCT_${structName}_SIZE`, s.size);
+            if (Array.isArray(s?.fields)) for (const f of s.fields) {
+                if (typeof f?.name === 'string' && NAME.test(f.name) && Number.isInteger(f.offset)) defines.set(`STRUCT_${structName}_${f.name}`, f.offset);
+            }
+        }
+        return { labels, defines };
+    },
+
+    /** Every operand of the census, from where its group is now (vanilla's when nothing moved), skipping sites owned by `code`. */
     tables(ctx) {
         const out: Write[] = [];
         const moved = new Map(lastMoves.filter(m => m.now).map(m => [m.home, m.now!.at - m.home.at]));
         const tops = vanillaWram().filter(v => !v.in);
+        const owned = ctx.marks?.get('code/owned-sites');
         for (const g of census().groups) {
             const first = tops.find(v => v.at >= g.from && v.at < g.to);
             const delta = first ? moved.get(first) ?? 0 : 0;
             if (delta) for (const a of numbered) if (a >= g.from && a < g.to) ctx.findings.error('wram-script-number', `${DIR}/${partAt(g.from)?.name ?? KIND}.json`, '', `${first!.name} moved, but a script names ${at16(a)} by number: write it by name`);
             for (const s of g.sites) {
+                if (owned?.has((s.file + 1).toString(16))) continue;
                 const v = g.from + delta + s.offset;
                 const bank = s.bank === undefined ? null : s.bank === 0x7E || s.bank === 0x7F ? v >> 16 : s.bank;
                 const bytes = s.length === 3 ? [v & 0xFF, (v >> 8) & 0xFF, bank!] : [v & 0xFF, (v >> 8) & 0xFF];

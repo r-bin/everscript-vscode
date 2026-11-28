@@ -20,6 +20,7 @@
 // collision form → collisions/; its level and flags are the metatile's own fields); triggers and objects are named by
 // what they do (room-names.mts).
 import * as map from '../map.mts';
+import { codeOwnsSite } from './readers.mts';
 import { createRequire } from 'node:module';
 import { fileOfPacked, packedOf, scriptLayout } from './scripts.mts';
 import { objectNames, triggerNames } from './room-names.mts';
@@ -281,7 +282,7 @@ export const mapsCodec: Codec = {
             const e = { packed: at === undefined ? 0 : packedOf(at), word: s?.word ?? 0 };
             enter.set([e.packed & 0xFF, (e.packed >> 8) & 0xFF, e.packed >> 16, e.word & 0xFF, e.word >> 8], id * ENTER_STRIDE);
         }
-        const operands = (readers: { at: number; add: number }[], to: number, file: string): Write[] => readers.map(r => {
+        const operands = (readers: { at: number; add: number }[], to: number, file: string): Write[] => readers.filter(r => !codeOwnsSite(ctx, r.at)).map(r => {
             const bus = ctx.pointer(to) + r.add;
             return { at: r.at, bytes: new Uint8Array([bus & 0xFF, (bus >> 8) & 0xFF, bus >> 16]), file };
         });

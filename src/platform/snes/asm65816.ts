@@ -5,9 +5,9 @@
  * `.w` absolute, `.l` long; `jsl`/`jml` long; branches to labels), so text that printer wrote assembles back to the
  * same bytes without an external tool. A hand-written operand without a size takes it as Asar does: a `$` number by the
  * digits written (`$12` direct page, `$0012` absolute, `$7E0012` long), a decimal one by its value.
- * Supported: `label:` (global), instructions, `db`/`dw`/`dl`, `skip n` (leaves bytes to someone else), `org`, and
- * expressions of numbers ($hex, %bin, decimal), labels and + - * / << >> & |. Not supported: macros, defines,
- * sublabels, incsrc/incbin, strings. Hardware fact only (no game in here).
+ * Supported: `label:` (global), `NAME = expr` / `!NAME = expr`, instructions, `db`/`dw`/`dl`, `skip n`, `org`, and
+ * expressions of numbers ($hex, %bin, decimal), labels, `!DEFINE`s, parentheses, unary `~`/`+`/`-` and
+ * + - * / << >> & |. Not supported: macros, sublabels, incsrc/incbin, strings. Hardware fact only (no game in here).
  *
  * Sizes never depend on label values (every operand's width comes from its text), so a file is measured once and
  * encoded once all labels are known (`measure` → `encode`), wherever it is placed.
@@ -31,6 +31,8 @@ export interface Measured {
     length: number;
     /** Labels by offset in the file's bytes. */
     labels: Map<string, number>;
+    /** Constant / define assignments (`NAME = expr`, `!NAME = expr`) in the file. */
+    defs: Map<string, string>;
     /** Byte ranges (offset, length) the file skips: not its bytes. */
     skips: { offset: number; length: number }[];
     statements: Statement[];
@@ -156,7 +158,7 @@ function choose(mn: string, size: string, text: string): { op: number; mode: str
 
 /** Measures one file: statements, sizes, labels. */
 export function measure(file: string, text: string, errors: AsmError[]): Measured {
-    const out: Measured = { file, length: 0, labels: new Map(), skips: [], statements: [], orgs: [] };
+    const out: Measured = { file, length: 0, labels: new Map(), defs: new Map(), skips: [], statements: [], orgs: [] };
     const lines = text.split(/\r?\n/);
     lines.forEach((raw, i) => {
         const line = i + 1;
@@ -169,6 +171,8 @@ export function measure(file: string, text: string, errors: AsmError[]): Measure
             s = m[2].trim();
         }
         if (!s) return;
+        const dm = /^(!?[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/.exec(s);
+        if (dm) { out.defs.set(dm[1], dm[2].trim()); return; }
         const sp = s.search(/\s/);
         const head = (sp < 0 ? s : s.slice(0, sp)).toLowerCase(), rest = sp < 0 ? '' : s.slice(sp + 1).trim();
         const [word, size = ''] = head.split('.');
@@ -205,15 +209,24 @@ export function measure(file: string, text: string, errors: AsmError[]): Measure
     return out;
 }
 
-/** Evaluates an expression; labels from `symbols` (bus addresses). Null with an error when it does not resolve. */
+/** Evaluates an expression; labels and `!defines` from `symbols` (bus addresses / values). String on error. */
 export function evaluate(expr: string, symbols: (name: string) => number | undefined): number | string {
-    const tokens = expr.match(/\$[0-9a-fA-F]+|%[01]+|[0-9]+|[A-Za-z_][A-Za-z0-9_]*|<<|>>|[-+*/&|]|\S/g) ?? [];
+    const tokens = expr.match(/\$[0-9a-fA-F]+|%[01]+|[0-9]+|!?[A-Za-z_][A-Za-z0-9_]*|<<|>>|[-+*/&|~()]|\S/g) ?? [];
     let i = 0;
     const PREC: Record<string, number> = { '|': 1, '&': 2, '<<': 3, '>>': 3, '+': 4, '-': 4, '*': 5, '/': 5 };
     const atom = (): number | string => {
         const t = tokens[i++];
         if (t === undefined) return 'expression ends too soon';
         if (t === '-') { const v = atom(); return typeof v === 'string' ? v : -v; }
+        if (t === '+') return atom();
+        if (t === '~') { const v = atom(); return typeof v === 'string' ? v : ~v; }
+        if (t === '(') {
+            const v = climb(1);
+            if (typeof v === 'string') return v;
+            if (tokens[i++] !== ')') return 'missing ")"';
+            return v;
+        }
+        if (t.startsWith('!')) { const v = symbols(t); return v === undefined ? `unknown define ${t}` : v; }
         const n = literal(t);
         if (n !== null) return n;
         if (LABEL_RE.test(t)) { const v = symbols(t); return v === undefined ? `unknown label ${t}` : v; }
@@ -238,14 +251,26 @@ export function evaluate(expr: string, symbols: (name: string) => number | undef
 
 /**
  * Encodes a measured file placed at bus address `bus` (its first byte). `symbols`: every label's bus address (its own
- * and other files'). Skipped bytes stay 0 in the result.
+ * and other files') and `!DEFINE` values. Skipped bytes stay 0 in the result.
  */
 export function encode(m: Measured, bus: number, symbols: (name: string) => number | undefined, errors: AsmError[]): Uint8Array {
     const bytes = new Uint8Array(m.length);
+    const resolvedDefs = new Map<string, number>(), evaluating = new Set<string>();
+    const lookup = (name: string): number | undefined => {
+        if (!m.defs.has(name)) return symbols(name);
+        if (resolvedDefs.has(name)) return resolvedDefs.get(name);
+        if (evaluating.has(name)) return undefined;
+        evaluating.add(name);
+        const v = evaluate(m.defs.get(name)!, lookup);
+        evaluating.delete(name);
+        if (typeof v !== 'number') return undefined;
+        resolvedDefs.set(name, v);
+        return v;
+    };
     let base = bus, baseOffset = 0;
     for (const st of m.statements) {
         const err = (message: string) => errors.push({ file: m.file, line: st.line, message });
-        const val = (expr: string): number | null => { const v = evaluate(expr, symbols); if (typeof v === 'string') { err(v); return null; } return v; };
+        const val = (expr: string): number | null => { const v = evaluate(expr, lookup); if (typeof v === 'string') { err(v); return null; } return v; };
         const put = (at: number, v: number, n: number) => { for (let k = 0; k < n; k++) bytes[at + k] = (v >>> (8 * k)) & 0xFF; };
         if (st.kind === 'org') { const o = m.orgs.find(x => x.offset === st.offset)!; base = o.bus; baseOffset = st.offset; continue; }
         if (st.kind === 'skip') continue;

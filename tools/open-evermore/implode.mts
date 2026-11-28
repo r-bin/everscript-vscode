@@ -2,6 +2,7 @@
 // Every resource goes wherever the allocator puts it: in its old place (stable, the default) or shuffled
 // (`seed`), which proves that nothing reaches it by a fixed address. CLI: open-evermore.mts.
 import { readBase, DIR as BASE_DIR } from './base.mts';
+import { buildAsarProject } from './asar-project.mts';
 import { ENUM, resolveEnum } from './enum.mts';
 import type { Codec, Item, Segment, Span, Write } from './codec.mts';
 import { explode } from './explode.mts';
@@ -35,6 +36,8 @@ export interface Result {
     /** Where each resource was (home) and where this build put it; `pieces`: the file spans it covers, each with its
      *  offset in the resource (one, unless it runs on in a window or has holes). */
     placed: { key: string; home: number | undefined; at: number; length: number; changed: boolean; pieces: (Span & { offset: number })[]; segments: Segment[] }[];
+    /** Standalone Asar project (`_build/asar/`), present when `emitAsar` is set and the build succeeded. */
+    asar?: Tree;
 }
 
 export interface Options {
@@ -48,6 +51,8 @@ export interface Options {
     strict?: boolean;
     /** Memory at vanilla's places (ImplodeContext.vanillaMemory): prove's original. */
     vanillaMemory?: boolean;
+    /** Emit a standalone whole-game Asar project in Result.asar. */
+    emitAsar?: boolean;
 }
 
 /** The plans to try, smallest first: hirom grows to 4 MiB, then to exhirom (manifest `grow`, default on). */
@@ -68,10 +73,10 @@ export function implode(onDisk: Tree, game: string, kinds: Codec[], opts: Option
     const where = folders(kinds), tree = mapTree(onDisk, where.fromTree);
     const seed = opts.seed ?? null;
     const placed: Result['placed'] = [];
-    let built: Uint8Array | null = null, label: string | null = null;
+    let built: Uint8Array | null = null, label: string | null = null, asar: Tree | undefined;
     const done = (image: Uint8Array | null = null, stats: KindStats[] = [], hash: string | null = null): Result => {
         for (const f of findings.list) { try { f.file = where.toTree(f.file); } catch { /* a name no folder can hold: as the codec gave it */ } }
-        return { findings, image: findings.failed ? null : image, content: findings.failed ? null : built, layout: label, stats, sha1: hash, seed, placed };
+        return { findings, image: findings.failed ? null : image, content: findings.failed ? null : built, layout: label, stats, sha1: hash, seed, placed, ...(asar && !findings.failed ? { asar } : {}) };
     };
 
     // Stage 1: the manifest and the base.
@@ -160,6 +165,11 @@ export function implode(onDisk: Tree, game: string, kinds: Codec[], opts: Option
     for (const w of writes) {
         if (!tables.some(t => w.at >= t.start && w.at + w.bytes.length <= t.end)) findings.error('wrong-region', w.file, '', `generated table at ${formatAddr(busOf(w.at))} lies outside the table space explode recorded`);
         else content.set(w.bytes, w.at);
+    }
+    if (findings.failed) return done(null, stats);
+    if (opts.emitAsar) {
+        const codeFiles = new Map(items.filter(i => i.key.startsWith('code/')).map(i => [i.key.slice(5), i.file]));
+        asar = buildAsarProject({ base, plan: p, kinds, ctx, items, placed: layout.at, writes, codeFiles });
     }
     const image = p.build(content);
     const hash = sha1(image);

@@ -5,35 +5,32 @@ the reasoning are in [../open-evermore/code.md](../open-evermore/code.md); the k
 [../open-evermore/resources.md](../open-evermore/resources.md) §code. This page is the tracker: what holds today, and
 the open steps, smallest first.
 
-## Current state (v0.477.0, 2026-11-28)
+## Current state (v0.478.0, 2026-11-28)
 
 - **Every recorded routine is a file.** `code/<routine>.asm`: 1,448 files (plus the folder's README), 117,208 bytes,
-  57,892 lines. Each is in the CDL export's Asar syntax. Names come from the knowledge base (the names of
-  `soe://rom/code/`), with `func_<address>` for an unnamed call target and `loc_<address>` for any other start, and a
-  `loc_` label at every jump and branch target.
-- **Pinned.** Every routine stays at its vanilla address and size, the pinned-kind exception to the hard rule
-  ([../open-evermore/README.md](../open-evermore/README.md) §1). A same-size edit builds. A routine that grows, a new
-  file, an `org` and a `skip` over bytes of its own are errors (`code-size`, `code-new`, `code-org`, `code-skip`), and
-  so is an assembly error (`asm`, by line).
-- **Other kinds' bytes stay theirs**: 3,715 operands (`; operand written by wram`, …) and 10 files with `skip` (item
-  hooks, tables read in place) are holes of the routine's item, written by their kind.
-- **Built by implode itself**: `src/platform/snes/asm65816.ts`, our assembler for the export's syntax. All 1,024 opcode
-  × width forms and all 49,848 census instructions assemble back to their bytes.
-- **Asar agrees** (checked by hand, 2026-11-28): Asar 1.90pre assembling the 1,448 files onto an image whose code bytes
-  were blanked to `$FF` (a `main.asm` of `hirom` plus one `org $<run address>` and `incsrc` per file, the address from
-  `_base/_base.json` homes) writes back all 117,208 bytes and gives the vanilla sha1. No label was undefined, and the five
-  `mvn` keep their bytes (the operand order the review left open).
-- **Input**: the census `tools/open-evermore/evermore/map/us.code.json` (49,848 instructions in 562 runs, widths
-  run-length coded, 987 entries), from the vanilla CDL library by `tools/open-evermore/code-census.mts`. It is checked in,
-  so explode needs no CDL library.
-- **Proven**: implode `--strict` gives the vanilla sha1; random seeds 1 and 2026, ExHiROM and SA-1 round-trip
-  (`tests/open-evermore/g0.test.mts`). Edits of other instruction lengths, a routine in a subfolder, a label of the
-  modder's own used from another routine and an edited README round-trip: a routine compares by the bytes it assembles
-  to. `prove` was not run, since no byte changes and no routine moves.
+  in Asar syntax. Names come from the knowledge base (`soe://rom/code/`), with `func_<address>` for an unnamed call
+  target and `loc_<address>` for any other start, plus `loc_` labels at jump and branch targets.
+- **Symbolic WRAM and table-reader operands (C0b, C0c)**: all `3,448` WRAM census operands (`wram.asm`, using
+  `VAR-$7E0000` for the 59 `$00:xxxx` bank-0 long accesses) and all `lda.l` table readers for `maps`, `tiles`,
+  `scripts`, `animations`, `characters._enemy_index`, `sprite_blocks_16`, and `sprite_blocks_8` (`tbl_*` in
+  `symbols.asm`) are emitted symbolically and owned by `code/` (`code/owned-sites` handoff).
+- **New routines and movable `jsl`-only leaves (C1, C3)**: new `code/<name>.asm` files without `org` and `154` pure
+  `jsl`-only leaves (no `jsr.w` caller, no remaining foreign holes, no `tableAt` sites, no `phk`/`pea`/`per`/data, no
+  WRAM indirect-jump hook references, and no `_base` pointer matches) relocate freely in FastROM via `layout.mts`.
+- **Two-phase assembly + standalone whole-game Asar project (C0a)**: `src/platform/snes/asm65816.ts` (extended with
+  `!DEFINE`s, `NAME = expr` constants, parenthesized expressions, and unary `~`/`+`/`-`) assembles `code/*.asm` after
+  placement, and `implode` emits `_build/asar/` (`main.asm`, `enums.asm`, `wram.asm`, `symbols.asm`, `blobs/`). Running
+  Asar 1.90pre via `implode --asar` builds byte-identical ROMs for both `--strict` (`79e7738630fff5699217ef58ecc421bc8fcbcd89`)
+  and `--random 1` (`d7816e1413c6c7f13f86be8a6d9af314671c7aca`, with 132 moved routines).
+- **Proven**: `implode --strict` gives the vanilla sha1; `g0.test.mts` verifies random seeds 1 and 2026, ExHiROM, SA-1,
+  WRAM moves in `code/`, C1 new routines, C3 movable routines, and real Asar parity; `prove --random 1` passes all
+  14,638 frames in lockstep (`attract-loop.evsmv`: 6,224 frames, `intro-2m20.evsmv`: 8,414 frames).
 - **What is not covered**:
   - Code the CDL never saw run stays in `_base/`: 80 named knowledge entries, banks `$93`/`$96`/`$9A`, and the 35
     branches into such places, which a file keeps as `db` with a comment.
-  - Data operands are numbers with a comment naming the target (`; → strings/…`), not labels.
+  - Remaining non-`lda.l` codec operand patches (`rings`, `dog_forms`, `consumables`, `ingredients`, `palettes`,
+    `characters` bank bytes) stay as foreign holes (`skip` / `; operand written by ...`) and post-code `blobs/patches.bin`
+    slices in `_build/asar/main.asm`.
   - Only the US release: the census is US, and so are the knowledge base's addresses. Another release keeps its code in
     `_base/`.
 
@@ -42,15 +39,15 @@ the open steps, smallest first.
 | # | Step | State |
 |---|---|---|
 | C0 | Every recorded routine a file, pinned, assembled by implode (code.md §2.1) | ✅ v0.477.0 |
-| C0a | **The Asar check as a tool**: implode writes `_build/main.asm` (the `org` + `incsrc` list above), and a test or `prove` step runs Asar on it when `ASAR` is set, comparing the bytes. It is the by-hand check of 2026-11-28, kept | 🔴 |
-| C0b | **Data by label** (code.md §3.1): a long or DB-relative operand into another kind's resource written as that resource's label (`<kind>/<name>` → an Asar name), a `symbols.asm` from placement, the codecs' operand patches retired one at a time | 🔴 |
-| C0c | **WRAM by name in the code**: the `wram` kind's names as Asar defines or labels on the operands it rewrites (the 3,715 `operand written by wram` lines), so a file reads `lda.w BOY_HP` and the census site becomes a reference | 🔴 depends on C0b's label scheme |
+| C0a | **The Asar check as a tool**: `implode` emits `_build/asar/` (`main.asm`, `enums.asm`, `wram.asm`, `symbols.asm`, `blobs/`) and `--asar` verifies byte-identical Asar builds | ✅ v0.478.0 |
+| C0b | **Data by label** (code.md §3.1): generated-table `lda.l` readers (`maps`, `tiles`, `scripts`, `animations`, `characters._enemy_index`, `sprite_blocks_16`, `sprite_blocks_8`) symbolized as `tbl_*`; remaining non-`lda.l` codec patches still open | 🟨 v0.478.0 |
+| C0c | **WRAM by name in the code**: all `3,448` WRAM census operands written by WRAM symbol (`wram.asm`) and owned by `code/` | ✅ v0.478.0 |
 | C0d | **Code the CDL never saw**: a static pass from table entries and the 35 branch targets (symbolic-export M7, Ghidra seeds as hints only), checked against a recording before it joins the census | 🔴 |
 | C0e | **Other releases**: a census per release (a CDL recording of that release, or the US one carried over by `locate`'s byte signatures), and names from the US knowledge through `code-locate.ts` | 🔴 |
-| C0f | One `prove` smoke seed with code exploded (bytes are identical, so it should add nothing; the skill's rule for naming-only changes) | 🟡 not run |
-| C1 | **New routines by name**: a file with no home placed by `placement.mts` in FastROM space (4th MB), reached by `jsl` from other files, handler tables naming it through a generated `jml` stub in their bank. Then the item and ingredient hooks (`consumable-hooks.mts`, `ingredient-hooks.mts`) become generated `code/` files instead of TS byte arrays | 🔴 next |
+| C0f | `prove --random 1` smoke + lockstep check with symbolic WRAM/tables and C3 moved routines (14,638 frames in step) | ✅ v0.478.0 |
+| C1 | **New routines by name**: `code/<name>.asm` without `org` placed by `layout.mts` in FastROM, using WRAM, `tbl_*`/`res_*` symbols, and `!ENUM`/`!STRUCT` defines (handler-table bank stubs and moving `consumable-hooks.mts`/`ingredient-hooks.mts` into `code/` files still open) | ✅ v0.478.0 |
 | C2 | Symbols the export still lacks: game regions (M0), local labels for the `seg_+off` branches (M1), DB-relative operands (M4), a padding test per bank (M8) | 🔴 |
-| C3 | Move `jsl`-only leaves (no `jsr.w` caller, no `phk : plb`, no `pea`, no mid entry) inside FastROM, under `prove --strict` | 🔴 |
+| C3 | Move `154` `jsl`-only leaves inside FastROM, verified under `prove --random 1` and `g0.test.mts` | ✅ v0.478.0 |
 | C4 | Move a bank's handlers with their jump table, or a whole `jsr.w` group; fall-through chains (a named mid-entry is its own file today) move as one | 🔴 |
 | C5 | Header vectors by routine name (S8, `header.json`) | 🔴 |
 | C6 | Address immediates, pointers in data (M5, M6), with the ratchet that only shrinks | 🔴 |

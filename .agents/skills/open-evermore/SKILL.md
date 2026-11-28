@@ -139,10 +139,12 @@ Tests: `tests/open-evermore/g0.test.mts` (rom tier, ~4 min), `in-game.test.mts` 
   only the save area.
   A `JSR (table,x)` whose table cannot leave its bank (items ring, v0.461.0): a `jsl` hook in the call's 4 bytes that turns
   the long return into a short one and `rtl`s into the handler in that bank (`consumable-hooks.mts`).
-- **The code kind is last and takes only what no kind took** (v0.477.0, `docs/open-evermore/code.md`): explode passes it
-  the other kinds' spans (`others`), and their bytes inside a routine are holes, so a kind that starts patching code
-  needs no change in `code.mts`. Its instructions come from the census `us.code.json` (`code-census.mts`; regenerate
-  after the CDL library grows); a routine compares by the bytes it assembles to, never by text.
+- **The code kind is last and takes only what no kind took** (v0.478.0, `docs/open-evermore/code.md`): explode passes it
+  the other kinds' spans (`others`), subtracting the WRAM census sites and generated-table `lda.l` readers that `code`
+  symbolizes and owns (`code/owned-sites`); remaining foreign bytes stay as holes. New routines (`code/<name>.asm` without
+  `org`, C1) and 154 `jsl`-only leaves (C3) relocate freely in FastROM; `implode` assembles in two phases after placement
+  and emits `_build/asar/` (`--asar` verifies whole-game Asar builds). Its instructions come from `us.code.json`
+  (`code-census.mts`); a routine compares by the bytes it assembles to, never by text.
 - **Script lines are operands, not bytes** (`op a, b, c`): `operands.mts` per token and parameter type, expressions
   in `expressions.mts`. Explode keeps a readable operand only if it reads back to the same bytes, else `[hex]`; the
   round trip compares bytes. `<`/`>` are operators except in `<0x…>` cells (`splitTop`).

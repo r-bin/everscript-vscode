@@ -9,6 +9,7 @@
 import { createRequire } from 'node:module';
 import type { Span } from '../../codec.mts';
 import { readCensus } from '../../code-census.mts';
+import type { Foreign, TableSite, WramSite } from './code-symbols.mts';
 
 const require = createRequire(import.meta.url);
 const { OPCODES, instructionLength } = require('../../../../dist/platform/snes/opcodes-65816');
@@ -32,8 +33,6 @@ export function addressLabel(name: string): number | undefined {
 }
 
 export interface Routine { name: string; start: number; end: number; title?: string }
-/** A byte range another kind owns (its pool or its generated tables). */
-export interface Foreign extends Span { kind: string }
 
 /** Length of the instruction at `off` with census width `w` (0-3). */
 export const lengthAt = (rom: Uint8Array, off: number, w: number) => instructionLength(rom[off], (w & 1) === 1, (w & 2) === 2);
@@ -94,7 +93,7 @@ export function findRoutines(rom: Uint8Array, hd: Map<number, number>, foreign: 
         for (const h of sorted) {
             while (k < list.length && list[k][1] <= h) k++;
             const inside = k < list.length && list[k][0] <= h && h < list[k][1];
-            if (!inside && !foreign(h)) { starts.add(h); added = true; while (k < list.length && list[k][0] <= h) k++; }
+            if (!starts.has(h) && !inside && !foreign(h)) { starts.add(h); added = true; while (k < list.length && list[k][0] <= h) k++; }
         }
         if (!added) return [...ext].sort((a, b) => a[0] - b[0]).map(([s, e]) => ({
             start: s, end: e, name: named.get(s)?.name ?? (c.entries.includes('$' + hex6(s)) ? 'func_' : 'loc_') + hex6(RUN + s), title: named.get(s)?.title,
@@ -148,6 +147,30 @@ export interface TextContext {
     foreign: Foreign[];
     /** The resource of another kind at a file offset (`maps/pyramid_outside+$12`), for comments. */
     resourceAt(off: number): string | null;
+    /** Generated-table reader sites keyed by instruction file offset. */
+    tableReaders?: Map<number, TableSite>;
+    /** WRAM census sites keyed by instruction file offset. */
+    wramSites?: Map<number, WramSite>;
+    /** Optional symbolic WRAM lookup for unsited 24-bit `$7E`/`$7F` operands. */
+    wramLong?(addr: number): string | null;
+}
+
+const ABS_MODES = new Set(['abs', 'absx', 'absy']);
+
+/** Formats an instruction with a symbolic operand expression (`lda.l tbl_maps_table,x`, `lda.w BOY_HP`). */
+export function formatSymbolicInstruction(ins: { mnemonic: string; mode: string; len: number }, expr: string): string | null {
+    const m = ins.mnemonic.toLowerCase();
+    if (ins.mode === 'immM' || ins.mode === 'immX') return `${m}.${ins.len === 2 ? 'b' : 'w'} #${expr}`;
+    if (ABS_MODES.has(ins.mode)) {
+        const suffix = ins.mode === 'absx' ? ',x' : ins.mode === 'absy' ? ',y' : '';
+        return `${m}.w ${expr}${suffix}`;
+    }
+    if (ins.mode === 'long' || ins.mode === 'longx') {
+        const name = ins.mnemonic === 'JSL' || ins.mnemonic === 'JML' ? m : `${m}.l`;
+        return `${name} ${expr}${ins.mode === 'longx' ? ',x' : ''}`;
+    }
+    if (ins.mode === 'iabsx') return `${m} (${expr},x)`;
+    return null;
 }
 
 const foreignAt = (list: Foreign[], off: number): Foreign | null => {
@@ -186,11 +209,15 @@ export function routineText(t: TextContext, r: Routine): string {
         if (p.at !== r.start && t.labelAt.has(p.at)) lines.push(`${t.labelAt.get(p.at)}:`);
         if (p.ins) {
             const ins = decode(rom, p.at, hd.get(p.at)!), run = RUN + p.at;
-            const asm = formatInstruction(ins, run, resolve);
-            const notes: string[] = [];
             const owner = [...Array(ins.len - 1).keys()].map(i => foreignAt(t.foreign, p.at + 1 + i)).find(Boolean);
+            const tr = !owner ? t.tableReaders?.get(p.at) : undefined;
+            const ws = !owner && !tr ? t.wramSites?.get(p.at) : undefined;
+            const wl = !owner && !tr && !ws && (ins.mode === 'long' || ins.mode === 'longx') && ((ins.operand >>> 16) === 0x7E || (ins.operand >>> 16) === 0x7F) ? t.wramLong?.(ins.operand) : null;
+            const symExpr = tr?.expr ?? ws?.expr ?? wl ?? null;
+            const asm = (symExpr ? formatSymbolicInstruction(ins, symExpr) : null) ?? formatInstruction(ins, run, resolve);
+            const notes: string[] = [];
             if (owner) notes.push(`operand written by ${owner.kind}`);
-            if (ins.mode === 'long' || ins.mode === 'longx') { const o = romOffset(ins.operand), res = o >= 0 && !t.labelAt.has(o) ? t.resourceAt(o) : null; if (res) notes.push('→ ' + res); }
+            if (!symExpr && (ins.mode === 'long' || ins.mode === 'longx')) { const o = romOffset(ins.operand), res = o >= 0 && !t.labelAt.has(o) ? t.resourceAt(o) : null; if (res) notes.push('→ ' + res); }
             if (!asm) notes.push(`${ins.mnemonic.toLowerCase()} to $${hex6(relativeTarget(ins, run))}, a place no label marks`);
             const text = '    ' + (asm ?? dbLines(rom, p.at, p.len)[0].trim());
             lines.push(notes.length ? text.padEnd(36) + '; ' + notes.join('; ') : text);
